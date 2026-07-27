@@ -1,0 +1,1289 @@
+openapi: 3.1.0
+info:
+  title: Portfolio Manager API
+  summary: 股票与 ETF 投资组合管理 REST API
+  description: |
+    管理投资组合、股票/ETF 交易、每日行情同步、组合估值和资产配置。
+    MVP 使用服务端预置演示用户，金融数值以十进制字符串传输。
+  version: 1.0.0
+  contact:
+    name: Portfolio Manager Team
+servers:
+  - url: /
+    description: 当前部署地址；本地开发默认解析为 http://localhost:8000
+security: []
+tags:
+  - name: Portfolios
+    description: 用户与投资组合管理
+  - name: Trading
+    description: 股票/ETF 标的、交易与当前持仓
+  - name: Market Data
+    description: 每日行情同步、运行状态与最新价格
+  - name: Analytics
+    description: 组合估值、盈亏、资产配置和历史表现
+  - name: Health
+    description: 服务存活与依赖就绪检查
+
+paths:
+  /api/v1/portfolios:
+    get:
+      tags: [Portfolios]
+      operationId: listPortfolios
+      summary: 查询组合列表
+      description: 查询当前用户的组合，默认不包含已归档组合。
+      x-owner: member-2
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+        - name: includeArchived
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          example: false
+      responses:
+        "200":
+          description: 组合分页列表
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PortfolioPage"
+              example:
+                items:
+                  - id: 22222222-2222-2222-2222-222222222222
+                    name: Long-term Growth
+                    description: US stocks and ETFs
+                    baseCurrency: USD
+                    isArchived: false
+                    createdAt: "2026-07-27T08:00:00Z"
+                    updatedAt: "2026-07-27T08:00:00Z"
+                page: 1
+                pageSize: 20
+                total: 1
+        "422":
+          $ref: "#/components/responses/ValidationError"
+    post:
+      tags: [Portfolios]
+      operationId: createPortfolio
+      summary: 创建组合
+      x-owner: member-2
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PortfolioCreate"
+            example:
+              name: Long-term Growth
+              description: US stocks and ETFs
+              baseCurrency: USD
+      responses:
+        "201":
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Portfolio"
+              example:
+                id: 22222222-2222-2222-2222-222222222222
+                name: Long-term Growth
+                description: US stocks and ETFs
+                baseCurrency: USD
+                isArchived: false
+                createdAt: "2026-07-27T08:00:00Z"
+                updatedAt: "2026-07-27T08:00:00Z"
+        "409":
+          $ref: "#/components/responses/ConflictError"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /api/v1/portfolios/{portfolioId}:
+    parameters:
+      - $ref: "#/components/parameters/PortfolioId"
+    get:
+      tags: [Portfolios]
+      operationId: getPortfolio
+      summary: 查询组合详情
+      x-owner: member-2
+      responses:
+        "200":
+          description: 组合详情
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Portfolio"
+              example:
+                id: 22222222-2222-2222-2222-222222222222
+                name: Long-term Growth
+                description: US stocks and ETFs
+                baseCurrency: USD
+                isArchived: false
+                createdAt: "2026-07-27T08:00:00Z"
+                updatedAt: "2026-07-27T08:00:00Z"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+    patch:
+      tags: [Portfolios]
+      operationId: updatePortfolio
+      summary: 修改组合
+      x-owner: member-2
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PortfolioUpdate"
+            example:
+              name: Core Growth
+              description: Updated description
+      responses:
+        "200":
+          description: 修改后的组合
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Portfolio"
+              example:
+                id: 22222222-2222-2222-2222-222222222222
+                name: Core Growth
+                description: Updated description
+                baseCurrency: USD
+                isArchived: false
+                createdAt: "2026-07-27T08:00:00Z"
+                updatedAt: "2026-07-27T09:00:00Z"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "409":
+          $ref: "#/components/responses/ConflictError"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+    delete:
+      tags: [Portfolios]
+      operationId: deletePortfolio
+      summary: 删除空组合
+      description: 仅允许删除没有交易历史的组合。
+      x-owner: member-2
+      responses:
+        "204":
+          description: 删除成功，无响应体
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "409":
+          $ref: "#/components/responses/ConflictError"
+
+  /api/v1/portfolios/{portfolioId}/archive:
+    post:
+      tags: [Portfolios]
+      operationId: archivePortfolio
+      summary: 归档组合
+      x-owner: member-2
+      parameters:
+        - $ref: "#/components/parameters/PortfolioId"
+      responses:
+        "200":
+          description: 已归档组合
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Portfolio"
+              example:
+                id: 22222222-2222-2222-2222-222222222222
+                name: Core Growth
+                description: Updated description
+                baseCurrency: USD
+                isArchived: true
+                createdAt: "2026-07-27T08:00:00Z"
+                updatedAt: "2026-07-27T10:00:00Z"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /api/v1/instruments:
+    get:
+      tags: [Trading]
+      operationId: searchInstruments
+      summary: 搜索股票与 ETF
+      x-owner: member-3
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+          example: AAPL
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+          example: 10
+      responses:
+        "200":
+          description: 匹配的股票与 ETF
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstrumentList"
+              example:
+                items:
+                  - id: 33333333-3333-3333-3333-333333333333
+                    symbol: AAPL
+                    name: Apple Inc.
+                    assetType: STOCK
+                    exchangeCode: NASDAQ
+                    currency: USD
+                    isActive: true
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /api/v1/portfolios/{portfolioId}/transactions:
+    parameters:
+      - $ref: "#/components/parameters/PortfolioId"
+    post:
+      tags: [Trading]
+      operationId: createTransaction
+      summary: 创建买入或卖出交易
+      x-owner: member-3
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransactionCreate"
+            example:
+              instrumentId: 33333333-3333-3333-3333-333333333333
+              side: BUY
+              quantity: "10.00000000"
+              unitPrice: "198.42000000"
+              feeAmount: "1.25000000"
+              executedAt: "2026-07-27T08:30:00Z"
+              note: Initial position
+      responses:
+        "201":
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+              example:
+                id: 55555555-5555-5555-5555-555555555555
+                portfolioId: 22222222-2222-2222-2222-222222222222
+                instrumentId: 33333333-3333-3333-3333-333333333333
+                symbol: AAPL
+                side: BUY
+                quantity: "10.00000000"
+                unitPrice: "198.42000000"
+                feeAmount: "1.25000000"
+                currency: USD
+                executedAt: "2026-07-27T08:30:00Z"
+                note: Initial position
+                createdAt: "2026-07-27T08:30:01Z"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "409":
+          $ref: "#/components/responses/ConflictError"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+    get:
+      tags: [Trading]
+      operationId: listTransactions
+      summary: 查询交易历史
+      x-owner: member-3
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            default: -executedAt
+          example: -executedAt
+      responses:
+        "200":
+          description: 交易分页列表
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransactionPage"
+              example:
+                items:
+                  - id: 55555555-5555-5555-5555-555555555555
+                    portfolioId: 22222222-2222-2222-2222-222222222222
+                    instrumentId: 33333333-3333-3333-3333-333333333333
+                    symbol: AAPL
+                    side: BUY
+                    quantity: "10.00000000"
+                    unitPrice: "198.42000000"
+                    feeAmount: "1.25000000"
+                    currency: USD
+                    executedAt: "2026-07-27T08:30:00Z"
+                    note: Initial position
+                    createdAt: "2026-07-27T08:30:01Z"
+                page: 1
+                pageSize: 20
+                total: 1
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /api/v1/portfolios/{portfolioId}/positions:
+    get:
+      tags: [Trading]
+      operationId: listPositions
+      summary: 查询当前持仓
+      x-owner: member-3
+      parameters:
+        - $ref: "#/components/parameters/PortfolioId"
+      responses:
+        "200":
+          description: 当前持仓
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PositionList"
+              example:
+                items:
+                  - instrumentId: 33333333-3333-3333-3333-333333333333
+                    symbol: AAPL
+                    name: Apple Inc.
+                    assetType: STOCK
+                    quantity: "10.00000000"
+                    averageCost: "198.54500000"
+                    realizedPnl: "0.00000000"
+                    openedAt: "2026-07-27T08:30:01Z"
+                    updatedAt: "2026-07-27T08:30:01Z"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /api/v1/market-data/sync:
+    post:
+      tags: [Market Data]
+      operationId: triggerMarketDataSync
+      summary: 手动触发行情同步
+      x-owner: member-4
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SyncRequest"
+            example:
+              force: false
+      responses:
+        "202":
+          description: 同步已开始
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncRun"
+              example:
+                id: 66666666-6666-6666-6666-666666666666
+                provider: twelve-data
+                status: RUNNING
+                requestedCount: 2
+                successCount: 0
+                failureCount: 0
+                startedAt: "2026-07-27T09:00:00Z"
+                completedAt: null
+                triggeredBy: MANUAL
+                errorSummary: null
+        "409":
+          $ref: "#/components/responses/ConflictError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailableError"
+
+  /api/v1/market-data/sync-runs/latest:
+    get:
+      tags: [Market Data]
+      operationId: getLatestMarketDataSync
+      summary: 查询最近同步状态
+      x-owner: member-4
+      responses:
+        "200":
+          description: 最近运行；从未运行时为 null
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/SyncRun"
+                  - type: "null"
+              example:
+                id: 66666666-6666-6666-6666-666666666666
+                provider: twelve-data
+                status: SUCCEEDED
+                requestedCount: 2
+                successCount: 2
+                failureCount: 0
+                startedAt: "2026-07-27T09:00:00Z"
+                completedAt: "2026-07-27T09:00:08Z"
+                triggeredBy: MANUAL
+                errorSummary: null
+
+  /api/v1/instruments/{instrumentId}/latest-price:
+    get:
+      tags: [Market Data]
+      operationId: getLatestInstrumentPrice
+      summary: 查询标的最新价格
+      x-owner: member-4
+      parameters:
+        - $ref: "#/components/parameters/InstrumentId"
+      responses:
+        "200":
+          description: 最新可用日收盘价
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketPrice"
+              example:
+                instrumentId: 33333333-3333-3333-3333-333333333333
+                symbol: AAPL
+                priceDate: "2026-07-24"
+                closePrice: "213.55000000"
+                adjustedClose: "213.55000000"
+                currency: USD
+                source: twelve-data
+                sourceTimestamp: null
+                fetchedAt: "2026-07-27T09:00:05Z"
+                priceStatus: FRESH
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /api/v1/portfolios/{portfolioId}/dashboard:
+    get:
+      tags: [Analytics]
+      operationId: getPortfolioDashboard
+      summary: 查询组合 Dashboard
+      x-owner: member-5
+      parameters:
+        - $ref: "#/components/parameters/PortfolioId"
+      responses:
+        "200":
+          description: 组合摘要、估值持仓与资产配置
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardResponse"
+              example:
+                portfolio:
+                  id: 22222222-2222-2222-2222-222222222222
+                  name: Long-term Growth
+                  baseCurrency: USD
+                summary:
+                  positionCount: 2
+                  pricedPositionCount: 2
+                  unpricedPositionCount: 0
+                  pricedMarketValue: "125430.18000000"
+                  totalCostBasis: "110000.00000030"
+                  pricedCostBasis: "110000.00000030"
+                  unrealizedPnl: "15430.17999970"
+                  returnPct: "14.02743636"
+                  newestPriceDate: "2026-07-24"
+                  oldestUsedPriceDate: "2026-07-24"
+                positions:
+                  - instrumentId: 33333333-3333-3333-3333-333333333333
+                    symbol: AAPL
+                    name: Apple Inc.
+                    assetType: STOCK
+                    quantity: "400.00000000"
+                    averageCost: "198.54500000"
+                    costBasis: "79418.00000000"
+                    closePrice: "213.55000000"
+                    priceDate: "2026-07-24"
+                    priceSource: twelve-data
+                    priceStatus: FRESH
+                    marketValue: "85420.00000000"
+                    unrealizedPnl: "6002.00000000"
+                    returnPct: "7.55748067"
+                    allocationPct: "68.10163232"
+                  - instrumentId: 44444444-4444-4444-4444-444444444444
+                    symbol: SPY
+                    name: SPDR S&P 500 ETF Trust
+                    assetType: ETF
+                    quantity: "70.00000000"
+                    averageCost: "436.88571429"
+                    costBasis: "30582.00000030"
+                    closePrice: "571.57400000"
+                    priceDate: "2026-07-24"
+                    priceSource: twelve-data
+                    priceStatus: FRESH
+                    marketValue: "40010.18000000"
+                    unrealizedPnl: "9428.17999970"
+                    returnPct: "30.82918056"
+                    allocationPct: "31.89836768"
+                allocation:
+                  - instrumentId: 33333333-3333-3333-3333-333333333333
+                    symbol: AAPL
+                    marketValue: "85420.00000000"
+                    allocationPct: "68.10163232"
+                  - instrumentId: 44444444-4444-4444-4444-444444444444
+                    symbol: SPY
+                    marketValue: "40010.18000000"
+                    allocationPct: "31.89836768"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /api/v1/portfolios/{portfolioId}/performance:
+    get:
+      tags: [Analytics]
+      operationId: getPortfolioPerformance
+      summary: 查询估值历史
+      x-owner: member-5
+      parameters:
+        - $ref: "#/components/parameters/PortfolioId"
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+          example: "2026-07-01"
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+          example: "2026-07-27"
+      responses:
+        "200":
+          description: 每日估值时间序列
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PerformanceResponse"
+              example:
+                portfolioId: 22222222-2222-2222-2222-222222222222
+                baseCurrency: USD
+                points:
+                  - valuationDate: "2026-07-24"
+                    pricedMarketValue: "125430.18000000"
+                    totalCostBasis: "110000.00000000"
+                    pricedCostBasis: "110000.00000000"
+                    unrealizedPnl: "15430.18000000"
+                    pricedPositionCount: 2
+                    unpricedPositionCount: 0
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /health/live:
+    get:
+      tags: [Health]
+      operationId: getLiveness
+      summary: 存活检查
+      x-owner: member-5
+      responses:
+        "200":
+          description: API 进程存活
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveHealth"
+              example:
+                status: ok
+
+  /health/ready:
+    get:
+      tags: [Health]
+      operationId: getReadiness
+      summary: 就绪检查
+      x-owner: member-5
+      responses:
+        "200":
+          description: API 与 MySQL 就绪
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadyHealth"
+              example:
+                status: ready
+                checks:
+                  mysql: ok
+        "503":
+          $ref: "#/components/responses/ServiceUnavailableError"
+
+components:
+  parameters:
+    PortfolioId:
+      name: portfolioId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      example: 22222222-2222-2222-2222-222222222222
+    InstrumentId:
+      name: instrumentId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      example: 33333333-3333-3333-3333-333333333333
+    Page:
+      name: page
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      example: 1
+    PageSize:
+      name: pageSize
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      example: 20
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: 同一逻辑交易的所有网络重试必须复用同一个值。
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 100
+      example: demo-buy-aapl-001
+
+  responses:
+    NotFoundError:
+      description: 资源不存在或不属于当前用户
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            code: PORTFOLIO_NOT_FOUND
+            message: Portfolio was not found.
+            fieldErrors: {}
+            requestId: req-01J3X6F8NQ8H2A3V
+    ConflictError:
+      description: 唯一键、幂等、并发或业务状态冲突
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            code: POSITION_INSUFFICIENT_QUANTITY
+            message: 卖出数量超过当前持仓。
+            fieldErrors:
+              quantity:
+                - Must not exceed the current position.
+            requestId: req-01J3X6F8NQ8H2A3V
+    ValidationError:
+      description: 请求字段验证失败
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            code: VALIDATION_ERROR
+            message: Request validation failed.
+            fieldErrors:
+              quantity:
+                - Must be greater than zero.
+            requestId: req-01J3X6F8NQ8H2A3V
+    ServiceUnavailableError:
+      description: MySQL 或外部依赖不可用
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            code: SERVICE_NOT_READY
+            message: MySQL dependency is unavailable.
+            fieldErrors: {}
+            requestId: req-01J3X6F8NQ8H2A3V
+
+  schemas:
+    DecimalString:
+      type: string
+      pattern: "^-?[0-9]+(\\.[0-9]+)?$"
+      example: "1250.00000000"
+    Currency:
+      type: string
+      pattern: "^[A-Z]{3}$"
+      example: USD
+    AssetType:
+      type: string
+      enum: [STOCK, ETF]
+    TradeSide:
+      type: string
+      enum: [BUY, SELL]
+    PriceStatus:
+      type: string
+      enum: [FRESH, STALE, UNAVAILABLE]
+    SyncStatus:
+      type: string
+      enum: [RUNNING, SUCCEEDED, PARTIAL, FAILED]
+
+    ErrorResponse:
+      type: object
+      required: [code, message, fieldErrors, requestId]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        fieldErrors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+        requestId:
+          type: string
+
+    PortfolioCreate:
+      type: object
+      required: [name, baseCurrency]
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        description:
+          type: [string, "null"]
+          maxLength: 500
+        baseCurrency:
+          $ref: "#/components/schemas/Currency"
+      example:
+        name: Long-term Growth
+        description: US stocks and ETFs
+        baseCurrency: USD
+
+    PortfolioUpdate:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        description:
+          type: [string, "null"]
+          maxLength: 500
+      example:
+        name: Core Growth
+        description: Updated description
+
+    Portfolio:
+      type: object
+      required:
+        - id
+        - name
+        - baseCurrency
+        - isArchived
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: [string, "null"]
+        baseCurrency:
+          $ref: "#/components/schemas/Currency"
+        isArchived:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PortfolioPage:
+      type: object
+      required: [items, page, pageSize, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Portfolio"
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        total:
+          type: integer
+
+    Instrument:
+      type: object
+      required:
+        - id
+        - symbol
+        - name
+        - assetType
+        - exchangeCode
+        - currency
+        - isActive
+      properties:
+        id:
+          type: string
+          format: uuid
+        symbol:
+          type: string
+        name:
+          type: string
+        assetType:
+          $ref: "#/components/schemas/AssetType"
+        exchangeCode:
+          type: string
+        currency:
+          $ref: "#/components/schemas/Currency"
+        isActive:
+          type: boolean
+
+    InstrumentList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Instrument"
+
+    TransactionCreate:
+      type: object
+      additionalProperties: false
+      required:
+        - instrumentId
+        - side
+        - quantity
+        - unitPrice
+        - executedAt
+      properties:
+        instrumentId:
+          type: string
+          format: uuid
+        side:
+          $ref: "#/components/schemas/TradeSide"
+        quantity:
+          allOf:
+            - $ref: "#/components/schemas/DecimalString"
+          description: 必须大于零
+        unitPrice:
+          allOf:
+            - $ref: "#/components/schemas/DecimalString"
+          description: 必须大于零
+        feeAmount:
+          allOf:
+            - $ref: "#/components/schemas/DecimalString"
+          default: "0"
+        executedAt:
+          type: string
+          format: date-time
+        note:
+          type: [string, "null"]
+          maxLength: 500
+
+    Transaction:
+      type: object
+      required:
+        - id
+        - portfolioId
+        - instrumentId
+        - symbol
+        - side
+        - quantity
+        - unitPrice
+        - feeAmount
+        - currency
+        - executedAt
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        portfolioId:
+          type: string
+          format: uuid
+        instrumentId:
+          type: string
+          format: uuid
+        symbol:
+          type: string
+        side:
+          $ref: "#/components/schemas/TradeSide"
+        quantity:
+          $ref: "#/components/schemas/DecimalString"
+        unitPrice:
+          $ref: "#/components/schemas/DecimalString"
+        feeAmount:
+          $ref: "#/components/schemas/DecimalString"
+        currency:
+          $ref: "#/components/schemas/Currency"
+        executedAt:
+          type: string
+          format: date-time
+        note:
+          type: [string, "null"]
+        createdAt:
+          type: string
+          format: date-time
+
+    TransactionPage:
+      type: object
+      required: [items, page, pageSize, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Transaction"
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        total:
+          type: integer
+
+    Position:
+      type: object
+      required:
+        - instrumentId
+        - symbol
+        - name
+        - assetType
+        - quantity
+        - averageCost
+        - realizedPnl
+        - openedAt
+        - updatedAt
+      properties:
+        instrumentId:
+          type: string
+          format: uuid
+        symbol:
+          type: string
+        name:
+          type: string
+        assetType:
+          $ref: "#/components/schemas/AssetType"
+        quantity:
+          $ref: "#/components/schemas/DecimalString"
+        averageCost:
+          $ref: "#/components/schemas/DecimalString"
+        realizedPnl:
+          $ref: "#/components/schemas/DecimalString"
+        openedAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PositionList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Position"
+
+    SyncRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        force:
+          type: boolean
+          default: false
+      example:
+        force: false
+
+    SyncRun:
+      type: object
+      required:
+        - id
+        - provider
+        - status
+        - requestedCount
+        - successCount
+        - failureCount
+        - startedAt
+        - triggeredBy
+      properties:
+        id:
+          type: string
+          format: uuid
+        provider:
+          type: string
+        status:
+          $ref: "#/components/schemas/SyncStatus"
+        requestedCount:
+          type: integer
+          minimum: 0
+        successCount:
+          type: integer
+          minimum: 0
+        failureCount:
+          type: integer
+          minimum: 0
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: [string, "null"]
+          format: date-time
+        triggeredBy:
+          type: string
+          enum: [SCHEDULE, MANUAL, RETRY]
+        errorSummary:
+          type: [string, "null"]
+
+    MarketPrice:
+      type: object
+      required:
+        - instrumentId
+        - symbol
+        - priceDate
+        - closePrice
+        - currency
+        - source
+        - fetchedAt
+        - priceStatus
+      properties:
+        instrumentId:
+          type: string
+          format: uuid
+        symbol:
+          type: string
+        priceDate:
+          type: string
+          format: date
+        closePrice:
+          $ref: "#/components/schemas/DecimalString"
+        adjustedClose:
+          oneOf:
+            - $ref: "#/components/schemas/DecimalString"
+            - type: "null"
+        currency:
+          $ref: "#/components/schemas/Currency"
+        source:
+          type: string
+        sourceTimestamp:
+          type: [string, "null"]
+          format: date-time
+        fetchedAt:
+          type: string
+          format: date-time
+        priceStatus:
+          $ref: "#/components/schemas/PriceStatus"
+
+    DashboardPortfolio:
+      type: object
+      required: [id, name, baseCurrency]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        baseCurrency:
+          $ref: "#/components/schemas/Currency"
+
+    PortfolioSummary:
+      type: object
+      required:
+        - positionCount
+        - pricedPositionCount
+        - unpricedPositionCount
+        - pricedMarketValue
+        - totalCostBasis
+        - pricedCostBasis
+        - unrealizedPnl
+      properties:
+        positionCount:
+          type: integer
+        pricedPositionCount:
+          type: integer
+        unpricedPositionCount:
+          type: integer
+        pricedMarketValue:
+          $ref: "#/components/schemas/DecimalString"
+        totalCostBasis:
+          $ref: "#/components/schemas/DecimalString"
+        pricedCostBasis:
+          $ref: "#/components/schemas/DecimalString"
+        unrealizedPnl:
+          $ref: "#/components/schemas/DecimalString"
+        returnPct:
+          oneOf:
+            - $ref: "#/components/schemas/DecimalString"
+            - type: "null"
+        newestPriceDate:
+          type: [string, "null"]
+          format: date
+        oldestUsedPriceDate:
+          type: [string, "null"]
+          format: date
+
+    DashboardPosition:
+      type: object
+      required:
+        - instrumentId
+        - symbol
+        - name
+        - assetType
+        - quantity
+        - averageCost
+        - costBasis
+        - priceStatus
+      properties:
+        instrumentId:
+          type: string
+          format: uuid
+        symbol:
+          type: string
+        name:
+          type: string
+        assetType:
+          $ref: "#/components/schemas/AssetType"
+        quantity:
+          $ref: "#/components/schemas/DecimalString"
+        averageCost:
+          $ref: "#/components/schemas/DecimalString"
+        costBasis:
+          $ref: "#/components/schemas/DecimalString"
+        closePrice:
+          oneOf:
+            - $ref: "#/components/schemas/DecimalString"
+            - type: "null"
+        priceDate:
+          type: [string, "null"]
+          format: date
+        priceSource:
+          type: [string, "null"]
+        priceStatus:
+          $ref: "#/components/schemas/PriceStatus"
+        marketValue:
+          oneOf:
+            - $ref: "#/components/schemas/DecimalString"
+            - type: "null"
+        unrealizedPnl:
+          oneOf:
+            - $ref: "#/components/schemas/DecimalString"
+            - type: "null"
+        returnPct:
+          oneOf:
+            - $ref: "#/components/schemas/DecimalString"
+            - type: "null"
+        allocationPct:
+          oneOf:
+            - $ref: "#/components/schemas/DecimalString"
+            - type: "null"
+
+    AllocationItem:
+      type: object
+      required: [instrumentId, symbol, marketValue, allocationPct]
+      properties:
+        instrumentId:
+          type: string
+          format: uuid
+        symbol:
+          type: string
+        marketValue:
+          $ref: "#/components/schemas/DecimalString"
+        allocationPct:
+          $ref: "#/components/schemas/DecimalString"
+
+    DashboardResponse:
+      type: object
+      required: [portfolio, summary, positions, allocation]
+      properties:
+        portfolio:
+          $ref: "#/components/schemas/DashboardPortfolio"
+        summary:
+          $ref: "#/components/schemas/PortfolioSummary"
+        positions:
+          type: array
+          items:
+            $ref: "#/components/schemas/DashboardPosition"
+        allocation:
+          type: array
+          items:
+            $ref: "#/components/schemas/AllocationItem"
+
+    PerformancePoint:
+      type: object
+      required:
+        - valuationDate
+        - pricedMarketValue
+        - totalCostBasis
+        - pricedCostBasis
+        - unrealizedPnl
+        - pricedPositionCount
+        - unpricedPositionCount
+      properties:
+        valuationDate:
+          type: string
+          format: date
+        pricedMarketValue:
+          $ref: "#/components/schemas/DecimalString"
+        totalCostBasis:
+          $ref: "#/components/schemas/DecimalString"
+        pricedCostBasis:
+          $ref: "#/components/schemas/DecimalString"
+        unrealizedPnl:
+          $ref: "#/components/schemas/DecimalString"
+        pricedPositionCount:
+          type: integer
+        unpricedPositionCount:
+          type: integer
+
+    PerformanceResponse:
+      type: object
+      required: [portfolioId, baseCurrency, points]
+      properties:
+        portfolioId:
+          type: string
+          format: uuid
+        baseCurrency:
+          $ref: "#/components/schemas/Currency"
+        points:
+          type: array
+          items:
+            $ref: "#/components/schemas/PerformancePoint"
+
+    LiveHealth:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          const: ok
+
+    ReadyHealth:
+      type: object
+      required: [status, checks]
+      properties:
+        status:
+          type: string
+          const: ready
+        checks:
+          type: object
+          required: [mysql]
+          properties:
+            mysql:
+              type: string
+              const: ok

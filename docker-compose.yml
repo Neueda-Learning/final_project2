@@ -1,0 +1,60 @@
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: portfolio_manager
+      MYSQL_USER: portfolio
+      MYSQL_PASSWORD: portfolio
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./docs/database/schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
+      - ./db/seeds/001-demo.sql:/docker-entrypoint-initdb.d/002-demo.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: infra/api.Dockerfile
+    environment:
+      DATABASE_URL: jdbc:mysql://mysql:3306/portfolio_manager?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DATABASE_USERNAME: portfolio
+      DATABASE_PASSWORD: portfolio
+    ports:
+      - "8000:8000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: .
+      dockerfile: infra/worker.Dockerfile
+    environment:
+      DATABASE_URL: jdbc:mysql://mysql:3306/portfolio_manager?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DATABASE_USERNAME: portfolio
+      DATABASE_PASSWORD: portfolio
+      TWELVE_DATA_API_KEY: ${TWELVE_DATA_API_KEY:-}
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: infra/frontend.Dockerfile
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000/api/v1
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+
+volumes:
+  mysql-data:

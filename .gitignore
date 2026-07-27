@@ -1,0 +1,29 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Java / Maven
+target/
+*.class
+*.jar
+.mvn/timing.properties
+
+# JavaScript
+node_modules/
+frontend/dist/
+frontend/coverage/
+
+# Editors and OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Runtime data
+*.log
+coverage.xml
+htmlcov/
+
+# GSD temporary verification artifacts
+.planning/tmp/
