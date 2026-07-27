@@ -7,8 +7,12 @@ public interface MarketDataProvider {
 
     String name();
 
-    List<DailyPrice> getDailyPrices(
+    List<InstrumentSearchResult> searchInstruments(String query, int limit);
+
+    List<DailyPrice> fetchDailyCloses(
             List<String> symbols,
             LocalDate start,
             LocalDate end);
+
+    boolean healthCheck();
 }
