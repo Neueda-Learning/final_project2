@@ -85,4 +85,24 @@ public class Portfolio {
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
     }
+
+    /** 返回所属用户 ID，用于所有权校验（避免直接暴露 user 代理对象） */
+    public String getUserId() {
+        return user != null ? user.getId() : null;
+    }
+
+    /** 更新组合名称（PATCH 接口使用） */
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    /** 更新组合描述（PATCH 接口使用，传 null 则不修改） */
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    /** 归档/取消归档（归档后不出现在默认列表） */
+    public void setArchived(boolean archived) {
+        this.archived = archived;
+    }
 }
