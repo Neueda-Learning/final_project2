@@ -64,7 +64,7 @@ export interface TransactionCreate {
   instrumentId: string;
   side: TradeSide;
   quantity: DecimalString;
-  priceDate: string;
+  executionTimestamp: string;
   feeAmount?: DecimalString;
   note?: string | null;
 }

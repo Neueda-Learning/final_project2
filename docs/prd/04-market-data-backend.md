@@ -134,7 +134,7 @@ market hours. Supply credentials and overrides through environment variables.
 - Return the current run when a task already exists.
 - Latest-run responses for success, partial success, and failure.
 - Latest-price responses for fresh, stale, unavailable, and 404 cases.
-- Tradable-price history returns only stored real daily closes in descending date order and enforces its limit.
+- Daily-close history returns only stored real daily closes in descending date order and enforces its limit.
 
 ### Database Tests
 

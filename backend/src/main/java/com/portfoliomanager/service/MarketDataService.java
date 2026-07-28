@@ -252,6 +252,48 @@ public class MarketDataService {
                         "The selected date is not a tradable date with stored market data for this instrument."));
     }
 
+    public MarketBarResponse tradableBar(
+            String instrumentId, LocalDateTime executionTimestamp) {
+        requireInstrument(instrumentId);
+        if (executionTimestamp.getSecond() != 0 || executionTimestamp.getNano() != 0) {
+            throw new IllegalArgumentException(
+                    "executionTimestamp must align to an exact one-minute bar.");
+        }
+        return jdbc.query(
+                        """
+                        SELECT b.instrument_id, i.symbol, b.interval_code,
+                               b.bar_timestamp, b.open_price, b.high_price,
+                               b.low_price, b.close_price, b.volume,
+                               b.currency, b.source
+                        FROM market_intraday_bar b
+                        JOIN instrument i ON i.id = b.instrument_id
+                        WHERE b.instrument_id = ?
+                          AND b.interval_code = '1min'
+                          AND b.bar_timestamp = ?
+                          AND b.close_price > 0
+                        ORDER BY b.fetched_at DESC
+                        LIMIT 1
+                        """,
+                        (rs, rowNum) -> new MarketBarResponse(
+                                rs.getString("instrument_id"),
+                                rs.getString("symbol"),
+                                rs.getString("interval_code"),
+                                rs.getTimestamp("bar_timestamp").toLocalDateTime(),
+                                rs.getBigDecimal("open_price"),
+                                rs.getBigDecimal("high_price"),
+                                rs.getBigDecimal("low_price"),
+                                rs.getBigDecimal("close_price"),
+                                rs.getObject("volume", Long.class),
+                                rs.getString("currency"),
+                                rs.getString("source")),
+                        instrumentId,
+                        executionTimestamp)
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "The selected minute is not tradable because no stored one-minute market bar exists."));
+    }
+
     private void requireInstrument(String instrumentId) {
         Integer instrumentCount = jdbc.queryForObject(
                 "SELECT COUNT(*) FROM instrument WHERE id = ?", Integer.class, instrumentId);

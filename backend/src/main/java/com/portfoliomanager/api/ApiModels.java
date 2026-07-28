@@ -69,7 +69,7 @@ public final class ApiModels {
             @NotBlank String instrumentId,
             @NotNull TradeSide side,
             @NotNull @Positive @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal quantity,
-            @NotNull LocalDate priceDate,
+            @NotNull LocalDateTime executionTimestamp,
             @DecimalMin("0") @JsonFormat(shape = JsonFormat.Shape.STRING)
                     BigDecimal feeAmount,
             @Size(max = 500) String note) {}

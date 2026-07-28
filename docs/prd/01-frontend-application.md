@@ -37,8 +37,10 @@ Deliver a responsive, client-ready portfolio dashboard that lets users create an
 ### 3.3 Trading and Holdings
 
 - Stock and ETF search.
-- Buy and sell forms that select a real available trading date and show its stored daily close as a read-only unit price.
-- An editable fee that defaults to `0.00 USD`; clients never submit an arbitrary price, currency, or execution timestamp.
+- A compact buy/sell ticket that selects a real available trading date and exact
+  market minute, then shows the stored one-minute close as a read-only unit price.
+- An optional editable fee that defaults to `0.00 USD`; clients never submit an
+  arbitrary price or currency.
 - Current holdings table and transaction history.
 - Clear errors for overselling, duplicate submission, and invalid fields.
 

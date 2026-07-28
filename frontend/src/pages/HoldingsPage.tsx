@@ -9,14 +9,15 @@ import { EmptyState } from "../components/EmptyState";
 import { ErrorBox } from "../components/ErrorBox";
 import { PageHeader } from "../components/PageHeader";
 import type { CuratedSectorId } from "../data/curatedInstruments";
-import { formatCurrency, formatDate, formatDateTime, formatQuantity } from "../lib/format";
+import { formatCurrency, formatQuantity } from "../lib/format";
 import { useLanguage } from "../i18n/LanguageContext";
 
 interface TradeFormState {
   side: TradeSide;
   instrument: Instrument | null;
   quantity: string;
-  priceDate: string;
+  executionDate: string;
+  executionTimestamp: string;
   feeAmount: string;
   note: string;
 }
@@ -25,7 +26,8 @@ const initialForm = (): TradeFormState => ({
   side: "BUY",
   instrument: null,
   quantity: "",
-  priceDate: "",
+  executionDate: "",
+  executionTimestamp: "",
   feeAmount: "0",
   note: "",
 });
@@ -34,6 +36,38 @@ function fieldError(error: unknown, field: string): string | null {
   if (!(error instanceof ApiError)) return null;
   const msgs = error.fieldErrors[field];
   return msgs && msgs.length > 0 ? msgs[0] : null;
+}
+
+const MARKET_TIME_ZONE = "America/New_York";
+
+function marketDateKey(timestamp: string): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: MARKET_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(`${timestamp}Z`));
+  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${value.year}-${value.month}-${value.day}`;
+}
+
+function marketDateLabel(timestamp: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    timeZone: MARKET_TIME_ZONE,
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    weekday: "short",
+  }).format(new Date(`${timestamp}Z`));
+}
+
+function marketTimeLabel(timestamp: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    timeZone: MARKET_TIME_ZONE,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(`${timestamp}Z`));
 }
 
 export function HoldingsPage() {
@@ -57,15 +91,35 @@ export function HoldingsPage() {
     staleTime: 10 * 60 * 1000,
   });
 
-  const pricesQuery = useQuery({
-    queryKey: ["tradable-prices", form.instrument?.id],
-    queryFn: () => api.marketData.getTradablePrices(form.instrument!.id),
+  const barsQuery = useQuery({
+    queryKey: ["tradable-bars", form.instrument?.id],
+    queryFn: () => {
+      const to = new Date();
+      const from = new Date(to.getTime() - 7 * 24 * 60 * 60 * 1000);
+      return api.marketData.getBars(form.instrument!.id, {
+        interval: "1min",
+        from: from.toISOString().slice(0, 19),
+        to: to.toISOString().slice(0, 19),
+        page: 1,
+        pageSize: 500,
+      });
+    },
     enabled: Boolean(form.instrument),
+    staleTime: 30_000,
   });
 
-  const selectedPrice = useMemo(
-    () => pricesQuery.data?.find((price) => price.priceDate === form.priceDate) ?? null,
-    [pricesQuery.data, form.priceDate],
+  const bars = useMemo(() => barsQuery.data?.items ?? [], [barsQuery.data]);
+  const availableDates = useMemo(
+    () => [...new Set(bars.map((bar) => marketDateKey(bar.timestamp)))],
+    [bars],
+  );
+  const barsForDate = useMemo(
+    () => bars.filter((bar) => marketDateKey(bar.timestamp) === form.executionDate),
+    [bars, form.executionDate],
+  );
+  const selectedBar = useMemo(
+    () => bars.find((bar) => bar.timestamp === form.executionTimestamp) ?? null,
+    [bars, form.executionTimestamp],
   );
 
   const submitMutation = useMutation({
@@ -76,7 +130,7 @@ export function HoldingsPage() {
           instrumentId: form.instrument!.id,
           side: form.side,
           quantity: form.quantity,
-          priceDate: form.priceDate,
+          executionTimestamp: form.executionTimestamp,
           feeAmount: form.feeAmount || "0",
           note: form.note.trim() || null,
         },
@@ -98,15 +152,25 @@ export function HoldingsPage() {
     setIdemKey(crypto.randomUUID());
   }, [portfolioId]);
 
+  useEffect(() => {
+    if (!form.instrument || bars.length === 0 || form.executionTimestamp) return;
+    const newestBar = bars[0];
+    setForm((state) => ({
+      ...state,
+      executionDate: marketDateKey(newestBar.timestamp),
+      executionTimestamp: newestBar.timestamp,
+    }));
+  }, [bars, form.executionTimestamp, form.instrument]);
+
   const canSubmit =
     Boolean(portfolioId) &&
     Boolean(form.instrument) &&
     form.quantity.trim().length > 0 &&
-    Boolean(selectedPrice);
+    Boolean(selectedBar);
 
   const currency = selectedPortfolio?.baseCurrency ?? "USD";
   const quantityError = fieldError(submitMutation.error, "quantity");
-  const priceDateError = fieldError(submitMutation.error, "priceDate");
+  const executionTimestampError = fieldError(submitMutation.error, "executionTimestamp");
   const feeAmountError = fieldError(submitMutation.error, "feeAmount");
   const noteError = fieldError(submitMutation.error, "note");
   const instrumentError = fieldError(submitMutation.error, "instrumentId");
@@ -123,9 +187,28 @@ export function HoldingsPage() {
       {positionsQuery.isError ? <ErrorBox error={positionsQuery.error} onRetry={() => positionsQuery.refetch()} /> : null}
 
       {portfolioId ? (
-        <section className="card trade-card">
-          <div className="section-header">
-            <h2 className="section-title">{t("holdings.newTrade")}</h2>
+        <section className="card trade-card trade-ticket">
+          <div className="trade-ticket__header">
+            <div>
+              <span className="trade-ticket__eyebrow">{t("holdings.ticketEyebrow")}</span>
+              <h2 className="section-title">{t("holdings.newTrade")}</h2>
+            </div>
+            <div className="trade-side-toggle" aria-label={t("holdings.direction")}>
+              <button
+                type="button"
+                className={form.side === "BUY" ? "active-buy" : ""}
+                onClick={() => setForm((state) => ({ ...state, side: "BUY" }))}
+              >
+                {t("holdings.buy")}
+              </button>
+              <button
+                type="button"
+                className={form.side === "SELL" ? "active-sell" : ""}
+                onClick={() => setForm((state) => ({ ...state, side: "SELL" }))}
+              >
+                {t("holdings.sell")}
+              </button>
+            </div>
           </div>
 
           <form
@@ -136,26 +219,6 @@ export function HoldingsPage() {
             }}
             className="trade-form"
           >
-            <div className="form-group">
-              <label className="form-label">{t("holdings.direction")}</label>
-              <div className="trade-side-toggle">
-                <button
-                  type="button"
-                  className={form.side === "BUY" ? "active-buy" : ""}
-                  onClick={() => setForm((s) => ({ ...s, side: "BUY" }))}
-                >
-                  BUY
-                </button>
-                <button
-                  type="button"
-                  className={form.side === "SELL" ? "active-sell" : ""}
-                  onClick={() => setForm((s) => ({ ...s, side: "SELL" }))}
-                >
-                  SELL
-                </button>
-              </div>
-            </div>
-
             <div className="form-group">
               {instrumentsQuery.isLoading ? (
                 <div className="curated-picker-loading" aria-label={t("common.loading")}>
@@ -172,16 +235,29 @@ export function HoldingsPage() {
                   instruments={instrumentsQuery.data.items}
                   selectedInstrument={form.instrument}
                   sectorId={sectorId}
-                  onSectorChange={setSectorId}
+                  onSectorChange={(nextSectorId) => {
+                    setSectorId(nextSectorId);
+                    setForm((state) => ({
+                      ...state,
+                      instrument: null,
+                      executionDate: "",
+                      executionTimestamp: "",
+                    }));
+                  }}
                   onSelect={(instrument) =>
-                    setForm((state) => ({ ...state, instrument, priceDate: "" }))
+                    setForm((state) => ({
+                      ...state,
+                      instrument,
+                      executionDate: "",
+                      executionTimestamp: "",
+                    }))
                   }
                 />
               ) : null}
               {instrumentError ? <div className="form-error">{instrumentError}</div> : null}
             </div>
 
-            <div className="form-row">
+            <div className="trade-execution-grid">
               <div className="form-group">
                 <label className="form-label" htmlFor="quantity">
                   {t("table.quantity")}
@@ -196,50 +272,100 @@ export function HoldingsPage() {
                 {quantityError ? <div className="form-error">{quantityError}</div> : null}
               </div>
               <div className="form-group">
-                <label className="form-label" htmlFor="price-date">
+                <label className="form-label" htmlFor="execution-date">
                   {t("holdings.tradeDate")}
                 </label>
                 <select
-                  id="price-date"
-                  className={`form-select${priceDateError ? " error" : ""}`}
-                  value={form.priceDate}
-                  disabled={!form.instrument || pricesQuery.isLoading}
-                  onChange={(e) => setForm((s) => ({ ...s, priceDate: e.target.value }))}
+                  id="execution-date"
+                  className={`form-select${executionTimestampError ? " error" : ""}`}
+                  value={form.executionDate}
+                  disabled={!form.instrument || barsQuery.isLoading}
+                  onChange={(event) => {
+                    const executionDate = event.target.value;
+                    const newestBarForDate = bars.find(
+                      (bar) => marketDateKey(bar.timestamp) === executionDate,
+                    );
+                    setForm((state) => ({
+                      ...state,
+                      executionDate,
+                      executionTimestamp: newestBarForDate?.timestamp ?? "",
+                    }));
+                  }}
                 >
                   <option value="">
-                    {pricesQuery.isLoading ? t("holdings.priceLoading") : t("holdings.chooseDate")}
+                    {barsQuery.isLoading ? t("holdings.barsLoading") : t("holdings.chooseDate")}
                   </option>
-                  {(pricesQuery.data ?? []).map((price) => (
-                    <option key={`${price.priceDate}-${price.source}`} value={price.priceDate}>
-                      {formatDate(price.priceDate, locale)} · {formatCurrency(price.closePrice, price.currency, locale)}
+                  {availableDates.map((date) => {
+                    const representative = bars.find(
+                      (bar) => marketDateKey(bar.timestamp) === date,
+                    );
+                    return (
+                      <option key={date} value={date}>
+                        {representative ? marketDateLabel(representative.timestamp, locale) : date}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="execution-time">
+                  {t("holdings.tradeTime")}
+                </label>
+                <select
+                  id="execution-time"
+                  className={`form-select${executionTimestampError ? " error" : ""}`}
+                  value={form.executionTimestamp}
+                  disabled={!form.executionDate || barsQuery.isLoading}
+                  onChange={(event) =>
+                    setForm((state) => ({
+                      ...state,
+                      executionTimestamp: event.target.value,
+                    }))
+                  }
+                >
+                  <option value="">{t("holdings.chooseTime")}</option>
+                  {barsForDate.map((bar) => (
+                    <option key={`${bar.timestamp}-${bar.source}`} value={bar.timestamp}>
+                      {marketTimeLabel(bar.timestamp, locale)} · {formatCurrency(bar.close, bar.currency, locale)}
                     </option>
                   ))}
                 </select>
-                <div className="form-hint">{t("holdings.tradeDateHint")}</div>
-                {priceDateError ? <div className="form-error">{priceDateError}</div> : null}
-                {form.instrument && pricesQuery.data?.length === 0 ? (
-                  <div className="form-error">{t("holdings.noPrices")}</div>
-                ) : null}
-                {pricesQuery.isError ? <ErrorBox error={pricesQuery.error} /> : null}
+              </div>
+              <div className="minute-price">
+                <span>{t("holdings.minuteClose")}</span>
+                <strong>
+                  {selectedBar
+                    ? formatCurrency(selectedBar.close, selectedBar.currency, locale)
+                    : "—"}
+                </strong>
+                <small>
+                  {selectedBar
+                    ? `${t("holdings.high")} ${selectedBar.high} · ${t("holdings.low")} ${selectedBar.low}`
+                    : t("holdings.selectMinuteHint")}
+                </small>
               </div>
             </div>
 
-            <div className="form-row">
-              <div className="form-group">
-                <label className="form-label" htmlFor="unit-price">
-                  {t("holdings.officialClose")}
-                </label>
-                <input
-                  id="unit-price"
-                  className="form-input"
-                  value={selectedPrice
-                    ? formatCurrency(selectedPrice.closePrice, selectedPrice.currency, locale)
-                    : "—"}
-                  readOnly
-                  aria-readonly="true"
-                />
+            <div className="trade-time-note">
+              <span aria-hidden="true">◷</span>
+              <div>
+                <strong>{t("holdings.marketTime")}</strong>
+                <span>{t("holdings.tradeTimeHint")}</span>
               </div>
-              <div className="form-group">
+            </div>
+
+            {executionTimestampError ? (
+              <div className="form-error">{executionTimestampError}</div>
+            ) : null}
+            {form.instrument && barsQuery.data?.items.length === 0 ? (
+                  <div className="form-error">{t("holdings.noPrices")}</div>
+            ) : null}
+            {barsQuery.isError ? <ErrorBox error={barsQuery.error} /> : null}
+
+            <details className="trade-optional">
+              <summary>{t("holdings.optionalDetails")}</summary>
+              <div className="trade-optional__body">
+                <div className="form-group">
                 <label className="form-label" htmlFor="fee-amount">
                   {t("table.fee")}
                 </label>
@@ -252,22 +378,24 @@ export function HoldingsPage() {
                 />
                 <div className="form-hint">{t("holdings.feeHint")}</div>
                 {feeAmountError ? <div className="form-error">{feeAmountError}</div> : null}
+                </div>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="trade-note">
+                    {t("table.note")}
+                  </label>
+                  <textarea
+                    id="trade-note"
+                    className={`form-textarea${noteError ? " error" : ""}`}
+                    maxLength={500}
+                    value={form.note}
+                    onChange={(event) =>
+                      setForm((state) => ({ ...state, note: event.target.value }))
+                    }
+                  />
+                  {noteError ? <div className="form-error">{noteError}</div> : null}
+                </div>
               </div>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label" htmlFor="trade-note">
-                {t("table.note")}
-              </label>
-              <textarea
-                id="trade-note"
-                className={`form-textarea${noteError ? " error" : ""}`}
-                maxLength={500}
-                value={form.note}
-                onChange={(e) => setForm((s) => ({ ...s, note: e.target.value }))}
-              />
-              {noteError ? <div className="form-error">{noteError}</div> : null}
-            </div>
+            </details>
 
             <div className="form-actions">
               <button
@@ -306,26 +434,23 @@ export function HoldingsPage() {
               <thead>
                 <tr>
                   <th>{t("table.symbol")}</th>
-                  <th>{t("table.name")}</th>
-                  <th>{t("table.type")}</th>
                   <th className="num">{t("table.quantity")}</th>
                   <th className="num">{t("table.averageCost")}</th>
                   <th className="num">{t("table.realizedPnl")}</th>
-                  <th>{t("table.opened")}</th>
-                  <th>{t("table.updated")}</th>
                 </tr>
               </thead>
               <tbody>
                 {positionsQuery.data.items.map((p) => (
                   <tr key={p.instrumentId}>
-                    <td className="sym">{p.symbol}</td>
-                    <td>{p.name}</td>
-                    <td>{p.assetType}</td>
+                    <td>
+                      <div className="holding-identity">
+                        <strong>{p.symbol}</strong>
+                        <span>{p.name} · {p.assetType}</span>
+                      </div>
+                    </td>
                     <td className="num">{formatQuantity(p.quantity, locale)}</td>
                     <td className="num">{formatCurrency(p.averageCost, currency, locale)}</td>
                     <td className="num">{formatCurrency(p.realizedPnl, currency, locale)}</td>
-                    <td>{formatDateTime(p.openedAt, locale)}</td>
-                    <td>{formatDateTime(p.updatedAt, locale)}</td>
                   </tr>
                 ))}
               </tbody>

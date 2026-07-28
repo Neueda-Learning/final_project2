@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.portfoliomanager.api.ApiModels.TransactionCreateRequest;
 import jakarta.validation.Validation;
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 
 class DomainModelTest {
@@ -17,7 +17,7 @@ class DomainModelTest {
                     "instrument-id",
                     TradeSide.BUY,
                     BigDecimal.ZERO,
-                    LocalDate.now(),
+                    LocalDateTime.now().withSecond(0).withNano(0),
                     BigDecimal.ZERO,
                     null);
 

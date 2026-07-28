@@ -122,11 +122,13 @@ public class TradingService {
             return toTransactionResponse(existingTrade.get());
         }
 
-        // Resolve the immutable execution price from the selected stored daily close.
-        var marketPrice = marketData.tradablePrice(request.instrumentId(), request.priceDate());
-        BigDecimal unitPrice = marketPrice.closePrice();
-        String currency = marketPrice.currency();
-        LocalDateTime executedAt = request.priceDate().atTime(16, 0);
+        // Resolve the immutable execution price from the exact stored one-minute bar.
+        var marketBar =
+                marketData.tradableBar(
+                        request.instrumentId(), request.executionTimestamp());
+        BigDecimal unitPrice = marketBar.close();
+        String currency = marketBar.currency();
+        LocalDateTime executedAt = marketBar.timestamp();
         BigDecimal feeAmount =
                 request.feeAmount() == null ? BigDecimal.ZERO : request.feeAmount();
 
