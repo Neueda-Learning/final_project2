@@ -22,9 +22,8 @@ The course objective is to let users manage portfolios containing stocks and ETF
 
 ### 2.2 Explicit MVP Exclusions
 
-- No tick-level order-book stream or WebSocket quotes. The application polls
-  provider-normalized one-minute OHLCV bars and retains daily closes for
-  portfolio valuation.
+- No tick-level order-book stream, WebSocket quotes, or minute-history polling.
+  The application synchronizes daily OHLCV history for portfolio valuation.
 - No options, bonds, cryptocurrency, short selling, margin, or derivatives.
 - No dividend, split, tax, or complex corporate-action processing.
 - No multi-currency conversion; MVP portfolios and instruments use USD.
@@ -40,7 +39,7 @@ The course objective is to let users manage portfolios containing stocks and ETF
 | Charts | Chart.js and react-chartjs-2 | Rapid implementation of doughnut charts, line charts, and interactive tooltips |
 | API backend | Java 21, Spring Boot 4.1, Spring MVC, Bean Validation | Java LTS baseline with mature layering, validation, and operational support |
 | ORM/migrations | Spring Data JPA, Hibernate, Flyway | Separates domain entities, repositories, and database migrations |
-| Market-data adapter | Twelve Data REST as the first implementation behind a provider interface | Supports stock/ETF one-minute OHLCV bars and daily history |
+| Market-data adapter | Twelve Data REST as the first implementation behind a provider interface | Supports stock/ETF daily OHLCV history |
 | Polling process | Separate Spring Boot worker with `@Scheduled` | Prevents duplicate work when the web process scales horizontally |
 | Database | MySQL 8.0, InnoDB | Exact decimals, transactions, constraints, views, and row-level locking |
 | Local runtime | Docker Compose | Consistent frontend, API, worker, and database environment |

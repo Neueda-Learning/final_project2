@@ -11,7 +11,7 @@ spring:
 market-data:
   provider: ${MARKET_DATA_PROVIDER:twelve-data}
   api-key: ${TWELVE_DATA_API_KEY:}
-  sync-cron: ${MARKET_SYNC_CRON:0 */5 9-16 * * MON-FRI}
+  sync-cron: ${MARKET_SYNC_CRON:0 0 22 * * MON-FRI}
   time-zone: ${MARKET_TIMEZONE:America/New_York}
   # Twelve Data truncates multi-symbol historical responses; one symbol per
   # request guarantees the full requested date range is returned.
@@ -22,5 +22,3 @@ market-data:
   # The basic Twelve Data plan permits eight API credits per minute.
   request-interval-millis: ${MARKET_REQUEST_INTERVAL_MILLIS:8000}
   manual-poll-interval-ms: ${MARKET_MANUAL_POLL_INTERVAL_MS:2000}
-  intraday-interval: ${MARKET_INTRADAY_INTERVAL:1min}
-  intraday-lookback-days: ${MARKET_INTRADAY_LOOKBACK_DAYS:5}

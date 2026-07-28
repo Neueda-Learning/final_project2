@@ -39,19 +39,16 @@ public class TradingService {
     private final PortfolioRepository portfolios;
     private final TradeTransactionRepository transactions;
     private final PortfolioPositionRepository positions;
-    private final MarketDataService marketData;
 
     public TradingService(
             InstrumentRepository instruments,
             PortfolioRepository portfolios,
             TradeTransactionRepository transactions,
-            PortfolioPositionRepository positions,
-            MarketDataService marketData) {
+            PortfolioPositionRepository positions) {
         this.instruments = instruments;
         this.portfolios = portfolios;
         this.transactions = transactions;
         this.positions = positions;
-        this.marketData = marketData;
     }
 
     /** Lists active instruments or searches them by symbol or name fragment. */
@@ -122,13 +119,10 @@ public class TradingService {
             return toTransactionResponse(existingTrade.get());
         }
 
-        // Resolve the immutable execution price from the exact stored one-minute bar.
-        var marketBar =
-                marketData.tradableBar(
-                        request.instrumentId(), request.executionTimestamp());
-        BigDecimal unitPrice = marketBar.close();
-        String currency = marketBar.currency();
-        LocalDateTime executedAt = marketBar.timestamp();
+        // The user records the actual execution price; market history is not a trade dependency.
+        BigDecimal unitPrice = request.unitPrice();
+        String currency = instrument.getCurrency();
+        LocalDateTime executedAt = request.tradeDate().atTime(16, 0);
         BigDecimal feeAmount =
                 request.feeAmount() == null ? BigDecimal.ZERO : request.feeAmount();
 

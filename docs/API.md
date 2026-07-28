@@ -328,8 +328,8 @@ Error: 422 `VALIDATION_ERROR`.
 `GET /api/v1/instruments/{instrumentId}/tradable-prices`
 
 This endpoint returns stored real daily closes for valuation and historical
-inspection. Minute-level transaction entry uses the intraday bars endpoint in
-section 7.4.
+inspection. Transaction entry does not depend on this data because users record
+their actual execution price.
 
 ```bash
 curl -s \
@@ -365,10 +365,9 @@ Errors: 404 `INSTRUMENT_NOT_FOUND`; 404 `MARKET_PRICE_NOT_FOUND`; 422 `VALIDATIO
 
 `POST /api/v1/portfolios/{portfolioId}/transactions`
 
-The client selects an exact UTC `executionTimestamp` from the instrument's stored
-one-minute bars. The server loads that bar, uses its close as the immutable
-execution price, and derives currency from the bar. Seconds and fractional
-seconds must be zero. `unitPrice` and `currency` cannot be supplied by the client.
+The client supplies the trading date and the actual execution price. The server
+uses the selected instrument's currency and stores the price as an immutable
+transaction fact. Historical market-data availability does not block trade entry.
 
 ```bash
 curl -s -X POST \
@@ -379,7 +378,8 @@ curl -s -X POST \
     "instrumentId": "33333333-3333-3333-3333-333333333333",
     "side": "BUY",
     "quantity": "10.00000000",
-    "executionTimestamp": "2026-07-27T19:59:00",
+    "tradeDate": "2026-07-27",
+    "unitPrice": "214.05000000",
     "feeAmount": "0.00000000",
     "note": "Initial position"
   }'
@@ -392,7 +392,8 @@ Request:
   "instrumentId": "33333333-3333-3333-3333-333333333333",
   "side": "BUY",
   "quantity": "10.00000000",
-  "executionTimestamp": "2026-07-27T19:59:00",
+  "tradeDate": "2026-07-27",
+  "unitPrice": "214.05000000",
   "feeAmount": "0.00000000",
   "note": "Initial position"
 }
@@ -411,7 +412,7 @@ Request:
   "unitPrice": "214.05000000",
   "feeAmount": "0.00000000",
   "currency": "USD",
-  "executedAt": "2026-07-27T19:59:00",
+  "executedAt": "2026-07-27T16:00:00",
   "note": "Initial position",
   "createdAt": "2026-07-28T02:30:01Z"
 }

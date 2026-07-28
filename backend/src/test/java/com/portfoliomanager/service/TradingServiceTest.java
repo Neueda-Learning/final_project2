@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
-import com.portfoliomanager.api.ApiModels.MarketBarResponse;
 import com.portfoliomanager.api.ApiModels.TransactionCreateRequest;
 import com.portfoliomanager.domain.TradeSide;
 import com.portfoliomanager.domain.model.Instrument;
@@ -15,7 +14,7 @@ import com.portfoliomanager.repository.PortfolioPositionRepository;
 import com.portfoliomanager.repository.PortfolioRepository;
 import com.portfoliomanager.repository.TradeTransactionRepository;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,7 +31,6 @@ class TradingServiceTest {
     @Mock private PortfolioRepository portfolios;
     @Mock private TradeTransactionRepository transactions;
     @Mock private PortfolioPositionRepository positions;
-    @Mock private MarketDataService marketData;
     @Mock private Portfolio portfolio;
     @Mock private Instrument instrument;
 
@@ -40,7 +38,7 @@ class TradingServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new TradingService(instruments, portfolios, transactions, positions, marketData);
+        service = new TradingService(instruments, portfolios, transactions, positions);
     }
 
     @Test
@@ -53,32 +51,19 @@ class TradingServiceTest {
     }
 
     @Test
-    void createTransactionUsesTheSelectedStoredMinuteClose() {
+    void createTransactionUsesTheManuallyEnteredPriceAndTradeDate() {
         String portfolioId = "portfolio-id";
         String instrumentId = "instrument-id";
-        LocalDateTime executionTimestamp = LocalDateTime.of(2026, 7, 27, 19, 59);
+        LocalDate tradeDate = LocalDate.of(2026, 7, 27);
         given(portfolios.findById(portfolioId)).willReturn(Optional.of(portfolio));
         given(portfolio.isArchived()).willReturn(false);
         given(instruments.findById(instrumentId)).willReturn(Optional.of(instrument));
         given(instrument.isActive()).willReturn(true);
+        given(instrument.getCurrency()).willReturn("USD");
         given(transactions.findByPortfolioIdAndIdempotencyKey(portfolioId, "key"))
                 .willReturn(Optional.empty());
         given(positions.findByPortfolioAndInstrumentForUpdate(portfolioId, instrumentId))
                 .willReturn(Optional.empty());
-        given(marketData.tradableBar(instrumentId, executionTimestamp))
-                .willReturn(new MarketBarResponse(
-                        instrumentId,
-                        "AAPL",
-                        "1min",
-                        executionTimestamp,
-                        new BigDecimal("213.90"),
-                        new BigDecimal("214.10"),
-                        new BigDecimal("213.80"),
-                        new BigDecimal("214.05000000"),
-                        1200L,
-                        "USD",
-                        "twelve-data"));
-
         service.createTransaction(
                 portfolioId,
                 "key",
@@ -86,7 +71,8 @@ class TradingServiceTest {
                         instrumentId,
                         TradeSide.BUY,
                         new BigDecimal("2"),
-                        executionTimestamp,
+                        tradeDate,
+                        new BigDecimal("214.05000000"),
                         null,
                         null));
 
@@ -96,7 +82,7 @@ class TradingServiceTest {
         TradeTransaction saved = transactionCaptor.getValue();
         assertThat(saved.getUnitPrice()).isEqualByComparingTo("214.05000000");
         assertThat(saved.getCurrency()).isEqualTo("USD");
-        assertThat(saved.getExecutedAt()).isEqualTo(executionTimestamp);
+        assertThat(saved.getExecutedAt()).isEqualTo(tradeDate.atTime(16, 0));
         assertThat(saved.getFeeAmount()).isEqualByComparingTo("0");
     }
 }

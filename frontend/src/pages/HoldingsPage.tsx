@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { ApiError, api } from "../api/client";
@@ -16,8 +16,8 @@ interface TradeFormState {
   side: TradeSide;
   instrument: Instrument | null;
   quantity: string;
-  executionDate: string;
-  executionTimestamp: string;
+  tradeDate: string;
+  unitPrice: string;
   feeAmount: string;
   note: string;
 }
@@ -26,8 +26,8 @@ const initialForm = (): TradeFormState => ({
   side: "BUY",
   instrument: null,
   quantity: "",
-  executionDate: "",
-  executionTimestamp: "",
+  tradeDate: new Date().toISOString().slice(0, 10),
+  unitPrice: "",
   feeAmount: "0",
   note: "",
 });
@@ -36,38 +36,6 @@ function fieldError(error: unknown, field: string): string | null {
   if (!(error instanceof ApiError)) return null;
   const msgs = error.fieldErrors[field];
   return msgs && msgs.length > 0 ? msgs[0] : null;
-}
-
-const MARKET_TIME_ZONE = "America/New_York";
-
-function marketDateKey(timestamp: string): string {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: MARKET_TIME_ZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date(`${timestamp}Z`));
-  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-  return `${value.year}-${value.month}-${value.day}`;
-}
-
-function marketDateLabel(timestamp: string, locale: string): string {
-  return new Intl.DateTimeFormat(locale, {
-    timeZone: MARKET_TIME_ZONE,
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    weekday: "short",
-  }).format(new Date(`${timestamp}Z`));
-}
-
-function marketTimeLabel(timestamp: string, locale: string): string {
-  return new Intl.DateTimeFormat(locale, {
-    timeZone: MARKET_TIME_ZONE,
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(new Date(`${timestamp}Z`));
 }
 
 export function HoldingsPage() {
@@ -91,37 +59,6 @@ export function HoldingsPage() {
     staleTime: 10 * 60 * 1000,
   });
 
-  const barsQuery = useQuery({
-    queryKey: ["tradable-bars", form.instrument?.id],
-    queryFn: () => {
-      const to = new Date();
-      const from = new Date(to.getTime() - 7 * 24 * 60 * 60 * 1000);
-      return api.marketData.getBars(form.instrument!.id, {
-        interval: "1min",
-        from: from.toISOString().slice(0, 19),
-        to: to.toISOString().slice(0, 19),
-        page: 1,
-        pageSize: 500,
-      });
-    },
-    enabled: Boolean(form.instrument),
-    staleTime: 30_000,
-  });
-
-  const bars = useMemo(() => barsQuery.data?.items ?? [], [barsQuery.data]);
-  const availableDates = useMemo(
-    () => [...new Set(bars.map((bar) => marketDateKey(bar.timestamp)))],
-    [bars],
-  );
-  const barsForDate = useMemo(
-    () => bars.filter((bar) => marketDateKey(bar.timestamp) === form.executionDate),
-    [bars, form.executionDate],
-  );
-  const selectedBar = useMemo(
-    () => bars.find((bar) => bar.timestamp === form.executionTimestamp) ?? null,
-    [bars, form.executionTimestamp],
-  );
-
   const submitMutation = useMutation({
     mutationFn: () =>
       api.transactions.create(
@@ -130,7 +67,8 @@ export function HoldingsPage() {
           instrumentId: form.instrument!.id,
           side: form.side,
           quantity: form.quantity,
-          executionTimestamp: form.executionTimestamp,
+          tradeDate: form.tradeDate,
+          unitPrice: form.unitPrice,
           feeAmount: form.feeAmount || "0",
           note: form.note.trim() || null,
         },
@@ -152,25 +90,17 @@ export function HoldingsPage() {
     setIdemKey(crypto.randomUUID());
   }, [portfolioId]);
 
-  useEffect(() => {
-    if (!form.instrument || bars.length === 0 || form.executionTimestamp) return;
-    const newestBar = bars[0];
-    setForm((state) => ({
-      ...state,
-      executionDate: marketDateKey(newestBar.timestamp),
-      executionTimestamp: newestBar.timestamp,
-    }));
-  }, [bars, form.executionTimestamp, form.instrument]);
-
   const canSubmit =
     Boolean(portfolioId) &&
     Boolean(form.instrument) &&
     form.quantity.trim().length > 0 &&
-    Boolean(selectedBar);
+    form.tradeDate.length > 0 &&
+    form.unitPrice.trim().length > 0;
 
   const currency = selectedPortfolio?.baseCurrency ?? "USD";
   const quantityError = fieldError(submitMutation.error, "quantity");
-  const executionTimestampError = fieldError(submitMutation.error, "executionTimestamp");
+  const tradeDateError = fieldError(submitMutation.error, "tradeDate");
+  const unitPriceError = fieldError(submitMutation.error, "unitPrice");
   const feeAmountError = fieldError(submitMutation.error, "feeAmount");
   const noteError = fieldError(submitMutation.error, "note");
   const instrumentError = fieldError(submitMutation.error, "instrumentId");
@@ -240,16 +170,12 @@ export function HoldingsPage() {
                     setForm((state) => ({
                       ...state,
                       instrument: null,
-                      executionDate: "",
-                      executionTimestamp: "",
                     }));
                   }}
                   onSelect={(instrument) =>
                     setForm((state) => ({
                       ...state,
                       instrument,
-                      executionDate: "",
-                      executionTimestamp: "",
                     }))
                   }
                 />
@@ -275,92 +201,38 @@ export function HoldingsPage() {
                 <label className="form-label" htmlFor="execution-date">
                   {t("holdings.tradeDate")}
                 </label>
-                <select
+                <input
+                  type="date"
                   id="execution-date"
-                  className={`form-select${executionTimestampError ? " error" : ""}`}
-                  value={form.executionDate}
-                  disabled={!form.instrument || barsQuery.isLoading}
-                  onChange={(event) => {
-                    const executionDate = event.target.value;
-                    const newestBarForDate = bars.find(
-                      (bar) => marketDateKey(bar.timestamp) === executionDate,
-                    );
-                    setForm((state) => ({
-                      ...state,
-                      executionDate,
-                      executionTimestamp: newestBarForDate?.timestamp ?? "",
-                    }));
-                  }}
-                >
-                  <option value="">
-                    {barsQuery.isLoading ? t("holdings.barsLoading") : t("holdings.chooseDate")}
-                  </option>
-                  {availableDates.map((date) => {
-                    const representative = bars.find(
-                      (bar) => marketDateKey(bar.timestamp) === date,
-                    );
-                    return (
-                      <option key={date} value={date}>
-                        {representative ? marketDateLabel(representative.timestamp, locale) : date}
-                      </option>
-                    );
-                  })}
-                </select>
+                  className={`form-input${tradeDateError ? " error" : ""}`}
+                  value={form.tradeDate}
+                  onChange={(event) =>
+                    setForm((state) => ({ ...state, tradeDate: event.target.value }))
+                  }
+                />
+                {tradeDateError ? <div className="form-error">{tradeDateError}</div> : null}
               </div>
               <div className="form-group">
-                <label className="form-label" htmlFor="execution-time">
-                  {t("holdings.tradeTime")}
+                <label className="form-label" htmlFor="unit-price">
+                  {t("holdings.unitPrice")}
                 </label>
-                <select
-                  id="execution-time"
-                  className={`form-select${executionTimestampError ? " error" : ""}`}
-                  value={form.executionTimestamp}
-                  disabled={!form.executionDate || barsQuery.isLoading}
+                <input
+                  id="unit-price"
+                  className={`form-input${unitPriceError ? " error" : ""}`}
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  value={form.unitPrice}
                   onChange={(event) =>
                     setForm((state) => ({
                       ...state,
-                      executionTimestamp: event.target.value,
+                      unitPrice: event.target.value,
                     }))
                   }
-                >
-                  <option value="">{t("holdings.chooseTime")}</option>
-                  {barsForDate.map((bar) => (
-                    <option key={`${bar.timestamp}-${bar.source}`} value={bar.timestamp}>
-                      {marketTimeLabel(bar.timestamp, locale)} · {formatCurrency(bar.close, bar.currency, locale)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="minute-price">
-                <span>{t("holdings.minuteClose")}</span>
-                <strong>
-                  {selectedBar
-                    ? formatCurrency(selectedBar.close, selectedBar.currency, locale)
-                    : "—"}
-                </strong>
-                <small>
-                  {selectedBar
-                    ? `${t("holdings.high")} ${selectedBar.high} · ${t("holdings.low")} ${selectedBar.low}`
-                    : t("holdings.selectMinuteHint")}
-                </small>
+                />
+                <div className="form-hint">{t("holdings.manualPriceHint")}</div>
+                {unitPriceError ? <div className="form-error">{unitPriceError}</div> : null}
               </div>
             </div>
-
-            <div className="trade-time-note">
-              <span aria-hidden="true">◷</span>
-              <div>
-                <strong>{t("holdings.marketTime")}</strong>
-                <span>{t("holdings.tradeTimeHint")}</span>
-              </div>
-            </div>
-
-            {executionTimestampError ? (
-              <div className="form-error">{executionTimestampError}</div>
-            ) : null}
-            {form.instrument && barsQuery.data?.items.length === 0 ? (
-                  <div className="form-error">{t("holdings.noPrices")}</div>
-            ) : null}
-            {barsQuery.isError ? <ErrorBox error={barsQuery.error} /> : null}
 
             <details className="trade-optional">
               <summary>{t("holdings.optionalDetails")}</summary>

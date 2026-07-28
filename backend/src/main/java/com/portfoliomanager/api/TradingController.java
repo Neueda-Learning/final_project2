@@ -59,7 +59,7 @@ public class TradingController {
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(
             summary = "Record trade transaction",
-            description = "Record a buy or sell at an exact stored one-minute bar close "
+            description = "Record a buy or sell using the supplied trade date and execution price "
                     + "and atomically update the position. "
                     + "Idempotency-Key header ensures the same request is never double-executed.")
     @ApiResponses({

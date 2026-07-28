@@ -262,7 +262,8 @@ paths:
               instrumentId: 33333333-3333-3333-3333-333333333333
               side: BUY
               quantity: "10.00000000"
-              executionTimestamp: "2026-07-27T19:59:00"
+              tradeDate: "2026-07-27"
+              unitPrice: "214.05000000"
               feeAmount: "0.00000000"
               note: Initial position
       responses:
@@ -282,7 +283,7 @@ paths:
                 unitPrice: "214.05000000"
                 feeAmount: "0.00000000"
                 currency: USD
-                executedAt: "2026-07-27T19:59:00"
+                executedAt: "2026-07-27T16:00:00"
                 note: Initial position
                 createdAt: "2026-07-28T02:30:01Z"
         "404":
@@ -957,7 +958,8 @@ components:
         - instrumentId
         - side
         - quantity
-        - executionTimestamp
+        - tradeDate
+        - unitPrice
       properties:
         instrumentId:
           type: string
@@ -968,13 +970,14 @@ components:
           allOf:
             - $ref: "#/components/schemas/DecimalString"
           description: Must be greater than zero
-        executionTimestamp:
+        tradeDate:
           type: string
-          format: date-time
-          description: >
-            Exact UTC timestamp of a stored one-minute bar returned by the bars
-            endpoint. Seconds and fractional seconds must be zero. The server
-            resolves that bar's close as unitPrice.
+          format: date
+          description: Trading date supplied by the user
+        unitPrice:
+          allOf:
+            - $ref: "#/components/schemas/DecimalString"
+          description: Actual execution price per share or ETF unit; must be positive
         feeAmount:
           allOf:
             - $ref: "#/components/schemas/DecimalString"

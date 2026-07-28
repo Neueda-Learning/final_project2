@@ -8,7 +8,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.portfoliomanager.worker.provider.IntradayBar;
+import com.portfoliomanager.worker.provider.DailyPrice;
 import com.portfoliomanager.worker.provider.MarketDataProvider;
 import java.math.BigDecimal;
 import java.sql.Connection;
@@ -17,7 +17,6 @@ import java.sql.ResultSet;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Set;
@@ -51,12 +50,11 @@ class MarketDataSyncJobTest {
                     ConnectionCallback<Object> callback = invocation.getArgument(0);
                     return callback.doInConnection(connection);
                 });
-        when(provider.fetchIntradayBars(
-                        eq("AAPL"),
-                        eq("1min"),
-                        any(LocalDateTime.class),
-                        any(LocalDateTime.class)))
-                .thenReturn(List.of(bar()));
+        when(provider.fetchDailyCloses(
+                        eq(List.of("AAPL")),
+                        any(LocalDate.class),
+                        any(LocalDate.class)))
+                .thenReturn(List.of(price()));
         when(jdbc.queryForObject(
                         eq("SELECT GET_LOCK(?, 0)"),
                         eq(Integer.class),
@@ -134,14 +132,10 @@ class MarketDataSyncJobTest {
 
         job.processManualRequests();
 
-        verify(provider).fetchIntradayBars(
-                eq("AAPL"),
-                eq("1min"),
-                eq(LocalDateTime.of(2026, 7, 22, 12, 0)),
-                eq(LocalDateTime.of(2026, 7, 27, 12, 0)));
-        verify(jdbc).update(
-                argThat(sql -> sql.contains("INSERT INTO market_intraday_bar")),
-                any(Object[].class));
+        verify(provider).fetchDailyCloses(
+                eq(List.of("AAPL")),
+                eq(LocalDate.of(2026, 6, 28)),
+                eq(LocalDate.of(2026, 7, 28)));
         verify(jdbc).update(
                 argThat(sql -> sql.contains("INSERT INTO market_price")),
                 any(Object[].class));
@@ -164,17 +158,18 @@ class MarketDataSyncJobTest {
                 eq("run-1"));
     }
 
-    private IntradayBar bar() {
-        return new IntradayBar(
+    private DailyPrice price() {
+        return new DailyPrice(
                 "AAPL",
-                "1min",
-                LocalDateTime.of(2026, 7, 24, 15, 59),
+                LocalDate.of(2026, 7, 24),
                 new BigDecimal("212.10"),
                 new BigDecimal("215.00"),
                 new BigDecimal("211.50"),
                 new BigDecimal("213.55"),
+                new BigDecimal("213.55"),
                 43_210L,
                 "USD",
-                "fixture");
+                "fixture",
+                null);
     }
 }

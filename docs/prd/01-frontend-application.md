@@ -37,10 +37,10 @@ Deliver a responsive, client-ready portfolio dashboard that lets users create an
 ### 3.3 Trading and Holdings
 
 - Stock and ETF search.
-- A compact buy/sell ticket that selects a real available trading date and exact
-  market minute, then shows the stored one-minute close as a read-only unit price.
-- An optional editable fee that defaults to `0.00 USD`; clients never submit an
-  arbitrary price or currency.
+- A compact buy/sell ticket with a trading date and manually entered actual
+  execution price; there is no market-minute selector.
+- An optional editable fee that defaults to `0.00 USD`; currency comes from the
+  selected instrument.
 - Current holdings table and transaction history.
 - Clear errors for overselling, duplicate submission, and invalid fields.
 

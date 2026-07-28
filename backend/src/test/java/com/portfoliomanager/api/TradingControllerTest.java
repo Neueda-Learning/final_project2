@@ -21,6 +21,7 @@ import com.portfoliomanager.domain.AssetType;
 import com.portfoliomanager.domain.TradeSide;
 import com.portfoliomanager.service.TradingService;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -105,8 +106,9 @@ class TradingControllerTest {
     }
 
     @Test
-    void createTransactionAcceptsMinuteTimestampAndReturnsTheServerResolvedPrice() throws Exception {
-        LocalDateTime executionTimestamp = LocalDateTime.of(2026, 7, 27, 19, 59);
+    void createTransactionAcceptsManualPriceAndTradeDate() throws Exception {
+        LocalDate tradeDate = LocalDate.of(2026, 7, 27);
+        LocalDateTime executedAt = tradeDate.atTime(16, 0);
         given(tradingService.createTransaction(eq(PORTFOLIO_ID), eq("trade-key"), any()))
                 .willReturn(new TransactionResponse(
                         "transaction-id",
@@ -118,7 +120,7 @@ class TradingControllerTest {
                         new BigDecimal("214.05"),
                         BigDecimal.ZERO,
                         "USD",
-                        executionTimestamp,
+                        executedAt,
                         null,
                         LocalDateTime.of(2026, 7, 28, 8, 0)));
 
@@ -130,20 +132,22 @@ class TradingControllerTest {
                                   "instrumentId": "33333333-3333-3333-3333-333333333333",
                                   "side": "BUY",
                                   "quantity": "2",
-                                  "executionTimestamp": "2026-07-27T19:59:00",
+                                  "tradeDate": "2026-07-27",
+                                  "unitPrice": "214.05",
                                   "feeAmount": "0"
                                 }
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.symbol").value("AAPL"))
                 .andExpect(jsonPath("$.unitPrice").value("214.05"))
-                .andExpect(jsonPath("$.executedAt").value("2026-07-27T19:59:00"))
+                .andExpect(jsonPath("$.executedAt").value("2026-07-27T16:00:00"))
                 .andExpect(jsonPath("$.idempotencyKey").doesNotExist());
 
         ArgumentCaptor<TransactionCreateRequest> requestCaptor =
                 ArgumentCaptor.forClass(TransactionCreateRequest.class);
         verify(tradingService).createTransaction(
                 eq(PORTFOLIO_ID), eq("trade-key"), requestCaptor.capture());
-        assertThat(requestCaptor.getValue().executionTimestamp()).isEqualTo(executionTimestamp);
+        assertThat(requestCaptor.getValue().tradeDate()).isEqualTo(tradeDate);
+        assertThat(requestCaptor.getValue().unitPrice()).isEqualByComparingTo("214.05");
     }
 }

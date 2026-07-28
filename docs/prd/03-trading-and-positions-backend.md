@@ -33,9 +33,9 @@ See [API.md](../API.md) for request fields and response examples. Member 3 must 
 
 - Instruments are restricted to `STOCK` and `ETF`.
 - Quantity and execution price must be greater than zero; fees cannot be negative.
-- A transaction request supplies `executionTimestamp`, not `unitPrice` or currency.
-- `executionTimestamp` must match an exact stored real one-minute bar.
-- The server uses that bar's close as `unitPrice`, derives currency, and records the selected timestamp.
+- A transaction request supplies `tradeDate` and the actual positive `unitPrice`.
+- Trade entry does not depend on stored market history.
+- The server derives currency from the selected instrument and records the trading date.
 - The MVP is long-only.
 - Sell quantity cannot exceed the current position.
 - Idempotency keys are unique within a portfolio.
@@ -45,8 +45,8 @@ See [API.md](../API.md) for request fields and response examples. Member 3 must 
 ## 5. Transaction Flow
 
 1. Validate portfolio ownership and instrument status.
-2. Resolve `executionTimestamp` to a stored one-minute bar; reject a missing minute or price.
-3. Derive `unitPrice`, currency, and the exact execution timestamp from that bar.
+2. Validate the supplied `tradeDate` and positive `unitPrice`.
+3. Derive currency from the selected instrument.
 4. Check the portfolio and idempotency key.
 5. Lock the position with `SELECT ... FOR UPDATE`.
 6. Validate SELL quantity.
@@ -116,7 +116,7 @@ Data types:
 
 ### AC-TR-01: Atomic Buy
 
-After a buy is created from a valid selectable `executionTimestamp`, its one-minute close is recorded as unit price and both the transaction and position exist; if any operation fails, neither remains.
+After a buy is created with a valid trading date and manual execution price, both the transaction and position exist; if any operation fails, neither remains.
 
 ### AC-TR-02: Idempotency
 
