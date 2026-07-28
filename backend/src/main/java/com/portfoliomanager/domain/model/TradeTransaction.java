@@ -65,4 +65,77 @@ public class TradeTransaction {
     private LocalDateTime createdAt;
 
     protected TradeTransaction() {}
+
+    public TradeTransaction(
+            String id,
+            Portfolio portfolio,
+            Instrument instrument,
+            TradeSide side,
+            BigDecimal quantity,
+            BigDecimal unitPrice,
+            BigDecimal feeAmount,
+            String currency,
+            LocalDateTime executedAt,
+            String idempotencyKey,
+            String note) {
+        this.id = id;
+        this.portfolio = portfolio;
+        this.instrument = instrument;
+        this.side = side;
+        this.quantity = quantity;
+        this.unitPrice = unitPrice;
+        this.feeAmount = feeAmount;
+        this.currency = currency;
+        this.executedAt = executedAt;
+        this.idempotencyKey = idempotencyKey;
+        this.note = note;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public Portfolio getPortfolio() {
+        return portfolio;
+    }
+
+    public Instrument getInstrument() {
+        return instrument;
+    }
+
+    public TradeSide getSide() {
+        return side;
+    }
+
+    public BigDecimal getQuantity() {
+        return quantity;
+    }
+
+    public BigDecimal getUnitPrice() {
+        return unitPrice;
+    }
+
+    public BigDecimal getFeeAmount() {
+        return feeAmount;
+    }
+
+    public String getCurrency() {
+        return currency;
+    }
+
+    public LocalDateTime getExecutedAt() {
+        return executedAt;
+    }
+
+    public String getIdempotencyKey() {
+        return idempotencyKey;
+    }
+
+    public String getNote() {
+        return note;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
 }

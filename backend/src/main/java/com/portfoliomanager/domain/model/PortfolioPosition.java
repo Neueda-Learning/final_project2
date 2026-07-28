@@ -53,4 +53,66 @@ public class PortfolioPosition {
     private LocalDateTime updatedAt;
 
     protected PortfolioPosition() {}
+
+    public PortfolioPosition(
+            Portfolio portfolio,
+            Instrument instrument,
+            BigDecimal quantity,
+            BigDecimal averageCost,
+            BigDecimal realizedPnl) {
+        this.id = new PortfolioPositionId(portfolio.getId(), instrument.getId());
+        this.portfolio = portfolio;
+        this.instrument = instrument;
+        this.quantity = quantity;
+        this.averageCost = averageCost;
+        this.realizedPnl = realizedPnl;
+    }
+
+    public PortfolioPositionId getId() {
+        return id;
+    }
+
+    public Portfolio getPortfolio() {
+        return portfolio;
+    }
+
+    public Instrument getInstrument() {
+        return instrument;
+    }
+
+    public BigDecimal getQuantity() {
+        return quantity;
+    }
+
+    public BigDecimal getAverageCost() {
+        return averageCost;
+    }
+
+    public BigDecimal getRealizedPnl() {
+        return realizedPnl;
+    }
+
+    public int getVersion() {
+        return version;
+    }
+
+    public LocalDateTime getOpenedAt() {
+        return openedAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setQuantity(BigDecimal quantity) {
+        this.quantity = quantity;
+    }
+
+    public void setAverageCost(BigDecimal averageCost) {
+        this.averageCost = averageCost;
+    }
+
+    public void setRealizedPnl(BigDecimal realizedPnl) {
+        this.realizedPnl = realizedPnl;
+    }
 }
