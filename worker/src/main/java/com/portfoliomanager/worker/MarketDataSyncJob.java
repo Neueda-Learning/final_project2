@@ -16,6 +16,7 @@ import java.util.Set;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -31,6 +32,7 @@ public class MarketDataSyncJob {
     private final MarketDataProperties properties;
     private final Clock clock;
 
+    @Autowired
     public MarketDataSyncJob(
             MarketDataProvider provider,
             JdbcTemplate jdbc,

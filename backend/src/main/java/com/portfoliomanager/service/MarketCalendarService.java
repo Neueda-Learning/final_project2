@@ -10,6 +10,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.TemporalAdjusters;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -19,6 +20,7 @@ public class MarketCalendarService {
     private final LocalTime closeTime;
     private final Clock clock;
 
+    @Autowired
     public MarketCalendarService(
             @Value("${market-data.time-zone:America/New_York}") String marketZone,
             @Value("${market-data.close-time:16:15}") String closeTime) {
