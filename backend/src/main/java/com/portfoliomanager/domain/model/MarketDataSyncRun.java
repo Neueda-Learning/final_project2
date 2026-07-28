@@ -7,7 +7,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import org.hibernate.annotations.CreationTimestamp;
@@ -43,8 +42,7 @@ public class MarketDataSyncRun {
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
-    @Lob
-    @Column(name = "error_summary")
+    @Column(name = "error_summary", columnDefinition = "text")
     private String errorSummary;
 
     @Enumerated(EnumType.STRING)

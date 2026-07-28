@@ -27,3 +27,8 @@ htmlcov/
 
 # GSD temporary verification artifacts
 .planning/tmp/
+
+# Mock / seed data scripts (local only)
+db/seeds/002-mock-data.sql
+e2e/mock-data.ps1
+e2e/*.http

@@ -2,6 +2,7 @@ package com.portfoliomanager.api;
 
 import com.portfoliomanager.api.ApiModels.ErrorDetail;
 import com.portfoliomanager.api.ApiModels.ErrorResponse;
+import com.portfoliomanager.service.ConflictException;
 import com.portfoliomanager.service.ResourceNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -21,6 +22,15 @@ public class ApiExceptionHandler {
             ResourceNotFoundException exception,
             HttpServletRequest request) {
         return error("NOT_FOUND", exception.getMessage(), List.of(), request);
+    }
+
+    /** 409 Conflict：业务冲突（名称重复、有交易历史等），code 来自异常 message */
+    @ExceptionHandler(ConflictException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorResponse conflict(
+            ConflictException exception,
+            HttpServletRequest request) {
+        return error(exception.getMessage(), "Resource conflict", List.of(), request);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
