@@ -18,6 +18,7 @@ class DomainModelTest {
                     TradeSide.BUY,
                     BigDecimal.ZERO,
                     LocalDate.now(),
+                    BigDecimal.ONE,
                     BigDecimal.ZERO,
                     null);
 

@@ -8,21 +8,20 @@
 |---|---|
 | Primary owner | Member 4 (replace with a name before submission) |
 | Scope | Market-data provider, worker, synchronization API, MySQL, and backend tests |
-| Primary tables | `market_data_sync_run`, `market_price`, `market_intraday_bar` |
+| Primary tables | `market_data_sync_run`, `market_price` |
 | Out of scope | Frontend and valuation charts |
 | Interface contracts | [API Reference](../API.md) / [OpenAPI Specification](../openapi.yaml) |
 | Status | Implemented (real environments require `TWELVE_DATA_API_KEY`) |
 
 ## 2. Module Goal
 
-Fetch one-minute OHLCV bars for stocks and ETFs from a real external provider,
-persist them idempotently in MySQL, derive daily closes for valuation, and expose
-cached, paginated bar history to the frontend.
+Fetch daily OHLCV history for stocks and ETFs from a real external provider,
+persist it idempotently in MySQL, and use daily closes for portfolio valuation.
 
 ## 3. Market-Data Definition
 
-- The UI uses one-minute OHLCV bars. Portfolio valuation continues to use
-  derived daily closes so intraday refreshes do not rewrite historical accounting.
+- Portfolio valuation and historical charts use stored daily closes.
+- Trade entry uses the user's actual execution price and does not depend on market data.
 - The first real provider is the Twelve Data REST API.
 - Isolate providers behind the Java `MarketDataProvider` interface.
 - Use a fixture provider for automated tests and offline demonstrations.
@@ -36,7 +35,6 @@ cached, paginated bar history to the frontend.
 | GET | `/api/v1/market-data/sync-runs/latest` | 200 |
 | GET | `/api/v1/instruments/{instrumentId}/latest-price` | 200 |
 | GET | `/api/v1/instruments/{instrumentId}/tradable-prices?limit=60` | 200 |
-| GET | `/api/v1/instruments/{instrumentId}/bars?interval=1min&from=...&to=...&page=1&pageSize=200` | 200 |
 
 See [API.md](../API.md) and [openapi.yaml](../openapi.yaml) for request and response examples.
 
@@ -45,7 +43,6 @@ See [API.md](../API.md) and [openapi.yaml](../openapi.yaml) for request and resp
 ```text
 search_instruments(query, limit)
 fetch_daily_closes(symbols, start_date, end_date)
-fetch_intraday_bars(symbol, interval, start_time, end_time)
 health_check()
 ```
 
@@ -62,9 +59,9 @@ A normalized price contains:
 1. Acquire a global named lock using MySQL `GET_LOCK()`.
 2. Create a `RUNNING` synchronization record.
 3. Query active instruments whose position quantity is greater than zero.
-4. Request configurable one-minute history with timeouts, rate limiting, and retries.
+4. Request approximately one month of daily history with timeouts, rate limiting, and retries.
 5. Validate symbol, date, currency, and positive price.
-6. Upsert minute bars in explicit multi-row chunks and derive each day's OHLCV.
+6. Upsert daily OHLCV rows idempotently.
 7. Record successful, failed, and categorized errors.
 8. Mark the run `SUCCEEDED`, `PARTIAL`, or `FAILED`.
 9. Notify Member 5 to generate snapshots for affected portfolios.
@@ -76,7 +73,6 @@ The current Twelve Data implementation requests one instrument at a time (`MARKE
 
 - `market_data_sync_run`
 - `market_price`
-- `market_intraday_bar`
 - Latest-price and synchronization-run indexes
 - Market-price unique key
 - `latest_market_price` view
@@ -110,13 +106,10 @@ Do not determine staleness from calendar-day age alone; account for weekends and
 | `MARKET_REQUEST_TIMEOUT_SECONDS` | Request timeout |
 | `MARKET_MAX_RETRIES` | Maximum retries |
 | `TWELVE_DATA_API_KEY` | Conditionally required |
-| `MARKET_INTRADAY_INTERVAL` | Intraday bar interval; defaults to `1min` |
-| `MARKET_INTRADAY_LOOKBACK_DAYS` | Rolling minute-history refresh window |
 | `MARKET_REQUEST_INTERVAL_MILLIS` | Provider rate-limit spacing |
 
-The defaults use Twelve Data, UTC-normalized bar timestamps, the
-`America/New_York` market schedule, and a five-minute polling cadence during
-market hours. Supply credentials and overrides through environment variables.
+The defaults use Twelve Data, the `America/New_York` market calendar, and one
+sync after the trading day. Supply credentials and overrides through environment variables.
 
 ## 10. Backend Tests
 
@@ -134,7 +127,7 @@ market hours. Supply credentials and overrides through environment variables.
 - Return the current run when a task already exists.
 - Latest-run responses for success, partial success, and failure.
 - Latest-price responses for fresh, stale, unavailable, and 404 cases.
-- Tradable-price history returns only stored real daily closes in descending date order and enforces its limit.
+- Daily-close history returns only stored real daily closes in descending date order and enforces its limit.
 
 ### Database Tests
 

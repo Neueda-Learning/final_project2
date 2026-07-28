@@ -106,8 +106,9 @@ class TradingControllerTest {
     }
 
     @Test
-    void createTransactionAcceptsTradingDateAndReturnsTheServerResolvedPrice() throws Exception {
-        LocalDate priceDate = LocalDate.of(2026, 7, 27);
+    void createTransactionAcceptsManualPriceAndTradeDate() throws Exception {
+        LocalDate tradeDate = LocalDate.of(2026, 7, 27);
+        LocalDateTime executedAt = tradeDate.atTime(16, 0);
         given(tradingService.createTransaction(eq(PORTFOLIO_ID), eq("trade-key"), any()))
                 .willReturn(new TransactionResponse(
                         "transaction-id",
@@ -119,7 +120,7 @@ class TradingControllerTest {
                         new BigDecimal("214.05"),
                         BigDecimal.ZERO,
                         "USD",
-                        LocalDateTime.of(2026, 7, 27, 16, 0),
+                        executedAt,
                         null,
                         LocalDateTime.of(2026, 7, 28, 8, 0)));
 
@@ -131,7 +132,8 @@ class TradingControllerTest {
                                   "instrumentId": "33333333-3333-3333-3333-333333333333",
                                   "side": "BUY",
                                   "quantity": "2",
-                                  "priceDate": "2026-07-27",
+                                  "tradeDate": "2026-07-27",
+                                  "unitPrice": "214.05",
                                   "feeAmount": "0"
                                 }
                                 """))
@@ -145,6 +147,7 @@ class TradingControllerTest {
                 ArgumentCaptor.forClass(TransactionCreateRequest.class);
         verify(tradingService).createTransaction(
                 eq(PORTFOLIO_ID), eq("trade-key"), requestCaptor.capture());
-        assertThat(requestCaptor.getValue().priceDate()).isEqualTo(priceDate);
+        assertThat(requestCaptor.getValue().tradeDate()).isEqualTo(tradeDate);
+        assertThat(requestCaptor.getValue().unitPrice()).isEqualByComparingTo("214.05");
     }
 }

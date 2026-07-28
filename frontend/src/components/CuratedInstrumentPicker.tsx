@@ -26,11 +26,10 @@ export function CuratedInstrumentPicker({
 
   return (
     <div className="curated-picker">
-      <div className="curated-picker__intro">
-        <div>
-          <span className="curated-picker__eyebrow">{t("holdings.curatedEyebrow")}</span>
-          <h3>{t("holdings.curatedTitle")}</h3>
-          <p>{t("holdings.curatedDescription")}</p>
+      <div className="curated-picker__bar">
+        <div className="curated-picker__label">
+          <span>1</span>
+          <strong>{t("holdings.curatedTitle")}</strong>
         </div>
         <span className="curated-picker__guard">
           <span aria-hidden="true">✓</span>
@@ -51,11 +50,7 @@ export function CuratedInstrumentPicker({
               onClick={() => onSectorChange(sector.id)}
             >
               <span className="sector-tab__icon" aria-hidden="true">{sector.icon}</span>
-              <span className="sector-tab__copy">
-                <strong>{t(`holdings.sector.${sector.id}`)}</strong>
-                <small>{t(`holdings.sector.${sector.id}.hint`)}</small>
-              </span>
-              <span className="sector-tab__count">10</span>
+              <strong>{t(`holdings.sector.${sector.id}`)}</strong>
             </button>
           );
         })}
@@ -71,19 +66,13 @@ export function CuratedInstrumentPicker({
               aria-selected={isSelected}
               key={instrument.id}
               className={`instrument-choice${isSelected ? " is-selected" : ""}`}
+              title={`${instrument.name} · ${instrument.exchangeCode}`}
               onClick={() => onSelect(instrument)}
             >
-              <span className="instrument-choice__mark">{instrument.symbol.slice(0, 2)}</span>
-              <span className="instrument-choice__copy">
-                <span className="instrument-choice__topline">
-                  <strong>{instrument.symbol}</strong>
-                  <small>{instrument.assetType}</small>
-                </span>
-                <span className="instrument-choice__name">{instrument.name}</span>
-                <span className="instrument-choice__exchange">{instrument.exchangeCode}</span>
-              </span>
+              <strong>{instrument.symbol}</strong>
+              <small>{instrument.assetType}</small>
               <span className="instrument-choice__check" aria-hidden="true">
-                {isSelected ? "✓" : "＋"}
+                {isSelected ? "✓" : ""}
               </span>
             </button>
           );

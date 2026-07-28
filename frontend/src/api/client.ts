@@ -17,11 +17,11 @@ import type {
   ReadyHealth,
   ErrorResponse,
 } from "./types";
+import { resolveApiUrls } from "./url";
 
 // Base URL: empty string = same origin (Vite proxy in local dev).
 // Set VITE_API_BASE_URL to e.g. http://localhost:8000 in docker-compose.
-const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
-const V1 = `${API_BASE}/api/v1`;
+const { root: API_BASE, v1: V1 } = resolveApiUrls(import.meta.env.VITE_API_BASE_URL);
 
 // ─── Error class ─────────────────────────────────────────────────────────────
 export class ApiError extends Error {

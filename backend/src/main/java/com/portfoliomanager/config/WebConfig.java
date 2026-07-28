@@ -10,7 +10,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @ConfigurationProperties(prefix = "app")
 public class WebConfig implements WebMvcConfigurer {
 
-    private List<String> corsOrigins = List.of("http://localhost:5173");
+    private List<String> corsOrigins =
+            List.of("http://localhost:5173", "http://127.0.0.1:5173");
     private String demoUserId = "11111111-1111-1111-1111-111111111111";
 
     @Override

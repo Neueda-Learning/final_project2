@@ -15,7 +15,7 @@
 
 ## 2. Module Goal
 
-Provide stock/ETF search, selectable stored daily closes, buy and sell operations, transaction history, and current-position interfaces. Guarantee that clients cannot invent execution prices, as well as idempotency, financial precision, oversell validation, and atomic updates of transactions and the position projection.
+Provide stock/ETF selection, selectable stored one-minute bars, buy and sell operations, transaction history, and current-position interfaces. Guarantee that clients cannot invent execution prices, as well as idempotency, financial precision, oversell validation, and atomic updates of transactions and the position projection.
 
 ## 3. Interfaces
 
@@ -33,9 +33,9 @@ See [API.md](../API.md) for request fields and response examples. Member 3 must 
 
 - Instruments are restricted to `STOCK` and `ETF`.
 - Quantity and execution price must be greater than zero; fees cannot be negative.
-- A transaction request supplies `priceDate`, not `unitPrice`, `currency`, or `executedAt`.
-- `priceDate` must match a stored real daily close returned by `tradable-prices`.
-- The server uses that close as `unitPrice`, derives instrument currency, and records a deterministic 16:00 market-close timestamp.
+- A transaction request supplies `tradeDate` and the actual positive `unitPrice`.
+- Trade entry does not depend on stored market history.
+- The server derives currency from the selected instrument and records the trading date.
 - The MVP is long-only.
 - Sell quantity cannot exceed the current position.
 - Idempotency keys are unique within a portfolio.
@@ -45,8 +45,8 @@ See [API.md](../API.md) for request fields and response examples. Member 3 must 
 ## 5. Transaction Flow
 
 1. Validate portfolio ownership and instrument status.
-2. Resolve `priceDate` to a stored daily close; reject a missing date or price.
-3. Derive `unitPrice`, currency, and the deterministic market-close execution timestamp.
+2. Validate the supplied `tradeDate` and positive `unitPrice`.
+3. Derive currency from the selected instrument.
 4. Check the portfolio and idempotency key.
 5. Lock the position with `SELECT ... FOR UPDATE`.
 6. Validate SELL quantity.
@@ -116,7 +116,7 @@ Data types:
 
 ### AC-TR-01: Atomic Buy
 
-After a buy is created from a valid selectable `priceDate`, its stored close is recorded as unit price and both the transaction and position exist; if any operation fails, neither remains.
+After a buy is created with a valid trading date and manual execution price, both the transaction and position exist; if any operation fails, neither remains.
 
 ### AC-TR-02: Idempotency
 

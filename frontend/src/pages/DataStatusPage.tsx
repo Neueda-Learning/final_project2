@@ -24,7 +24,6 @@ export function DataStatusPage() {
       await queryClient.invalidateQueries({ queryKey: ["latest-sync"] });
       await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       await queryClient.invalidateQueries({ queryKey: ["performance"] });
-      await queryClient.invalidateQueries({ queryKey: ["market-bars"] });
     },
   });
   const syncData = latestSyncQuery.data;

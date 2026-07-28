@@ -262,7 +262,8 @@ paths:
               instrumentId: 33333333-3333-3333-3333-333333333333
               side: BUY
               quantity: "10.00000000"
-              priceDate: "2026-07-27"
+              tradeDate: "2026-07-27"
+              unitPrice: "214.05000000"
               feeAmount: "0.00000000"
               note: Initial position
       responses:
@@ -282,7 +283,7 @@ paths:
                 unitPrice: "214.05000000"
                 feeAmount: "0.00000000"
                 currency: USD
-                executedAt: "2026-07-27T16:00:00Z"
+                executedAt: "2026-07-27T16:00:00"
                 note: Initial position
                 createdAt: "2026-07-28T02:30:01Z"
         "404":
@@ -502,11 +503,11 @@ paths:
     get:
       tags: [Trading, Market Data]
       operationId: listTradableInstrumentPrices
-      summary: List stored daily closes selectable for a transaction
+      summary: List stored daily closes
       description: >
-        Returns recent real daily closing prices in descending trading-date order.
-        The selected priceDate is submitted when creating a transaction; clients
-        cannot submit an arbitrary unit price.
+        Returns recent real daily closing prices in descending trading-date order
+        for valuation and historical inspection. Transactions select an exact
+        timestamp from the intraday bars endpoint.
       x-owner: member-3
       parameters:
         - $ref: "#/components/parameters/InstrumentId"
@@ -957,7 +958,8 @@ components:
         - instrumentId
         - side
         - quantity
-        - priceDate
+        - tradeDate
+        - unitPrice
       properties:
         instrumentId:
           type: string
@@ -968,12 +970,14 @@ components:
           allOf:
             - $ref: "#/components/schemas/DecimalString"
           description: Must be greater than zero
-        priceDate:
+        tradeDate:
           type: string
           format: date
-          description: >
-            A selectable trading date returned by the instrument's tradable-prices
-            endpoint. The server resolves the stored daily close as unitPrice.
+          description: Trading date supplied by the user
+        unitPrice:
+          allOf:
+            - $ref: "#/components/schemas/DecimalString"
+          description: Actual execution price per share or ETF unit; must be positive
         feeAmount:
           allOf:
             - $ref: "#/components/schemas/DecimalString"

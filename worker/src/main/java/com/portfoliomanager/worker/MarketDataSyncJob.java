@@ -117,61 +117,49 @@ public class MarketDataSyncJob {
                 return;
             }
 
-            LocalDateTime endTime = LocalDateTime.now(clock);
-            LocalDateTime startTime =
-                    endTime.minusDays(Math.max(1, properties.getIntradayLookbackDays()));
+            LocalDate end = LocalDate.now(clock.withZone(ZoneId.of(properties.getTimeZone())))
+                    .plusDays(1);
+            LocalDate start = end.minusMonths(1);
+            Map<String, InstrumentTarget> bySymbol = new HashMap<>();
+            targets.forEach(target ->
+                    bySymbol.put(normalizeSymbol(target.providerSymbol()), target));
 
             Set<String> successfulInstrumentIds = new HashSet<>();
-            Map<String, DailyAccumulator> dailyAccumulators = new HashMap<>();
-            for (int index = 0; index < targets.size(); index++) {
-                InstrumentTarget target = targets.get(index);
+            int batchSize = Math.max(1, properties.getBatchSize());
+            for (int offset = 0; offset < targets.size(); offset += batchSize) {
+                List<InstrumentTarget> batch =
+                        targets.subList(offset, Math.min(offset + batchSize, targets.size()));
+                List<String> symbols =
+                        batch.stream().map(InstrumentTarget::providerSymbol).toList();
                 try {
-                    List<IntradayBar> bars =
-                            fetchIntradayWithRetry(target, startTime, endTime);
-                    List<IntradayBar> validBars = new ArrayList<>();
-                    for (IntradayBar bar : bars) {
-                        String validationError =
-                                validateIntraday(bar, target, startTime, endTime);
+                    List<DailyPrice> prices = fetchWithRetry(symbols, start, end);
+                    for (DailyPrice price : prices) {
+                        InstrumentTarget target =
+                                bySymbol.get(normalizeSymbol(price.symbol()));
+                        if (target == null) {
+                            errors.add("Provider returned unknown symbol " + price.symbol());
+                            continue;
+                        }
+                        String validationError = validate(price, target, start, end);
                         if (validationError != null) {
                             errors.add(validationError);
                             continue;
                         }
-                        validBars.add(bar);
-                        String dayKey =
-                                target.instrumentId() + "|" + bar.timestamp().toLocalDate();
-                        dailyAccumulators
-                                .computeIfAbsent(
-                                        dayKey,
-                                        ignored -> new DailyAccumulator(target, bar))
-                                .add(bar);
-                    }
-                    if (validBars.isEmpty()) {
-                        errors.add("No valid intraday bars returned for "
-                                + target.providerSymbol());
-                    } else {
-                        upsertIntradayBars(target, validBars);
+                        upsertPrice(runId, target, price);
                         successfulInstrumentIds.add(target.instrumentId());
                     }
+                    for (InstrumentTarget target : batch) {
+                        if (!successfulInstrumentIds.contains(target.instrumentId())) {
+                            errors.add("No valid price returned for " + target.providerSymbol());
+                        }
+                    }
                 } catch (RuntimeException exception) {
-                    errors.add("Intraday " + target.providerSymbol() + ": "
+                    errors.add("Batch " + String.join(",", symbols) + ": "
                             + rootMessage(exception));
                 }
-                jdbc.update(
-                        """
-                        UPDATE market_data_sync_run
-                        SET success_count = ?, failure_count = ?
-                        WHERE id = ?
-                        """,
-                        successfulInstrumentIds.size(),
-                        index + 1 - successfulInstrumentIds.size(),
-                        runId);
-                if (index + 1 < targets.size()) {
+                if (offset + batchSize < targets.size()) {
                     pauseBeforeNextRequest();
                 }
-            }
-
-            for (DailyAccumulator accumulator : dailyAccumulators.values()) {
-                upsertPrice(runId, accumulator.target(), accumulator.toDailyPrice());
             }
 
             int successCount = successfulInstrumentIds.size();
@@ -181,10 +169,7 @@ public class MarketDataSyncJob {
                     : successCount == 0 ? "FAILED" : "PARTIAL";
             refreshValuationSnapshots(successfulInstrumentIds, errors);
             rebuildHistoricalValuationSnapshots(
-                    successfulInstrumentIds,
-                    startTime.toLocalDate(),
-                    endTime.toLocalDate().plusDays(1),
-                    errors);
+                    successfulInstrumentIds, start, end, errors);
             completeRun(
                     runId,
                     successCount,
