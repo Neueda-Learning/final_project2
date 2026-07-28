@@ -89,18 +89,17 @@ public final class ApiModels {
             LocalDateTime createdAt) {}
 
     public record PositionResponse(
-            String portfolioId,
-            InstrumentResponse instrument,
+            String instrumentId,
+            String symbol,
+            String name,
+            AssetType assetType,
             @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal quantity,
             @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal averageCost,
             @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal realizedPnl,
-            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal costBasis,
-            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal closePrice,
-            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal marketValue,
-            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal unrealizedPnl,
-            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal returnPct,
-            LocalDate priceDate,
-            PriceStatus priceStatus) {}
+            LocalDateTime openedAt,
+            LocalDateTime updatedAt) {}
+
+    public record PositionListResponse(List<PositionResponse> items) {}
 
     public record SyncRequest(boolean force) {}
 
