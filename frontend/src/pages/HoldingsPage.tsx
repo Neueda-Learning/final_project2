@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { ApiError, api } from "../api/client";
@@ -59,6 +59,19 @@ export function HoldingsPage() {
     staleTime: 10 * 60 * 1000,
   });
 
+  const pricesQuery = useQuery({
+    queryKey: ["tradable-prices", form.instrument?.id],
+    queryFn: () => api.marketData.getTradablePrices(form.instrument!.id, 60),
+    enabled: Boolean(form.instrument),
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const referencePrice = useMemo(
+    () =>
+      pricesQuery.data?.find((price) => price.priceDate === form.tradeDate) ?? null,
+    [form.tradeDate, pricesQuery.data],
+  );
+
   const submitMutation = useMutation({
     mutationFn: () =>
       api.transactions.create(
@@ -89,6 +102,18 @@ export function HoldingsPage() {
     setForm(initialForm());
     setIdemKey(crypto.randomUUID());
   }, [portfolioId]);
+
+  useEffect(() => {
+    if (!form.instrument || !form.tradeDate || pricesQuery.isPending) return;
+    setForm((state) =>
+      state.unitPrice
+        ? state
+        : {
+            ...state,
+            unitPrice: referencePrice?.closePrice ?? "",
+          },
+    );
+  }, [form.instrument, form.tradeDate, pricesQuery.isPending, referencePrice]);
 
   const canSubmit =
     Boolean(portfolioId) &&
@@ -170,12 +195,14 @@ export function HoldingsPage() {
                     setForm((state) => ({
                       ...state,
                       instrument: null,
+                      unitPrice: "",
                     }));
                   }}
                   onSelect={(instrument) =>
                     setForm((state) => ({
                       ...state,
                       instrument,
+                      unitPrice: "",
                     }))
                   }
                 />
@@ -207,7 +234,11 @@ export function HoldingsPage() {
                   className={`form-input${tradeDateError ? " error" : ""}`}
                   value={form.tradeDate}
                   onChange={(event) =>
-                    setForm((state) => ({ ...state, tradeDate: event.target.value }))
+                    setForm((state) => ({
+                      ...state,
+                      tradeDate: event.target.value,
+                      unitPrice: "",
+                    }))
                   }
                 />
                 {tradeDateError ? <div className="form-error">{tradeDateError}</div> : null}
@@ -229,8 +260,23 @@ export function HoldingsPage() {
                     }))
                   }
                 />
-                <div className="form-hint">{t("holdings.manualPriceHint")}</div>
+                <div className="form-hint">
+                  {form.instrument && pricesQuery.isPending
+                    ? t("holdings.referencePriceLoading")
+                    : referencePrice
+                      ? t("holdings.referencePriceFound", {
+                          price: formatCurrency(
+                            referencePrice.closePrice,
+                            referencePrice.currency,
+                            locale,
+                          ),
+                        })
+                      : t("holdings.manualPriceHint")}
+                </div>
                 {unitPriceError ? <div className="form-error">{unitPriceError}</div> : null}
+                {pricesQuery.isError ? (
+                  <div className="form-error">{t("holdings.referencePriceUnavailable")}</div>
+                ) : null}
               </div>
             </div>
 

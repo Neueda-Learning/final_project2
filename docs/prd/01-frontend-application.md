@@ -38,7 +38,8 @@ Deliver a responsive, client-ready portfolio dashboard that lets users create an
 
 - Stock and ETF search.
 - A compact buy/sell ticket with a trading date and manually entered actual
-  execution price; there is no market-minute selector.
+  execution price; selecting a date pre-fills the stored daily close as an
+  editable reference when available. There is no market-minute selector.
 - An optional editable fee that defaults to `0.00 USD`; currency comes from the
   selected instrument.
 - Current holdings table and transaction history.
