@@ -135,8 +135,33 @@ public final class ApiModels {
             int unpricedPositionCount,
             @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal pricedMarketValue,
             @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal totalCostBasis,
+            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal pricedCostBasis,
             @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal unrealizedPnl,
-            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal returnPct) {}
+            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal returnPct,
+            LocalDate newestPriceDate,
+            LocalDate oldestUsedPriceDate) {}
+
+    public record PortfolioInfoResponse(
+            String id,
+            String name,
+            String baseCurrency) {}
+
+    public record DashboardPositionResponse(
+            String instrumentId,
+            String symbol,
+            String instrumentName,
+            AssetType assetType,
+            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal quantity,
+            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal averageCost,
+            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal costBasis,
+            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal closePrice,
+            LocalDate priceDate,
+            String priceSource,
+            PriceStatus priceStatus,
+            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal marketValue,
+            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal unrealizedPnl,
+            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal returnPct,
+            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal allocationPct) {}
 
     public record AllocationItemResponse(
             String instrumentId,
@@ -145,20 +170,26 @@ public final class ApiModels {
             @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal allocationPct) {}
 
     public record DashboardResponse(
-            String portfolioId,
+            PortfolioInfoResponse portfolio,
             PortfolioSummaryResponse summary,
-            List<PositionResponse> positions,
+            List<DashboardPositionResponse> positions,
             List<AllocationItemResponse> allocation) {}
 
     public record PerformancePointResponse(
             LocalDate valuationDate,
-            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal marketValue,
-            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal costBasis,
-            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal unrealizedPnl) {}
+            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal pricedMarketValue,
+            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal totalCostBasis,
+            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal pricedCostBasis,
+            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal unrealizedPnl,
+            int pricedPositionCount,
+            int unpricedPositionCount) {}
 
     public record PerformanceResponse(
             String portfolioId,
+            String baseCurrency,
             List<PerformancePointResponse> points) {}
 
-    public record HealthResponse(String status, String database) {}
+    public record HealthLiveResponse(String status) {}
+
+    public record HealthReadyResponse(String status, java.util.Map<String, String> checks) {}
 }

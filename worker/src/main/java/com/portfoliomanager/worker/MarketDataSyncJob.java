@@ -146,6 +146,7 @@ public class MarketDataSyncJob {
             String status = successCount == targets.size()
                     ? "SUCCEEDED"
                     : successCount == 0 ? "FAILED" : "PARTIAL";
+                refreshValuationSnapshots(successfulInstrumentIds, errors);
             completeRun(
                     runId,
                     successCount,
@@ -206,6 +207,95 @@ public class MarketDataSyncJob {
                         rs.getString("id"),
                         rs.getString("provider_symbol"),
                         rs.getString("currency")));
+    }
+
+    private void refreshValuationSnapshots(
+            Set<String> successfulInstrumentIds,
+            List<String> errors) {
+        if (successfulInstrumentIds.isEmpty()) {
+            return;
+        }
+
+        for (String portfolioId : loadAffectedPortfolioIds(successfulInstrumentIds)) {
+            try {
+                SnapshotSummary summary = loadSnapshotSummary(portfolioId);
+                if (summary == null || summary.valuationDate() == null) {
+                    continue;
+                }
+                upsertSnapshot(portfolioId, summary);
+            } catch (RuntimeException exception) {
+                errors.add(
+                        "Snapshot refresh failed for portfolio "
+                                + portfolioId
+                                + ": "
+                                + rootMessage(exception));
+            }
+        }
+    }
+
+    private List<String> loadAffectedPortfolioIds(Set<String> instrumentIds) {
+        String placeholders = String.join(",", java.util.Collections.nCopies(instrumentIds.size(), "?"));
+        return jdbc.query(
+                """
+                SELECT DISTINCT p.portfolio_id
+                FROM portfolio_position p
+                WHERE p.quantity > 0
+                  AND p.instrument_id IN (
+                """ + placeholders + ") ORDER BY p.portfolio_id",
+                (rs, rowNum) -> rs.getString("portfolio_id"),
+                instrumentIds.toArray());
+    }
+
+    private SnapshotSummary loadSnapshotSummary(String portfolioId) {
+        return jdbc.query(
+                        """
+                        SELECT newest_price_date, priced_market_value, total_cost_basis,
+                               priced_cost_basis, unrealized_pnl,
+                               priced_position_count, unpriced_position_count
+                        FROM portfolio_summary
+                        WHERE portfolio_id = ?
+                        """,
+                        (rs, rowNum) -> new SnapshotSummary(
+                                rs.getDate("newest_price_date") == null
+                                        ? null
+                                        : rs.getDate("newest_price_date").toLocalDate(),
+                                rs.getBigDecimal("priced_market_value"),
+                                rs.getBigDecimal("total_cost_basis"),
+                                rs.getBigDecimal("priced_cost_basis"),
+                                rs.getBigDecimal("unrealized_pnl"),
+                                rs.getInt("priced_position_count"),
+                                rs.getInt("unpriced_position_count")),
+                        portfolioId)
+                .stream()
+                .findFirst()
+                .orElse(null);
+    }
+
+    private void upsertSnapshot(String portfolioId, SnapshotSummary summary) {
+        jdbc.update(
+                """
+                INSERT INTO portfolio_valuation_snapshot (
+                    portfolio_id, valuation_date, priced_market_value,
+                    total_cost_basis, priced_cost_basis, unrealized_pnl,
+                    priced_position_count, unpriced_position_count
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE
+                    priced_market_value = VALUES(priced_market_value),
+                    total_cost_basis = VALUES(total_cost_basis),
+                    priced_cost_basis = VALUES(priced_cost_basis),
+                    unrealized_pnl = VALUES(unrealized_pnl),
+                    priced_position_count = VALUES(priced_position_count),
+                    unpriced_position_count = VALUES(unpriced_position_count),
+                    calculated_at = CURRENT_TIMESTAMP(6)
+                """,
+                portfolioId,
+                summary.valuationDate(),
+                summary.pricedMarketValue(),
+                summary.totalCostBasis(),
+                summary.pricedCostBasis(),
+                summary.unrealizedPnl(),
+                summary.pricedPositionCount(),
+                summary.unpricedPositionCount());
     }
 
     private void upsertPrice(
@@ -377,4 +467,13 @@ public class MarketDataSyncJob {
 
     private record InstrumentTarget(
             String instrumentId, String providerSymbol, String currency) {}
+
+        private record SnapshotSummary(
+            LocalDate valuationDate,
+            BigDecimal pricedMarketValue,
+            BigDecimal totalCostBasis,
+            BigDecimal pricedCostBasis,
+            BigDecimal unrealizedPnl,
+            int pricedPositionCount,
+            int unpricedPositionCount) {}
 }
