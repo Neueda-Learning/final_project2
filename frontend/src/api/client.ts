@@ -114,6 +114,9 @@ export const api = {
   },
 
   instruments: {
+    list: (limit = 50) =>
+      request<InstrumentList>(`${V1}/instruments${qs({ limit })}`),
+
     search: (query: string, limit = 10) =>
       request<InstrumentList>(`${V1}/instruments${qs({ query, limit })}`),
   },

@@ -302,7 +302,7 @@ curl -s "http://localhost:8000/api/v1/instruments?query=AAPL&limit=10"
 
 | Parameter | Type | Required | Description |
 |---|---|---|---|
-| `query` | string | Yes | Symbol or name, 1–100 characters |
+| `query` | string | No | Symbol or name; omit to list the controlled active universe |
 | `limit` | integer | No | Default 10, maximum 50 |
 
 200 response:

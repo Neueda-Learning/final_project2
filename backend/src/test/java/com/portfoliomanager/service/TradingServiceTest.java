@@ -18,6 +18,7 @@ import com.portfoliomanager.repository.TradeTransactionRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,6 +43,15 @@ class TradingServiceTest {
     @BeforeEach
     void setUp() {
         service = new TradingService(instruments, portfolios, transactions, positions, marketData);
+    }
+
+    @Test
+    void blankInstrumentQueryListsTheControlledActiveUniverse() {
+        given(instruments.findByActiveTrueOrderBySymbol()).willReturn(List.of());
+
+        assertThat(service.searchInstruments(null, 50)).isEmpty();
+
+        verify(instruments).findByActiveTrueOrderBySymbol();
     }
 
     @Test
