@@ -11,7 +11,7 @@
 | 主要数据表 | `market_data_sync_run`、`market_price` |
 | 不负责 | 前端和估值图表 |
 | 接口依据 | [API 接口说明](../API.md) / [OpenAPI 规范](../openapi.yaml) |
-| 状态 | 待实现 |
+| 状态 | 已实现（真实环境需配置 `TWELVE_DATA_API_KEY`） |
 
 ## 2. 模块目标
 
@@ -102,7 +102,8 @@ health_check()
 | `MARKET_MAX_RETRIES` | 最大重试 |
 | `TWELVE_DATA_API_KEY` | 条件必需 |
 
-<!-- VERIFY: 实际部署的 provider 凭据、市场时区和调度表达式尚未确定 -->
+默认使用 Twelve Data、`America/New_York` 市场时区和工作日收盘后调度；
+部署时通过环境变量提供凭据并可覆盖这些配置。
 
 ## 10. 后端测试
 

@@ -38,3 +38,8 @@ springdoc:
 app:
   cors-origins: ${CORS_ORIGINS:http://localhost:5173}
   demo-user-id: ${DEMO_USER_ID:11111111-1111-1111-1111-111111111111}
+
+market-data:
+  provider: ${MARKET_DATA_PROVIDER:twelve-data}
+  time-zone: ${MARKET_TIMEZONE:America/New_York}
+  close-time: ${MARKET_CLOSE_TIME:16:15}

@@ -4,6 +4,7 @@ import com.portfoliomanager.api.ApiModels.ErrorDetail;
 import com.portfoliomanager.api.ApiModels.ErrorResponse;
 import com.portfoliomanager.service.ConflictException;
 import com.portfoliomanager.service.ResourceNotFoundException;
+import com.portfoliomanager.service.MarketDataUnavailableException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.UUID;
@@ -42,6 +43,18 @@ public class ApiExceptionHandler {
                 .map(field -> new ErrorDetail(field.getField(), field.getDefaultMessage()))
                 .toList();
         return error("VALIDATION_ERROR", "请求参数校验失败", details, request);
+    }
+
+    @ExceptionHandler(MarketDataUnavailableException.class)
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    public ErrorResponse marketDataUnavailable(
+            MarketDataUnavailableException exception,
+            HttpServletRequest request) {
+        return error(
+                "MARKET_PROVIDER_UNAVAILABLE",
+                exception.getMessage(),
+                List.of(),
+                request);
     }
 
     private ErrorResponse error(
