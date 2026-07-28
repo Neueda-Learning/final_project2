@@ -3,8 +3,10 @@ package com.portfoliomanager.api;
 import com.portfoliomanager.api.ApiModels.ErrorDetail;
 import com.portfoliomanager.api.ApiModels.ErrorResponse;
 import com.portfoliomanager.service.ConflictException;
-import com.portfoliomanager.service.ResourceNotFoundException;
+import com.portfoliomanager.service.InvalidDateRangeException;
 import com.portfoliomanager.service.MarketDataUnavailableException;
+import com.portfoliomanager.service.ResourceNotFoundException;
+import com.portfoliomanager.service.ServiceNotReadyException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.UUID;
@@ -22,7 +24,11 @@ public class ApiExceptionHandler {
     public ErrorResponse notFound(
             ResourceNotFoundException exception,
             HttpServletRequest request) {
-        return error("NOT_FOUND", exception.getMessage(), List.of(), request);
+        String message = exception.getMessage();
+        String code = message != null && message.equals(message.toUpperCase())
+            ? message
+            : "NOT_FOUND";
+        return error(code, message, List.of(), request);
     }
 
     /** 409 Conflict：业务冲突（名称重复、有交易历史等），code 来自异常 message */
@@ -45,6 +51,14 @@ public class ApiExceptionHandler {
         return error("VALIDATION_ERROR", "请求参数校验失败", details, request);
     }
 
+    @ExceptionHandler(InvalidDateRangeException.class)
+    @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+    public ErrorResponse invalidDateRange(
+            InvalidDateRangeException exception,
+            HttpServletRequest request) {
+        return error("INVALID_DATE_RANGE", exception.getMessage(), List.of(), request);
+    }
+
     @ExceptionHandler(MarketDataUnavailableException.class)
     @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
     public ErrorResponse marketDataUnavailable(
@@ -55,6 +69,14 @@ public class ApiExceptionHandler {
                 exception.getMessage(),
                 List.of(),
                 request);
+    }
+
+    @ExceptionHandler(ServiceNotReadyException.class)
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    public ErrorResponse serviceNotReady(
+            ServiceNotReadyException exception,
+            HttpServletRequest request) {
+        return error("SERVICE_NOT_READY", exception.getMessage(), List.of(), request);
     }
 
     private ErrorResponse error(

@@ -1,6 +1,9 @@
 package com.portfoliomanager.api;
 
-import com.portfoliomanager.api.ApiModels.HealthResponse;
+import com.portfoliomanager.api.ApiModels.HealthLiveResponse;
+import com.portfoliomanager.api.ApiModels.HealthReadyResponse;
+import com.portfoliomanager.service.ServiceNotReadyException;
+import java.util.Map;
 import javax.sql.DataSource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,17 +21,17 @@ public class HealthController {
     }
 
     @GetMapping("/live")
-    public HealthResponse live() {
-        return new HealthResponse("ok", "not-checked");
+    public HealthLiveResponse live() {
+        return new HealthLiveResponse("ok");
     }
 
     @GetMapping("/ready")
-    public HealthResponse ready() {
+    public HealthReadyResponse ready() {
         try {
             jdbc.queryForObject("SELECT 1", Integer.class);
-            return new HealthResponse("ok", "available");
+            return new HealthReadyResponse("ready", Map.of("mysql", "ok"));
         } catch (RuntimeException exception) {
-            return new HealthResponse("degraded", "unavailable");
+            throw new ServiceNotReadyException("MySQL readiness check failed", exception);
         }
     }
 }
