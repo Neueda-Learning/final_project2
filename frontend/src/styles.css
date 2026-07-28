@@ -526,6 +526,8 @@ select {
 }
 
 .trade-ticket {
+  width: 100%;
+  min-width: 0;
   max-width: 1040px;
   margin-right: auto;
   margin-left: auto;
@@ -556,17 +558,22 @@ select {
 }
 
 .trade-form {
+  min-width: 0;
   display: grid;
   gap: 1.25rem;
 }
 
 .trade-execution-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
   gap: 0.75rem;
   align-items: stretch;
   border-top: 1px solid var(--border);
   padding-top: 1.2rem;
+}
+
+.trade-execution-grid > .form-group {
+  min-width: 0;
 }
 
 .minute-price {
@@ -808,6 +815,8 @@ select {
 }
 
 .curated-picker {
+  width: 100%;
+  min-width: 0;
   display: grid;
   gap: 0.8rem;
 }
@@ -851,17 +860,18 @@ select {
 }
 
 .sector-tabs {
-  display: flex;
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.45rem;
-  overflow-x: auto;
   padding-bottom: 0.1rem;
-  scrollbar-width: thin;
 }
 
 .sector-tab {
   --sector-accent: #3158d4;
   --sector-soft: #eef2ff;
-  flex: 1 0 auto;
+  min-width: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -872,7 +882,7 @@ select {
   color: var(--muted-strong);
   background: #fff;
   font-size: 0.72rem;
-  white-space: nowrap;
+  text-align: center;
   transition: border-color var(--ease), background var(--ease), color var(--ease);
 }
 
@@ -907,6 +917,8 @@ select {
 }
 
 .instrument-choice-grid {
+  width: 100%;
+  min-width: 0;
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.45rem;
@@ -1427,7 +1439,7 @@ select {
   transition: width 240ms ease;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 900px) {
   .trade-ticket__header {
     align-items: stretch;
     flex-direction: column;
@@ -1437,8 +1449,12 @@ select {
     width: 100%;
   }
 
-  .trade-execution-grid {
+  .sector-tabs {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .trade-execution-grid > .form-group:last-child {
+    grid-column: 1 / -1;
   }
 
   .instrument-choice-grid {
@@ -1452,8 +1468,13 @@ select {
     flex-direction: column;
   }
 
+  .sector-tabs,
   .trade-execution-grid,
   .trade-optional__body {
     grid-template-columns: 1fr;
+  }
+
+  .trade-execution-grid > .form-group:last-child {
+    grid-column: auto;
   }
 }
