@@ -11,15 +11,14 @@ import org.springframework.data.repository.query.Param;
 public interface TradeTransactionRepository extends JpaRepository<TradeTransaction, String> {
 
     /**
-     * 检查指定组合是否存在任何交易记录。
-     * 有交易记录的组合不允许硬删除，只能归档（业务规则）。
+     * Checks whether a portfolio has transactions that prevent hard deletion.
      */
     @Query("SELECT CASE WHEN COUNT(t) > 0 THEN true ELSE false END "
             + "FROM TradeTransaction t WHERE t.portfolio.id = :portfolioId")
     boolean existsByPortfolioId(@Param("portfolioId") String portfolioId);
 
     /**
-     * 按组合 ID 查询交易历史，按成交时间倒序分页。
+     * Finds paginated transaction history ordered by execution time descending.
      */
     Page<TradeTransaction> findByPortfolioIdOrderByExecutedAtDesc(
             @Param("portfolioId") String portfolioId, Pageable pageable);

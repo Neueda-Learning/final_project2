@@ -11,7 +11,8 @@ export function PageHeader({
 }) {
   return (
     <header className="page-header">
-      <div>
+      <div className="page-header__copy">
+        <span className="eyebrow">Clearfolio / {title}</span>
         <h1 className="page-title">{title}</h1>
         {subtitle ? <p className="page-subtitle">{subtitle}</p> : null}
       </div>

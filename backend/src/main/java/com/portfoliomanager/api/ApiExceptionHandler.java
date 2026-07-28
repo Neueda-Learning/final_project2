@@ -31,7 +31,7 @@ public class ApiExceptionHandler {
         return error(code, message, List.of(), request);
     }
 
-    /** 409 Conflict：业务冲突（名称重复、有交易历史等），code 来自异常 message */
+    /** Handles business conflicts such as duplicate names or existing trade history. */
     @ExceptionHandler(ConflictException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public ErrorResponse conflict(
@@ -48,7 +48,7 @@ public class ApiExceptionHandler {
         var details = exception.getBindingResult().getFieldErrors().stream()
                 .map(field -> new ErrorDetail(field.getField(), field.getDefaultMessage()))
                 .toList();
-        return error("VALIDATION_ERROR", "请求参数校验失败", details, request);
+        return error("VALIDATION_ERROR", "Request validation failed", details, request);
     }
 
     @ExceptionHandler(InvalidDateRangeException.class)

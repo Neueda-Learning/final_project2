@@ -1,63 +1,66 @@
 # Portfolio Manager
 
-面向股票与 ETF 的投资组合管理 MVP。项目采用 React + TypeScript 前端、
-Java 21 + Spring Boot 后端、独立 Spring 行情同步 worker 和 MySQL 8 数据库。
+A portfolio-management MVP for stocks and ETFs. The project combines a React and
+TypeScript client, a Java 21 Spring Boot API, an independent Spring market-data
+worker, and MySQL 8.
 
-## 项目结构
+## Project structure
 
 ```text
-frontend/             React/Vite 客户端
-backend/              Spring MVC API、Spring Data JPA 领域模型与服务
-worker/               独立 Spring 定时行情同步进程
-db/                   数据库初始化和种子数据
-docs/                 架构、PRD、OpenAPI 与数据库设计
-e2e/                  端到端测试占位
-infra/                容器镜像与部署配置
+frontend/             React and Vite client
+backend/              Spring MVC API, domain model, repositories, and services
+worker/               Scheduled market-data synchronization process
+db/                   Database initialization and seed data
+docs/                 Architecture, product requirements, OpenAPI, and schema docs
+e2e/                  End-to-end test workspace
+infra/                Container and deployment configuration
 ```
 
-## 本地启动
+## Start with Docker
 
-复制环境变量：
+Copy the environment file:
 
 ```bash
 cp .env.example .env
 ```
 
-使用 Docker Compose 启动完整环境：
+The default provider is the live Twelve Data REST API. Configure a real key before
+starting:
+
+```text
+MARKET_DATA_PROVIDER=twelve-data
+TWELVE_DATA_API_KEY=replace_with_your_api_key
+```
+
+Then start the complete environment:
 
 ```bash
 docker compose up --build
 ```
 
-默认行情源为真实的 Twelve Data REST API。启动前在 `.env` 中设置：
-
-```text
-MARKET_DATA_PROVIDER=twelve-data
-TWELVE_DATA_API_KEY=你的真实_API_Key
-```
-
-`fixture` Provider 仅用于自动测试和离线演示。设置真实 Key 后可单独运行外部集成测试：
+The `fixture` provider is intended only for automated tests and offline demos. Run
+the live provider integration test separately after configuring a key:
 
 ```bash
 mvn -pl worker -Dtest=TwelveDataLiveIntegrationTest test
 ```
 
-服务地址：
+Service endpoints:
 
-- 前端：http://localhost:5173
-- API：http://localhost:8000
-- Swagger：http://localhost:8000/docs
-- OpenAPI JSON：http://localhost:8000/v3/api-docs
+- Frontend: http://localhost:5173
+- API: http://localhost:8000
+- Swagger UI: http://localhost:8000/docs
+- OpenAPI JSON: http://localhost:8000/v3/api-docs
 
-## 不使用 Docker
+## Start without Docker
 
-后端：
+Backend:
 
 ```bash
 mvn -pl backend spring-boot:run
 ```
 
-前端：
+Frontend:
 
 ```bash
 cd frontend
@@ -65,15 +68,16 @@ npm install
 npm run dev
 ```
 
-## 校验
+## Validate
 
 ```bash
 mvn test
-cd frontend && npm run lint && npm run build
+cd frontend
+npm test -- --run
+npm run lint
+npm run build
 ```
 
-权威接口契约见 [docs/openapi.yaml](docs/openapi.yaml)，数据库设计见
-[docs/database/schema.sql](docs/database/schema.sql)。
-
-当前基线使用 Spring Boot 4.1.0 与 Java 21。Swagger UI 位于 `/docs`，
-运行时 OpenAPI JSON 位于 `/v3/api-docs`。
+The canonical API contract is [docs/openapi.yaml](docs/openapi.yaml). The database
+definition is [docs/database/schema.sql](docs/database/schema.sql). The current
+baseline uses Spring Boot 4.1.0 and Java 21.

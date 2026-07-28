@@ -8,6 +8,7 @@ import { EmptyState } from "../components/EmptyState";
 import { ErrorBox } from "../components/ErrorBox";
 import { PageHeader } from "../components/PageHeader";
 import { formatCurrency, formatDateTime, formatQuantity } from "../lib/format";
+import { useLanguage } from "../i18n/LanguageContext";
 
 interface TradeFormState {
   side: TradeSide;
@@ -40,6 +41,7 @@ function fieldError(error: unknown, field: string): string | null {
 export function HoldingsPage() {
   const queryClient = useQueryClient();
   const { portfolioId, selectedPortfolio } = usePortfolio();
+  const { locale, t } = useLanguage();
 
   const [form, setForm] = useState<TradeFormState>(initialForm);
   const [idemKey, setIdemKey] = useState<string>(crypto.randomUUID());
@@ -104,19 +106,19 @@ export function HoldingsPage() {
 
   return (
     <>
-      <PageHeader title="Holdings" subtitle="录入交易并查看当前持仓" />
+      <PageHeader title={t("holdings.title")} subtitle={t("holdings.subtitle")} />
 
       {!portfolioId ? (
-        <EmptyState icon="📊" title="请选择组合" description="左侧选择组合后才能交易和查看持仓。" />
+        <EmptyState icon="📊" title={t("common.selectPortfolio")} description={t("holdings.noPortfolioDescription")} />
       ) : null}
 
       {submitMutation.isError ? <ErrorBox error={submitMutation.error} /> : null}
       {positionsQuery.isError ? <ErrorBox error={positionsQuery.error} onRetry={() => positionsQuery.refetch()} /> : null}
 
       {portfolioId ? (
-        <section className="card" style={{ marginBottom: "1rem" }}>
+        <section className="card trade-card">
           <div className="section-header">
-            <h2 className="section-title">新增交易</h2>
+            <h2 className="section-title">{t("holdings.newTrade")}</h2>
           </div>
 
           <form
@@ -125,10 +127,10 @@ export function HoldingsPage() {
               if (!canSubmit) return;
               submitMutation.mutate();
             }}
-            style={{ display: "grid", gap: "1rem" }}
+            className="trade-form"
           >
             <div className="form-group">
-              <label className="form-label">方向</label>
+              <label className="form-label">{t("holdings.direction")}</label>
               <div className="trade-side-toggle">
                 <button
                   type="button"
@@ -149,7 +151,7 @@ export function HoldingsPage() {
 
             <div className="form-group search-wrap">
               <label className="form-label" htmlFor="instrument-query">
-                股票/ETF 搜索
+                {t("holdings.search")}
               </label>
               {form.instrument ? (
                 <div className="search-selected">
@@ -161,7 +163,7 @@ export function HoldingsPage() {
                     className="btn btn-ghost btn-sm"
                     onClick={() => setForm((s) => ({ ...s, instrument: null, query: "" }))}
                   >
-                    更换
+                    {t("holdings.change")}
                   </button>
                 </div>
               ) : (
@@ -169,14 +171,14 @@ export function HoldingsPage() {
                   <input
                     id="instrument-query"
                     className={`form-input${instrumentError ? " error" : ""}`}
-                    placeholder="输入股票代码或名称，例如 AAPL"
+                    placeholder={t("holdings.searchPlaceholder")}
                     value={form.query}
                     onChange={(e) => setForm((s) => ({ ...s, query: e.target.value }))}
                   />
                   {instrumentError ? <div className="form-error">{instrumentError}</div> : null}
                   {searchQuery.isError ? <ErrorBox error={searchQuery.error} /> : null}
                   {searchItems.length > 0 ? (
-                    <div className="search-results" role="listbox" aria-label="标的搜索结果">
+                    <div className="search-results" role="listbox" aria-label={t("holdings.searchResults")}>
                       {searchItems.map((item) => (
                         <button
                           type="button"
@@ -198,7 +200,7 @@ export function HoldingsPage() {
             <div className="form-row">
               <div className="form-group">
                 <label className="form-label" htmlFor="quantity">
-                  数量
+                  {t("table.quantity")}
                 </label>
                 <input
                   id="quantity"
@@ -211,7 +213,7 @@ export function HoldingsPage() {
               </div>
               <div className="form-group">
                 <label className="form-label" htmlFor="unit-price">
-                  单价
+                  {t("table.unitPrice")}
                 </label>
                 <input
                   id="unit-price"
@@ -227,7 +229,7 @@ export function HoldingsPage() {
             <div className="form-row">
               <div className="form-group">
                 <label className="form-label" htmlFor="fee-amount">
-                  手续费
+                  {t("table.fee")}
                 </label>
                 <input
                   id="fee-amount"
@@ -240,7 +242,7 @@ export function HoldingsPage() {
               </div>
               <div className="form-group">
                 <label className="form-label" htmlFor="executed-at">
-                  成交时间
+                  {t("holdings.executedAt")}
                 </label>
                 <input
                   id="executed-at"
@@ -255,7 +257,7 @@ export function HoldingsPage() {
 
             <div className="form-group">
               <label className="form-label" htmlFor="trade-note">
-                备注
+                {t("table.note")}
               </label>
               <textarea
                 id="trade-note"
@@ -276,10 +278,10 @@ export function HoldingsPage() {
                   setIdemKey(crypto.randomUUID());
                 }}
               >
-                重置
+                {t("holdings.reset")}
               </button>
               <button type="submit" className="btn btn-primary" disabled={!canSubmit || submitMutation.isPending}>
-                {submitMutation.isPending ? "提交中..." : "提交交易"}
+                {submitMutation.isPending ? t("common.submitting") : t("holdings.submit")}
               </button>
             </div>
           </form>
@@ -289,28 +291,28 @@ export function HoldingsPage() {
       {portfolioId && positionsQuery.data && positionsQuery.data.items.length === 0 ? (
         <EmptyState
           icon="🪹"
-          title="当前没有持仓"
-          description="通过上方交易表单录入第一笔买入后，这里会显示持仓。"
+          title={t("holdings.emptyTitle")}
+          description={t("holdings.emptyDescription")}
         />
       ) : null}
 
       {positionsQuery.data && positionsQuery.data.items.length > 0 ? (
         <section>
           <div className="section-header">
-            <h2 className="section-title">当前持仓</h2>
+            <h2 className="section-title">{t("holdings.current")}</h2>
           </div>
           <div className="table-wrap">
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>标的</th>
-                  <th>名称</th>
-                  <th>类型</th>
-                  <th className="num">数量</th>
-                  <th className="num">平均成本</th>
-                  <th className="num">已实现盈亏</th>
-                  <th>首次建仓</th>
-                  <th>最近更新</th>
+                  <th>{t("table.symbol")}</th>
+                  <th>{t("table.name")}</th>
+                  <th>{t("table.type")}</th>
+                  <th className="num">{t("table.quantity")}</th>
+                  <th className="num">{t("table.averageCost")}</th>
+                  <th className="num">{t("table.realizedPnl")}</th>
+                  <th>{t("table.opened")}</th>
+                  <th>{t("table.updated")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -319,11 +321,11 @@ export function HoldingsPage() {
                     <td className="sym">{p.symbol}</td>
                     <td>{p.name}</td>
                     <td>{p.assetType}</td>
-                    <td className="num">{formatQuantity(p.quantity)}</td>
-                    <td className="num">{formatCurrency(p.averageCost, currency)}</td>
-                    <td className="num">{formatCurrency(p.realizedPnl, currency)}</td>
-                    <td>{formatDateTime(p.openedAt)}</td>
-                    <td>{formatDateTime(p.updatedAt)}</td>
+                    <td className="num">{formatQuantity(p.quantity, locale)}</td>
+                    <td className="num">{formatCurrency(p.averageCost, currency, locale)}</td>
+                    <td className="num">{formatCurrency(p.realizedPnl, currency, locale)}</td>
+                    <td>{formatDateTime(p.openedAt, locale)}</td>
+                    <td>{formatDateTime(p.updatedAt, locale)}</td>
                   </tr>
                 ))}
               </tbody>

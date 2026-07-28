@@ -5,9 +5,11 @@ import { ErrorBox } from "../components/ErrorBox";
 import { PageHeader } from "../components/PageHeader";
 import { SyncStatusBadge } from "../components/StatusBadge";
 import { formatDateTime } from "../lib/format";
+import { useLanguage } from "../i18n/LanguageContext";
 
 export function DataStatusPage() {
   const queryClient = useQueryClient();
+  const { locale, t } = useLanguage();
 
   const latestSyncQuery = useQuery({
     queryKey: ["latest-sync"],
@@ -27,8 +29,8 @@ export function DataStatusPage() {
   return (
     <>
       <PageHeader
-        title="Data Status"
-        subtitle="查看最近同步任务并手动触发行情更新"
+        title={t("data.title")}
+        subtitle={t("data.subtitle")}
         actions={
           <button
             type="button"
@@ -36,7 +38,7 @@ export function DataStatusPage() {
             disabled={triggerMutation.isPending}
             onClick={() => triggerMutation.mutate(false)}
           >
-            {triggerMutation.isPending ? "触发中..." : "手动同步"}
+            {triggerMutation.isPending ? t("data.syncing") : t("data.syncNow")}
           </button>
         }
       />
@@ -44,30 +46,28 @@ export function DataStatusPage() {
       {triggerMutation.isError ? <ErrorBox error={triggerMutation.error} /> : null}
       {latestSyncQuery.isError ? <ErrorBox error={latestSyncQuery.error} onRetry={() => latestSyncQuery.refetch()} /> : null}
 
-      <section className="card">
-        <h2 className="section-title" style={{ marginBottom: "0.75rem" }}>
-          最近同步任务
+      <section className="card data-status-card">
+        <h2 className="section-title">
+          {t("data.latest")}
         </h2>
         {latestSyncQuery.isPending ? (
-          <div className="info-pill">加载中...</div>
+          <div className="info-pill">{t("common.loading")}</div>
         ) : latestSyncQuery.data ? (
-          <div style={{ display: "grid", gap: "0.75rem" }}>
-            <div>
-              <span className="info-pill">provider: {latestSyncQuery.data.provider}</span>
-            </div>
-            <div>
+          <dl className="detail-grid">
+            <div><dt>{t("data.provider")}</dt><dd>{latestSyncQuery.data.provider}</dd></div>
+            <div><dt>{t("table.status")}</dt><dd>
               <SyncStatusBadge status={latestSyncQuery.data.status} />
-            </div>
-            <div>requestedCount: {latestSyncQuery.data.requestedCount}</div>
-            <div>successCount: {latestSyncQuery.data.successCount}</div>
-            <div>failureCount: {latestSyncQuery.data.failureCount}</div>
-            <div>startedAt: {formatDateTime(latestSyncQuery.data.startedAt)}</div>
-            <div>completedAt: {formatDateTime(latestSyncQuery.data.completedAt)}</div>
-            <div>triggeredBy: {latestSyncQuery.data.triggeredBy}</div>
-            {latestSyncQuery.data.errorSummary ? <div>errorSummary: {latestSyncQuery.data.errorSummary}</div> : null}
-          </div>
+            </dd></div>
+            <div><dt>{t("data.requested")}</dt><dd>{latestSyncQuery.data.requestedCount}</dd></div>
+            <div><dt>{t("data.successful")}</dt><dd>{latestSyncQuery.data.successCount}</dd></div>
+            <div><dt>{t("data.failed")}</dt><dd>{latestSyncQuery.data.failureCount}</dd></div>
+            <div><dt>{t("data.started")}</dt><dd>{formatDateTime(latestSyncQuery.data.startedAt, locale)}</dd></div>
+            <div><dt>{t("data.completed")}</dt><dd>{formatDateTime(latestSyncQuery.data.completedAt, locale)}</dd></div>
+            <div><dt>{t("data.triggeredBy")}</dt><dd>{latestSyncQuery.data.triggeredBy}</dd></div>
+            {latestSyncQuery.data.errorSummary ? <div><dt>{t("data.errorSummary")}</dt><dd>{latestSyncQuery.data.errorSummary}</dd></div> : null}
+          </dl>
         ) : (
-          <p className="page-subtitle">尚无同步记录。</p>
+          <p className="page-subtitle">{t("data.none")}</p>
         )}
       </section>
     </>

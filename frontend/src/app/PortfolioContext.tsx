@@ -20,6 +20,8 @@ export function PortfolioProvider({
   return <PortfolioContext.Provider value={value}>{children}</PortfolioContext.Provider>;
 }
 
+// The provider and hook intentionally share this small context module.
+// eslint-disable-next-line react-refresh/only-export-components
 export function usePortfolio() {
   const ctx = useContext(PortfolioContext);
   if (!ctx) {

@@ -7,11 +7,13 @@ import { EmptyState } from "../components/EmptyState";
 import { ErrorBox } from "../components/ErrorBox";
 import { PageHeader } from "../components/PageHeader";
 import { formatCurrency, formatDateTime, formatQuantity } from "../lib/format";
+import { useLanguage } from "../i18n/LanguageContext";
 
 const PAGE_SIZE = 20;
 
 export function TransactionsPage() {
   const { portfolioId, selectedPortfolio } = usePortfolio();
+  const { locale, t } = useLanguage();
   const [page, setPage] = useState(1);
 
   const query = useQuery({
@@ -33,10 +35,10 @@ export function TransactionsPage() {
 
   return (
     <>
-      <PageHeader title="Transactions" subtitle="查看交易历史记录" />
+      <PageHeader title={t("transactions.title")} subtitle={t("transactions.subtitle")} />
 
       {!portfolioId ? (
-        <EmptyState icon="🧾" title="请选择组合" description="左侧先选中组合后再查看交易历史。" />
+        <EmptyState icon="🧾" title={t("common.selectPortfolio")} description={t("transactions.noPortfolioDescription")} />
       ) : null}
 
       {query.isError ? <ErrorBox error={query.error} onRetry={() => query.refetch()} /> : null}
@@ -44,8 +46,8 @@ export function TransactionsPage() {
       {portfolioId && !query.isPending && sorted.length === 0 ? (
         <EmptyState
           icon="🧾"
-          title="暂无交易"
-          description="去 Holdings 页面提交第一笔买入或卖出。"
+          title={t("transactions.emptyTitle")}
+          description={t("transactions.emptyDescription")}
         />
       ) : null}
 
@@ -55,28 +57,28 @@ export function TransactionsPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>时间</th>
-                  <th>标的</th>
-                  <th>方向</th>
-                  <th className="num">数量</th>
-                  <th className="num">单价</th>
-                  <th className="num">手续费</th>
-                  <th>备注</th>
+                  <th>{t("table.time")}</th>
+                  <th>{t("table.symbol")}</th>
+                  <th>{t("table.side")}</th>
+                  <th className="num">{t("table.quantity")}</th>
+                  <th className="num">{t("table.unitPrice")}</th>
+                  <th className="num">{t("table.fee")}</th>
+                  <th>{t("table.note")}</th>
                 </tr>
               </thead>
               <tbody>
                 {sorted.map((tx) => (
                   <tr key={tx.id}>
-                    <td>{formatDateTime(tx.executedAt)}</td>
+                    <td>{formatDateTime(tx.executedAt, locale)}</td>
                     <td className="sym">{tx.symbol}</td>
                     <td>
                       <span className={tx.side === "BUY" ? "badge badge-fresh" : "badge badge-failed"}>
                         {tx.side}
                       </span>
                     </td>
-                    <td className="num">{formatQuantity(tx.quantity)}</td>
-                    <td className="num">{formatCurrency(tx.unitPrice, currency)}</td>
-                    <td className="num">{formatCurrency(tx.feeAmount, currency)}</td>
+                    <td className="num">{formatQuantity(tx.quantity, locale)}</td>
+                    <td className="num">{formatCurrency(tx.unitPrice, currency, locale)}</td>
+                    <td className="num">{formatCurrency(tx.feeAmount, currency, locale)}</td>
                     <td>{tx.note ?? "-"}</td>
                   </tr>
                 ))}
@@ -85,10 +87,10 @@ export function TransactionsPage() {
           </div>
 
           <div className="pagination">
-            <div className="pagination-info">共 {total} 条，当前第 {page} / {maxPage} 页</div>
+            <div className="pagination-info">{t("transactions.page", { total, page, maxPage })}</div>
             <div className="pagination-btns">
               <button type="button" className="btn btn-ghost btn-sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-                上一页
+                {t("transactions.previous")}
               </button>
               <button
                 type="button"
@@ -96,7 +98,7 @@ export function TransactionsPage() {
                 disabled={page >= maxPage}
                 onClick={() => setPage((p) => p + 1)}
               >
-                下一页
+                {t("transactions.next")}
               </button>
             </div>
           </div>

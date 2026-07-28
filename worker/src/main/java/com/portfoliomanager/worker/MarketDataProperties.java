@@ -11,7 +11,7 @@ public class MarketDataProperties {
     private String apiKey = "";
     private String syncCron = "0 0 22 * * MON-FRI";
     private String timeZone = "America/New_York";
-    private int batchSize = 8;
+    private int batchSize = 1;
     private int requestTimeoutSeconds = 10;
     private int maxRetries = 2;
     private long retryBackoffMillis = 250;

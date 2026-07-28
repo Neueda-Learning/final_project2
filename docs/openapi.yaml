@@ -1,36 +1,37 @@
 openapi: 3.1.0
 info:
   title: Portfolio Manager API
-  summary: 股票与 ETF 投资组合管理 REST API
+  summary: Portfolio management REST API for stocks and ETFs
   description: |
-    管理投资组合、股票/ETF 交易、每日行情同步、组合估值和资产配置。
-    MVP 使用服务端预置演示用户，金融数值以十进制字符串传输。
+    Manage portfolios, stock and ETF trades, daily market-data synchronization,
+    portfolio valuation, and asset allocation. The MVP uses a server-side demo
+    user and transmits financial values as decimal strings.
   version: 1.0.0
   contact:
     name: Portfolio Manager Team
 servers:
   - url: /
-    description: 当前部署地址；本地开发默认解析为 http://localhost:8000
+    description: Current deployment; local development resolves to http://localhost:8000
 security: []
 tags:
   - name: Portfolios
-    description: 用户与投资组合管理
+    description: User and portfolio management
   - name: Trading
-    description: 股票/ETF 标的、交易与当前持仓
+    description: Stock and ETF instruments, trades, and current positions
   - name: Market Data
-    description: 每日行情同步、运行状态与最新价格
+    description: Daily price synchronization, run status, and latest prices
   - name: Analytics
-    description: 组合估值、盈亏、资产配置和历史表现
+    description: Portfolio valuation, P&L, allocation, and historical performance
   - name: Health
-    description: 服务存活与依赖就绪检查
+    description: Service liveness and dependency readiness
 
 paths:
   /api/v1/portfolios:
     get:
       tags: [Portfolios]
       operationId: listPortfolios
-      summary: 查询组合列表
-      description: 查询当前用户的组合，默认不包含已归档组合。
+      summary: List portfolios
+      description: List portfolios for the current user, excluding archived portfolios by default.
       x-owner: member-2
       parameters:
         - $ref: "#/components/parameters/Page"
@@ -44,7 +45,7 @@ paths:
           example: false
       responses:
         "200":
-          description: 组合分页列表
+          description: Paginated portfolio list
           content:
             application/json:
               schema:
@@ -66,7 +67,7 @@ paths:
     post:
       tags: [Portfolios]
       operationId: createPortfolio
-      summary: 创建组合
+      summary: Create a portfolio
       x-owner: member-2
       requestBody:
         required: true
@@ -80,7 +81,7 @@ paths:
               baseCurrency: USD
       responses:
         "201":
-          description: 创建成功
+          description: Created successfully
           content:
             application/json:
               schema:
@@ -104,11 +105,11 @@ paths:
     get:
       tags: [Portfolios]
       operationId: getPortfolio
-      summary: 查询组合详情
+      summary: Get portfolio details
       x-owner: member-2
       responses:
         "200":
-          description: 组合详情
+          description: Portfolio details
           content:
             application/json:
               schema:
@@ -126,7 +127,7 @@ paths:
     patch:
       tags: [Portfolios]
       operationId: updatePortfolio
-      summary: 修改组合
+      summary: Update a portfolio
       x-owner: member-2
       requestBody:
         required: true
@@ -139,7 +140,7 @@ paths:
               description: Updated description
       responses:
         "200":
-          description: 修改后的组合
+          description: Updated portfolio
           content:
             application/json:
               schema:
@@ -161,12 +162,12 @@ paths:
     delete:
       tags: [Portfolios]
       operationId: deletePortfolio
-      summary: 删除空组合
-      description: 仅允许删除没有交易历史的组合。
+      summary: Delete an empty portfolio
+      description: Only portfolios without transaction history can be deleted.
       x-owner: member-2
       responses:
         "204":
-          description: 删除成功，无响应体
+          description: Deleted successfully with no response body
         "404":
           $ref: "#/components/responses/NotFoundError"
         "409":
@@ -176,13 +177,13 @@ paths:
     post:
       tags: [Portfolios]
       operationId: archivePortfolio
-      summary: 归档组合
+      summary: Archive a portfolio
       x-owner: member-2
       parameters:
         - $ref: "#/components/parameters/PortfolioId"
       responses:
         "200":
-          description: 已归档组合
+          description: Archived portfolio
           content:
             application/json:
               schema:
@@ -202,7 +203,7 @@ paths:
     get:
       tags: [Trading]
       operationId: searchInstruments
-      summary: 搜索股票与 ETF
+      summary: Search stocks and ETFs
       x-owner: member-3
       parameters:
         - name: query
@@ -224,7 +225,7 @@ paths:
           example: 10
       responses:
         "200":
-          description: 匹配的股票与 ETF
+          description: Matching stocks and ETFs
           content:
             application/json:
               schema:
@@ -247,7 +248,7 @@ paths:
     post:
       tags: [Trading]
       operationId: createTransaction
-      summary: 创建买入或卖出交易
+      summary: Create a purchase or sale transaction
       x-owner: member-3
       parameters:
         - $ref: "#/components/parameters/IdempotencyKey"
@@ -267,7 +268,7 @@ paths:
               note: Initial position
       responses:
         "201":
-          description: 创建成功
+          description: Created successfully
           content:
             application/json:
               schema:
@@ -294,7 +295,7 @@ paths:
     get:
       tags: [Trading]
       operationId: listTransactions
-      summary: 查询交易历史
+      summary: List transaction history
       x-owner: member-3
       parameters:
         - $ref: "#/components/parameters/Page"
@@ -308,7 +309,7 @@ paths:
           example: -executedAt
       responses:
         "200":
-          description: 交易分页列表
+          description: Paginated transaction list
           content:
             application/json:
               schema:
@@ -339,13 +340,13 @@ paths:
     get:
       tags: [Trading]
       operationId: listPositions
-      summary: 查询当前持仓
+      summary: List current positions
       x-owner: member-3
       parameters:
         - $ref: "#/components/parameters/PortfolioId"
       responses:
         "200":
-          description: 当前持仓
+          description: Current positions
           content:
             application/json:
               schema:
@@ -368,7 +369,7 @@ paths:
     post:
       tags: [Market Data]
       operationId: triggerMarketDataSync
-      summary: 手动触发行情同步
+      summary: Trigger market-data synchronization
       x-owner: member-4
       requestBody:
         required: true
@@ -380,7 +381,7 @@ paths:
               force: false
       responses:
         "202":
-          description: 同步已开始
+          description: Synchronization started
           content:
             application/json:
               schema:
@@ -405,11 +406,11 @@ paths:
     get:
       tags: [Market Data]
       operationId: getLatestMarketDataSync
-      summary: 查询最近同步状态
+      summary: Get the latest synchronization status
       x-owner: member-4
       responses:
         "200":
-          description: 最近运行；从未运行时为 null
+          description: Latest run, or null when synchronization has never run
           content:
             application/json:
               schema:
@@ -432,13 +433,13 @@ paths:
     get:
       tags: [Market Data]
       operationId: getLatestInstrumentPrice
-      summary: 查询标的最新价格
+      summary: Get the latest instrument price
       x-owner: member-4
       parameters:
         - $ref: "#/components/parameters/InstrumentId"
       responses:
         "200":
-          description: 最新可用日收盘价
+          description: Latest available daily close
           content:
             application/json:
               schema:
@@ -461,13 +462,13 @@ paths:
     get:
       tags: [Analytics]
       operationId: getPortfolioDashboard
-      summary: 查询组合 Dashboard
+      summary: Get the portfolio dashboard
       x-owner: member-5
       parameters:
         - $ref: "#/components/parameters/PortfolioId"
       responses:
         "200":
-          description: 组合摘要、估值持仓与资产配置
+          description: Portfolio summary, valued positions, and asset allocation
           content:
             application/json:
               schema:
@@ -535,7 +536,7 @@ paths:
     get:
       tags: [Analytics]
       operationId: getPortfolioPerformance
-      summary: 查询估值历史
+      summary: Get valuation history
       x-owner: member-5
       parameters:
         - $ref: "#/components/parameters/PortfolioId"
@@ -555,7 +556,7 @@ paths:
           example: "2026-07-27"
       responses:
         "200":
-          description: 每日估值时间序列
+          description: Daily valuation time series
           content:
             application/json:
               schema:
@@ -580,11 +581,11 @@ paths:
     get:
       tags: [Health]
       operationId: getLiveness
-      summary: 存活检查
+      summary: Check liveness
       x-owner: member-5
       responses:
         "200":
-          description: API 进程存活
+          description: API process is alive
           content:
             application/json:
               schema:
@@ -596,11 +597,11 @@ paths:
     get:
       tags: [Health]
       operationId: getReadiness
-      summary: 就绪检查
+      summary: Check readiness
       x-owner: member-5
       responses:
         "200":
-          description: API 与 MySQL 就绪
+          description: API and MySQL are ready
           content:
             application/json:
               schema:
@@ -653,7 +654,7 @@ components:
       name: Idempotency-Key
       in: header
       required: true
-      description: 同一逻辑交易的所有网络重试必须复用同一个值。
+      description: Every network retry for one logical trade must reuse the same value.
       schema:
         type: string
         minLength: 1
@@ -662,7 +663,7 @@ components:
 
   responses:
     NotFoundError:
-      description: 资源不存在或不属于当前用户
+      description: The resource does not exist or is outside the current user boundary
       content:
         application/json:
           schema:
@@ -673,20 +674,20 @@ components:
             fieldErrors: {}
             requestId: req-01J3X6F8NQ8H2A3V
     ConflictError:
-      description: 唯一键、幂等、并发或业务状态冲突
+      description: Unique-key, idempotency, concurrency, or business-state conflict
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
           example:
             code: POSITION_INSUFFICIENT_QUANTITY
-            message: 卖出数量超过当前持仓。
+            message: Sale quantity exceeds the current position.
             fieldErrors:
               quantity:
                 - Must not exceed the current position.
             requestId: req-01J3X6F8NQ8H2A3V
     ValidationError:
-      description: 请求字段验证失败
+      description: Request field validation failed
       content:
         application/json:
           schema:
@@ -699,7 +700,7 @@ components:
                 - Must be greater than zero.
             requestId: req-01J3X6F8NQ8H2A3V
     ServiceUnavailableError:
-      description: MySQL 或外部依赖不可用
+      description: MySQL or an external dependency is unavailable
       content:
         application/json:
           schema:
@@ -881,11 +882,11 @@ components:
         quantity:
           allOf:
             - $ref: "#/components/schemas/DecimalString"
-          description: 必须大于零
+          description: Must be greater than zero
         unitPrice:
           allOf:
             - $ref: "#/components/schemas/DecimalString"
-          description: 必须大于零
+          description: Must be greater than zero
         feeAmount:
           allOf:
             - $ref: "#/components/schemas/DecimalString"
