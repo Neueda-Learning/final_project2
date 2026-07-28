@@ -39,36 +39,30 @@ public class TradingService {
     private final PortfolioRepository portfolios;
     private final TradeTransactionRepository transactions;
     private final PortfolioPositionRepository positions;
+    private final MarketDataService marketData;
 
     public TradingService(
             InstrumentRepository instruments,
             PortfolioRepository portfolios,
             TradeTransactionRepository transactions,
-            PortfolioPositionRepository positions) {
+            PortfolioPositionRepository positions,
+            MarketDataService marketData) {
         this.instruments = instruments;
         this.portfolios = portfolios;
         this.transactions = transactions;
         this.positions = positions;
+        this.marketData = marketData;
     }
 
-    /**
-     * Searches active instruments by supported asset type.
-     */
-    public List<InstrumentResponse> searchInstruments(String query) {
+    /** Searches active instruments by symbol or name fragment. */
+    public List<InstrumentResponse> searchInstruments(String query, int limit) {
         if (query == null || query.isBlank()) {
             return List.of();
         }
 
-        String trimmedQuery = query.trim().toUpperCase();
-
-        // Only support filtering by assetType: STOCK or ETF
-        if ("STOCK".equals(trimmedQuery) || "ETF".equals(trimmedQuery)) {
-            return instruments.searchActiveByAssetType(trimmedQuery).stream()
-                    .map(TradingService::toInstrumentResponse)
-                    .toList();
-        }
-
-        return List.of();
+        return instruments.searchActive(query.trim(), PageRequest.of(0, limit)).stream()
+                .map(TradingService::toInstrumentResponse)
+                .toList();
     }
 
     /**
@@ -125,6 +119,14 @@ public class TradingService {
             return toTransactionResponse(existingTrade.get());
         }
 
+        // Resolve the immutable execution price from the selected stored daily close.
+        var marketPrice = marketData.tradablePrice(request.instrumentId(), request.priceDate());
+        BigDecimal unitPrice = marketPrice.closePrice();
+        String currency = marketPrice.currency();
+        LocalDateTime executedAt = request.priceDate().atTime(16, 0);
+        BigDecimal feeAmount =
+                request.feeAmount() == null ? BigDecimal.ZERO : request.feeAmount();
+
         // Lock the position with SELECT FOR UPDATE.
         Optional<PortfolioPosition> existingPosition =
                 positions.findByPortfolioAndInstrumentForUpdate(
@@ -162,8 +164,8 @@ public class TradingService {
             // Purchase cost = quantity * execution price + fee.
             totalCost =
                     request.quantity()
-                            .multiply(request.unitPrice())
-                            .add(request.feeAmount());
+                            .multiply(unitPrice)
+                            .add(feeAmount);
             // Add the purchased quantity to the current position.
             totalQuantity = currentQuantity.add(request.quantity());
             // Calculate weighted average cost.
@@ -180,8 +182,8 @@ public class TradingService {
             // Realized P&L = sale quantity * (price - average cost) - fee.
             BigDecimal proceeds =
                     request.quantity()
-                            .multiply(request.unitPrice())
-                            .subtract(request.feeAmount());
+                            .multiply(unitPrice)
+                            .subtract(feeAmount);
             BigDecimal costOfSold = request.quantity().multiply(currentAverageCost);
             BigDecimal pnl = proceeds.subtract(costOfSold);
             newRealizedPnl = currentRealizedPnl.add(pnl);
@@ -201,10 +203,10 @@ public class TradingService {
                         instrument,
                         request.side(),
                         request.quantity(),
-                        request.unitPrice(),
-                        request.feeAmount(),
-                        request.currency(),
-                        request.executedAt(),
+                        unitPrice,
+                        feeAmount,
+                        currency,
+                        executedAt,
                         idempotencyKey,
                         request.note());
         transactions.save(newTransaction);
@@ -301,13 +303,13 @@ public class TradingService {
                 transaction.getId(),
                 transaction.getPortfolio().getId(),
                 transaction.getInstrument().getId(),
+                transaction.getInstrument().getSymbol(),
                 transaction.getSide(),
                 transaction.getQuantity(),
                 transaction.getUnitPrice(),
                 transaction.getFeeAmount(),
                 transaction.getCurrency(),
                 transaction.getExecutedAt(),
-                transaction.getIdempotencyKey(),
                 transaction.getNote(),
                 transaction.getCreatedAt());
     }

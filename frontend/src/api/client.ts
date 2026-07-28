@@ -152,6 +152,11 @@ export const api = {
 
     getLatestPrice: (instrumentId: string) =>
       request<MarketPrice>(`${V1}/instruments/${instrumentId}/latest-price`),
+
+    getTradablePrices: (instrumentId: string, limit = 60) =>
+      request<MarketPrice[]>(
+        `${V1}/instruments/${instrumentId}/tradable-prices${qs({ limit })}`,
+      ),
   },
 
   analytics: {

@@ -586,6 +586,12 @@ select {
   font-size: 0.76rem;
 }
 
+.form-hint {
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
 .form-actions {
   display: flex;
   justify-content: flex-end;

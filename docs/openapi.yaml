@@ -262,9 +262,8 @@ paths:
               instrumentId: 33333333-3333-3333-3333-333333333333
               side: BUY
               quantity: "10.00000000"
-              unitPrice: "198.42000000"
-              feeAmount: "1.25000000"
-              executedAt: "2026-07-27T08:30:00Z"
+              priceDate: "2026-07-27"
+              feeAmount: "0.00000000"
               note: Initial position
       responses:
         "201":
@@ -280,12 +279,12 @@ paths:
                 symbol: AAPL
                 side: BUY
                 quantity: "10.00000000"
-                unitPrice: "198.42000000"
-                feeAmount: "1.25000000"
+                unitPrice: "214.05000000"
+                feeAmount: "0.00000000"
                 currency: USD
-                executedAt: "2026-07-27T08:30:00Z"
+                executedAt: "2026-07-27T16:00:00Z"
                 note: Initial position
-                createdAt: "2026-07-27T08:30:01Z"
+                createdAt: "2026-07-28T02:30:01Z"
         "404":
           $ref: "#/components/responses/NotFoundError"
         "409":
@@ -322,12 +321,12 @@ paths:
                     symbol: AAPL
                     side: BUY
                     quantity: "10.00000000"
-                    unitPrice: "198.42000000"
-                    feeAmount: "1.25000000"
+                    unitPrice: "214.05000000"
+                    feeAmount: "0.00000000"
                     currency: USD
-                    executedAt: "2026-07-27T08:30:00Z"
+                    executedAt: "2026-07-27T16:00:00Z"
                     note: Initial position
-                    createdAt: "2026-07-27T08:30:01Z"
+                    createdAt: "2026-07-28T02:30:01Z"
                 page: 1
                 pageSize: 20
                 total: 1
@@ -457,6 +456,52 @@ paths:
                 priceStatus: FRESH
         "404":
           $ref: "#/components/responses/NotFoundError"
+
+  /api/v1/instruments/{instrumentId}/tradable-prices:
+    get:
+      tags: [Trading, Market Data]
+      operationId: listTradableInstrumentPrices
+      summary: List stored daily closes selectable for a transaction
+      description: >
+        Returns recent real daily closing prices in descending trading-date order.
+        The selected priceDate is submitted when creating a transaction; clients
+        cannot submit an arbitrary unit price.
+      x-owner: member-3
+      parameters:
+        - $ref: "#/components/parameters/InstrumentId"
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 250
+            default: 60
+          example: 60
+      responses:
+        "200":
+          description: Recent selectable daily closing prices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MarketPrice"
+              example:
+                - instrumentId: 33333333-3333-3333-3333-333333333333
+                  symbol: AAPL
+                  priceDate: "2026-07-27"
+                  closePrice: "214.05000000"
+                  adjustedClose: "214.05000000"
+                  currency: USD
+                  source: twelve-data
+                  sourceTimestamp: null
+                  fetchedAt: "2026-07-28T01:00:05Z"
+                  priceStatus: FRESH
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
   /api/v1/portfolios/{portfolioId}/dashboard:
     get:
@@ -871,8 +916,7 @@ components:
         - instrumentId
         - side
         - quantity
-        - unitPrice
-        - executedAt
+        - priceDate
       properties:
         instrumentId:
           type: string
@@ -883,17 +927,16 @@ components:
           allOf:
             - $ref: "#/components/schemas/DecimalString"
           description: Must be greater than zero
-        unitPrice:
-          allOf:
-            - $ref: "#/components/schemas/DecimalString"
-          description: Must be greater than zero
+        priceDate:
+          type: string
+          format: date
+          description: >
+            A selectable trading date returned by the instrument's tradable-prices
+            endpoint. The server resolves the stored daily close as unitPrice.
         feeAmount:
           allOf:
             - $ref: "#/components/schemas/DecimalString"
           default: "0"
-        executedAt:
-          type: string
-          format: date-time
         note:
           type: [string, "null"]
           maxLength: 500

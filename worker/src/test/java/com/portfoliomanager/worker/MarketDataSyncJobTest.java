@@ -11,6 +11,8 @@ import static org.mockito.Mockito.when;
 import com.portfoliomanager.worker.provider.DailyPrice;
 import com.portfoliomanager.worker.provider.MarketDataProvider;
 import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.time.Clock;
 import java.time.Instant;
@@ -19,6 +21,7 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
+import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 
@@ -28,11 +31,25 @@ class MarketDataSyncJobTest {
     void manualRunPersistsValidPriceAndCompletesSuccessfully() throws Exception {
         var provider = mock(MarketDataProvider.class);
         var jdbc = mock(JdbcTemplate.class);
+        var connection = mock(Connection.class);
+        var lockStatement = mock(PreparedStatement.class);
+        var lockResult = mock(ResultSet.class);
         var properties = new MarketDataProperties();
         properties.setProvider("fixture");
         properties.setMaxRetries(0);
 
         when(provider.name()).thenReturn("fixture");
+        when(connection.prepareStatement(anyString())).thenReturn(lockStatement);
+        when(lockStatement.executeQuery()).thenReturn(lockResult);
+        when(lockResult.next()).thenReturn(true);
+        when(lockResult.getInt(1)).thenReturn(1);
+        when(jdbc.execute(
+                        org.mockito.ArgumentMatchers.<ConnectionCallback<Object>>any()))
+                .thenAnswer(invocation -> {
+                    @SuppressWarnings("unchecked")
+                    ConnectionCallback<Object> callback = invocation.getArgument(0);
+                    return callback.doInConnection(connection);
+                });
         when(provider.fetchDailyCloses(
                         eq(List.of("AAPL")),
                         any(LocalDate.class),

@@ -4,7 +4,9 @@ import com.portfoliomanager.api.ApiModels.MarketPriceResponse;
 import com.portfoliomanager.api.ApiModels.SyncRunResponse;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
@@ -82,11 +84,7 @@ public class MarketDataService {
     }
 
     public MarketPriceResponse latestPrice(String instrumentId) {
-        Integer instrumentCount = jdbc.queryForObject(
-                "SELECT COUNT(*) FROM instrument WHERE id = ?", Integer.class, instrumentId);
-        if (instrumentCount == null || instrumentCount == 0) {
-            throw new ResourceNotFoundException("Instrument not found: " + instrumentId);
-        }
+        requireInstrument(instrumentId);
 
         return jdbc.query(
                         """
@@ -113,6 +111,79 @@ public class MarketDataService {
                 .findFirst()
                 .orElseThrow(() ->
                         new ResourceNotFoundException("No market data is available for instrument: " + instrumentId));
+    }
+
+    public List<MarketPriceResponse> tradablePrices(String instrumentId, int limit) {
+        requireInstrument(instrumentId);
+        return jdbc.query(
+                """
+                SELECT i.id AS instrument_id, i.symbol, mp.price_date,
+                       mp.close_price, mp.adjusted_close, mp.currency,
+                       mp.source, mp.source_timestamp, mp.fetched_at
+                FROM instrument i
+                JOIN market_price mp ON mp.instrument_id = i.id
+                WHERE i.id = ?
+                  AND mp.close_price > 0
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM market_price newer
+                      WHERE newer.instrument_id = mp.instrument_id
+                        AND newer.price_date = mp.price_date
+                        AND newer.fetched_at > mp.fetched_at
+                  )
+                ORDER BY mp.price_date DESC, mp.fetched_at DESC
+                LIMIT ?
+                """,
+                this::mapMarketPrice,
+                instrumentId,
+                limit);
+    }
+
+    public MarketPriceResponse tradablePrice(String instrumentId, LocalDate priceDate) {
+        requireInstrument(instrumentId);
+        return jdbc.query(
+                        """
+                        SELECT i.id AS instrument_id, i.symbol, mp.price_date,
+                               mp.close_price, mp.adjusted_close, mp.currency,
+                               mp.source, mp.source_timestamp, mp.fetched_at
+                        FROM instrument i
+                        JOIN market_price mp ON mp.instrument_id = i.id
+                        WHERE i.id = ?
+                          AND mp.price_date = ?
+                          AND mp.close_price > 0
+                        ORDER BY mp.fetched_at DESC
+                        LIMIT 1
+                        """,
+                        this::mapMarketPrice,
+                        instrumentId,
+                        priceDate)
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "The selected date is not a tradable date with stored market data for this instrument."));
+    }
+
+    private void requireInstrument(String instrumentId) {
+        Integer instrumentCount = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM instrument WHERE id = ?", Integer.class, instrumentId);
+        if (instrumentCount == null || instrumentCount == 0) {
+            throw new ResourceNotFoundException("Instrument not found: " + instrumentId);
+        }
+    }
+
+    private MarketPriceResponse mapMarketPrice(ResultSet rs, int rowNum) throws SQLException {
+        LocalDate priceDate = rs.getDate("price_date").toLocalDate();
+        return new MarketPriceResponse(
+                rs.getString("instrument_id"),
+                rs.getString("symbol"),
+                priceDate,
+                rs.getBigDecimal("close_price"),
+                rs.getBigDecimal("adjusted_close"),
+                rs.getString("currency"),
+                rs.getString("source"),
+                toLocalDateTime(rs, "source_timestamp"),
+                toLocalDateTime(rs, "fetched_at"),
+                calendar.status(priceDate));
     }
 
     private Optional<SyncRunResponse> currentRunningSync() {

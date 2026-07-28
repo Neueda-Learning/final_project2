@@ -12,6 +12,7 @@ services:
       - mysql-data:/var/lib/mysql
       - ./docs/database/schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
       - ./db/seeds/001-demo.sql:/docker-entrypoint-initdb.d/002-demo.sql:ro
+      - ./db/seeds/002-demo-portfolios.sql:/docker-entrypoint-initdb.d/003-demo-portfolios.sql:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot"]
       interval: 5s
@@ -45,10 +46,11 @@ services:
       MARKET_DATA_PROVIDER: ${MARKET_DATA_PROVIDER:-twelve-data}
       MARKET_SYNC_CRON: ${MARKET_SYNC_CRON:-0 0 22 * * MON-FRI}
       MARKET_TIMEZONE: ${MARKET_TIMEZONE:-America/New_York}
-      MARKET_BATCH_SIZE: ${MARKET_BATCH_SIZE:-8}
+      MARKET_BATCH_SIZE: ${MARKET_BATCH_SIZE:-1}
       MARKET_REQUEST_TIMEOUT_SECONDS: ${MARKET_REQUEST_TIMEOUT_SECONDS:-10}
       MARKET_MAX_RETRIES: ${MARKET_MAX_RETRIES:-2}
       MARKET_RETRY_BACKOFF_MILLIS: ${MARKET_RETRY_BACKOFF_MILLIS:-250}
+      MARKET_REQUEST_INTERVAL_MILLIS: ${MARKET_REQUEST_INTERVAL_MILLIS:-8000}
       MARKET_MANUAL_POLL_INTERVAL_MS: ${MARKET_MANUAL_POLL_INTERVAL_MS:-2000}
       TWELVE_DATA_API_KEY: ${TWELVE_DATA_API_KEY:-}
     depends_on:
