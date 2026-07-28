@@ -41,8 +41,8 @@ public class TradingController {
 
     @GetMapping("/instruments")
     @Operation(
-            summary = "Search instruments",
-            description = "Search for active stocks and ETFs by symbol or name (case-insensitive substring match)")
+            summary = "List or search instruments",
+            description = "List active stocks and ETFs, or filter by symbol or name (case-insensitive substring match)")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Search successful"),
         @ApiResponse(responseCode = "422", description = "Validation error")

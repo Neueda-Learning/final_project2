@@ -4,16 +4,17 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError, api } from "../api/client";
 import type { Instrument, TradeSide } from "../api/types";
 import { usePortfolio } from "../app/PortfolioContext";
+import { CuratedInstrumentPicker } from "../components/CuratedInstrumentPicker";
 import { EmptyState } from "../components/EmptyState";
 import { ErrorBox } from "../components/ErrorBox";
 import { PageHeader } from "../components/PageHeader";
+import type { CuratedSectorId } from "../data/curatedInstruments";
 import { formatCurrency, formatDate, formatDateTime, formatQuantity } from "../lib/format";
 import { useLanguage } from "../i18n/LanguageContext";
 
 interface TradeFormState {
   side: TradeSide;
   instrument: Instrument | null;
-  query: string;
   quantity: string;
   priceDate: string;
   feeAmount: string;
@@ -23,7 +24,6 @@ interface TradeFormState {
 const initialForm = (): TradeFormState => ({
   side: "BUY",
   instrument: null,
-  query: "",
   quantity: "",
   priceDate: "",
   feeAmount: "0",
@@ -42,6 +42,7 @@ export function HoldingsPage() {
   const { locale, t } = useLanguage();
 
   const [form, setForm] = useState<TradeFormState>(initialForm);
+  const [sectorId, setSectorId] = useState<CuratedSectorId>("core");
   const [idemKey, setIdemKey] = useState<string>(crypto.randomUUID());
 
   const positionsQuery = useQuery({
@@ -50,10 +51,10 @@ export function HoldingsPage() {
     enabled: Boolean(portfolioId),
   });
 
-  const searchQuery = useQuery({
-    queryKey: ["instruments", form.query],
-    queryFn: () => api.instruments.search(form.query, 10),
-    enabled: form.query.trim().length > 0,
+  const instrumentsQuery = useQuery({
+    queryKey: ["instruments", "curated-universe"],
+    queryFn: () => api.instruments.list(50),
+    staleTime: 10 * 60 * 1000,
   });
 
   const pricesQuery = useQuery({
@@ -103,7 +104,6 @@ export function HoldingsPage() {
     form.quantity.trim().length > 0 &&
     Boolean(selectedPrice);
 
-  const searchItems = useMemo(() => searchQuery.data?.items ?? [], [searchQuery.data]);
   const currency = selectedPortfolio?.baseCurrency ?? "USD";
   const quantityError = fieldError(submitMutation.error, "quantity");
   const priceDateError = fieldError(submitMutation.error, "priceDate");
@@ -156,57 +156,29 @@ export function HoldingsPage() {
               </div>
             </div>
 
-            <div className="form-group search-wrap">
-              <label className="form-label" htmlFor="instrument-query">
-                {t("holdings.search")}
-              </label>
-              {form.instrument ? (
-                <div className="search-selected">
-                  <div>
-                    <strong>{form.instrument.symbol}</strong> · {form.instrument.name}
-                  </div>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => setForm((s) => ({ ...s, instrument: null, query: "", priceDate: "" }))}
-                  >
-                    {t("holdings.change")}
-                  </button>
+            <div className="form-group">
+              {instrumentsQuery.isLoading ? (
+                <div className="curated-picker-loading" aria-label={t("common.loading")}>
+                  <div />
+                  <div />
+                  <div />
                 </div>
-              ) : (
-                <>
-                  <input
-                    id="instrument-query"
-                    className={`form-input${instrumentError ? " error" : ""}`}
-                    placeholder={t("holdings.searchPlaceholder")}
-                    value={form.query}
-                    onChange={(e) => setForm((s) => ({ ...s, query: e.target.value }))}
-                  />
-                  {instrumentError ? <div className="form-error">{instrumentError}</div> : null}
-                  {searchQuery.isError ? <ErrorBox error={searchQuery.error} /> : null}
-                  {searchItems.length > 0 ? (
-                    <div className="search-results" role="listbox" aria-label={t("holdings.searchResults")}>
-                      {searchItems.map((item) => (
-                        <button
-                          type="button"
-                          key={item.id}
-                          className="search-result-item"
-                          onClick={() => setForm((s) => ({
-                            ...s,
-                            instrument: item,
-                            query: item.symbol,
-                            priceDate: "",
-                          }))}
-                        >
-                          <span className="search-result-item__symbol">{item.symbol}</span>
-                          <span className="search-result-item__name">{item.name}</span>
-                          <span className="search-result-item__type">{item.assetType}</span>
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
-                </>
-              )}
+              ) : null}
+              {instrumentsQuery.isError ? (
+                <ErrorBox error={instrumentsQuery.error} onRetry={() => instrumentsQuery.refetch()} />
+              ) : null}
+              {instrumentsQuery.data ? (
+                <CuratedInstrumentPicker
+                  instruments={instrumentsQuery.data.items}
+                  selectedInstrument={form.instrument}
+                  sectorId={sectorId}
+                  onSectorChange={setSectorId}
+                  onSelect={(instrument) =>
+                    setForm((state) => ({ ...state, instrument, priceDate: "" }))
+                  }
+                />
+              ) : null}
+              {instrumentError ? <div className="form-error">{instrumentError}</div> : null}
             </div>
 
             <div className="form-row">

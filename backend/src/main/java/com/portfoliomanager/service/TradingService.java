@@ -54,10 +54,13 @@ public class TradingService {
         this.marketData = marketData;
     }
 
-    /** Searches active instruments by symbol or name fragment. */
+    /** Lists active instruments or searches them by symbol or name fragment. */
     public List<InstrumentResponse> searchInstruments(String query, int limit) {
         if (query == null || query.isBlank()) {
-            return List.of();
+            return instruments.findByActiveTrueOrderBySymbol().stream()
+                    .limit(limit)
+                    .map(TradingService::toInstrumentResponse)
+                    .toList();
         }
 
         return instruments.searchActive(query.trim(), PageRequest.of(0, limit)).stream()
