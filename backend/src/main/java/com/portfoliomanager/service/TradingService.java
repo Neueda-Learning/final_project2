@@ -323,27 +323,16 @@ public class TradingService {
 
     static PositionResponse toPositionResponse(PortfolioPosition position) {
         Instrument instrument = position.getInstrument();
-        InstrumentResponse instrumentResponse = toInstrumentResponse(instrument);
-
-        // 计算市值和未实现盈亏（模拟：以平均成本作为当前价格）
-        // 实际应该从行情数据中获取
-        BigDecimal marketValue = position.getQuantity().multiply(position.getAverageCost());
-        BigDecimal costBasis = position.getQuantity().multiply(position.getAverageCost());
-        BigDecimal unrealizedPnl = BigDecimal.ZERO; // 模拟数据
-        BigDecimal returnPct = BigDecimal.ZERO; // 模拟数据
 
         return new PositionResponse(
-                position.getPortfolio().getId(),
-                instrumentResponse,
+                instrument.getId(),
+                instrument.getSymbol(),
+                instrument.getName(),
+                instrument.getAssetType(),
                 position.getQuantity(),
                 position.getAverageCost(),
                 position.getRealizedPnl(),
-                costBasis,
-                position.getAverageCost(), // closePrice 使用平均成本作为模拟
-                marketValue,
-                unrealizedPnl,
-                returnPct,
-                position.getUpdatedAt().toLocalDate(), // priceDate: 使用最后更新日期
-                null); // priceStatus: TODO 从行情数据中获取
+                position.getOpenedAt(),
+                position.getUpdatedAt());
     }
 }

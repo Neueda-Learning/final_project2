@@ -42,16 +42,15 @@ export function isApiError(e: unknown): e is ApiError {
 
 // ─── Internal fetch wrapper ───────────────────────────────────────────────────
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
-  const contentType =
-    init?.body !== undefined ? { "Content-Type": "application/json" } : {};
+  const headers = new Headers(init?.headers);
+  headers.set("Accept", "application/json");
+  if (init?.body !== undefined && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
 
   const res = await fetch(url, {
     ...init,
-    headers: {
-      Accept: "application/json",
-      ...contentType,
-      ...(init?.headers as Record<string, string> | undefined),
-    },
+    headers,
   });
 
   if (res.status === 204) return undefined as T;

@@ -2,6 +2,7 @@ package com.portfoliomanager.api;
 
 import com.portfoliomanager.api.ApiModels.InstrumentResponse;
 import com.portfoliomanager.api.ApiModels.PageResponse;
+import com.portfoliomanager.api.ApiModels.PositionListResponse;
 import com.portfoliomanager.api.ApiModels.PositionResponse;
 import com.portfoliomanager.api.ApiModels.TransactionCreateRequest;
 import com.portfoliomanager.api.ApiModels.TransactionResponse;
@@ -97,7 +98,7 @@ public class TradingController {
         @ApiResponse(responseCode = "200", description = "Success"),
         @ApiResponse(responseCode = "404", description = "Portfolio not found")
     })
-    public List<PositionResponse> listPositions(@PathVariable String portfolioId) {
-        return service.listPositions(portfolioId);
+    public PositionListResponse listPositions(@PathVariable String portfolioId) {
+        return new PositionListResponse(service.listPositions(portfolioId));
     }
 }
