@@ -63,28 +63,28 @@ public final class ApiModels {
             String currency,
             boolean isActive) {}
 
+    public record InstrumentListResponse(List<InstrumentResponse> items) {}
+
     public record TransactionCreateRequest(
             @NotBlank String instrumentId,
             @NotNull TradeSide side,
             @NotNull @Positive @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal quantity,
-            @NotNull @Positive @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal unitPrice,
-            @NotNull @DecimalMin("0") @JsonFormat(shape = JsonFormat.Shape.STRING)
+            @NotNull LocalDate priceDate,
+            @DecimalMin("0") @JsonFormat(shape = JsonFormat.Shape.STRING)
                     BigDecimal feeAmount,
-            @NotNull @Pattern(regexp = "[A-Z]{3}") String currency,
-            @NotNull LocalDateTime executedAt,
             @Size(max = 500) String note) {}
 
     public record TransactionResponse(
             String id,
             String portfolioId,
             String instrumentId,
+            String symbol,
             TradeSide side,
             @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal quantity,
             @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal unitPrice,
             @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal feeAmount,
             String currency,
             LocalDateTime executedAt,
-            String idempotencyKey,
             String note,
             LocalDateTime createdAt) {}
 

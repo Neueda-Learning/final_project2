@@ -10,9 +10,19 @@ public interface InstrumentRepository extends JpaRepository<Instrument, String> 
 
     List<Instrument> findByActiveTrueOrderBySymbol();
 
-    /**
-     * Search active instruments by asset type (STOCK or ETF).
-     */
-    @Query("SELECT i FROM Instrument i WHERE i.active = true AND UPPER(i.assetType) = UPPER(:assetType) ORDER BY i.symbol")
-    List<Instrument> searchActiveByAssetType(@Param("assetType") String assetType);
+    /** Searches active instruments by a symbol or name fragment. */
+    @Query("""
+            SELECT i
+            FROM Instrument i
+            WHERE i.active = true
+              AND (
+                  UPPER(i.symbol) LIKE UPPER(CONCAT('%', :query, '%'))
+                  OR UPPER(i.name) LIKE UPPER(CONCAT('%', :query, '%'))
+              )
+            ORDER BY
+              CASE WHEN UPPER(i.symbol) = UPPER(:query) THEN 0 ELSE 1 END,
+              i.symbol
+            """)
+    List<Instrument> searchActive(
+            @Param("query") String query, org.springframework.data.domain.Pageable pageable);
 }

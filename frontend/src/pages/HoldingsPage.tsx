@@ -7,7 +7,7 @@ import { usePortfolio } from "../app/PortfolioContext";
 import { EmptyState } from "../components/EmptyState";
 import { ErrorBox } from "../components/ErrorBox";
 import { PageHeader } from "../components/PageHeader";
-import { formatCurrency, formatDateTime, formatQuantity } from "../lib/format";
+import { formatCurrency, formatDate, formatDateTime, formatQuantity } from "../lib/format";
 import { useLanguage } from "../i18n/LanguageContext";
 
 interface TradeFormState {
@@ -15,9 +15,8 @@ interface TradeFormState {
   instrument: Instrument | null;
   query: string;
   quantity: string;
-  unitPrice: string;
+  priceDate: string;
   feeAmount: string;
-  executedAt: string;
   note: string;
 }
 
@@ -26,9 +25,8 @@ const initialForm = (): TradeFormState => ({
   instrument: null,
   query: "",
   quantity: "",
-  unitPrice: "",
+  priceDate: "",
   feeAmount: "0",
-  executedAt: new Date().toISOString().slice(0, 16),
   note: "",
 });
 
@@ -58,6 +56,17 @@ export function HoldingsPage() {
     enabled: form.query.trim().length > 0,
   });
 
+  const pricesQuery = useQuery({
+    queryKey: ["tradable-prices", form.instrument?.id],
+    queryFn: () => api.marketData.getTradablePrices(form.instrument!.id),
+    enabled: Boolean(form.instrument),
+  });
+
+  const selectedPrice = useMemo(
+    () => pricesQuery.data?.find((price) => price.priceDate === form.priceDate) ?? null,
+    [pricesQuery.data, form.priceDate],
+  );
+
   const submitMutation = useMutation({
     mutationFn: () =>
       api.transactions.create(
@@ -66,9 +75,8 @@ export function HoldingsPage() {
           instrumentId: form.instrument!.id,
           side: form.side,
           quantity: form.quantity,
-          unitPrice: form.unitPrice,
+          priceDate: form.priceDate,
           feeAmount: form.feeAmount || "0",
-          executedAt: new Date(form.executedAt).toISOString(),
           note: form.note.trim() || null,
         },
         idemKey,
@@ -93,14 +101,13 @@ export function HoldingsPage() {
     Boolean(portfolioId) &&
     Boolean(form.instrument) &&
     form.quantity.trim().length > 0 &&
-    form.unitPrice.trim().length > 0;
+    Boolean(selectedPrice);
 
   const searchItems = useMemo(() => searchQuery.data?.items ?? [], [searchQuery.data]);
   const currency = selectedPortfolio?.baseCurrency ?? "USD";
   const quantityError = fieldError(submitMutation.error, "quantity");
-  const unitPriceError = fieldError(submitMutation.error, "unitPrice");
+  const priceDateError = fieldError(submitMutation.error, "priceDate");
   const feeAmountError = fieldError(submitMutation.error, "feeAmount");
-  const executedAtError = fieldError(submitMutation.error, "executedAt");
   const noteError = fieldError(submitMutation.error, "note");
   const instrumentError = fieldError(submitMutation.error, "instrumentId");
 
@@ -161,7 +168,7 @@ export function HoldingsPage() {
                   <button
                     type="button"
                     className="btn btn-ghost btn-sm"
-                    onClick={() => setForm((s) => ({ ...s, instrument: null, query: "" }))}
+                    onClick={() => setForm((s) => ({ ...s, instrument: null, query: "", priceDate: "" }))}
                   >
                     {t("holdings.change")}
                   </button>
@@ -184,7 +191,12 @@ export function HoldingsPage() {
                           type="button"
                           key={item.id}
                           className="search-result-item"
-                          onClick={() => setForm((s) => ({ ...s, instrument: item, query: item.symbol }))}
+                          onClick={() => setForm((s) => ({
+                            ...s,
+                            instrument: item,
+                            query: item.symbol,
+                            priceDate: "",
+                          }))}
                         >
                           <span className="search-result-item__symbol">{item.symbol}</span>
                           <span className="search-result-item__name">{item.name}</span>
@@ -212,21 +224,49 @@ export function HoldingsPage() {
                 {quantityError ? <div className="form-error">{quantityError}</div> : null}
               </div>
               <div className="form-group">
-                <label className="form-label" htmlFor="unit-price">
-                  {t("table.unitPrice")}
+                <label className="form-label" htmlFor="price-date">
+                  {t("holdings.tradeDate")}
                 </label>
-                <input
-                  id="unit-price"
-                  className={`form-input${unitPriceError ? " error" : ""}`}
-                  inputMode="decimal"
-                  value={form.unitPrice}
-                  onChange={(e) => setForm((s) => ({ ...s, unitPrice: e.target.value }))}
-                />
-                {unitPriceError ? <div className="form-error">{unitPriceError}</div> : null}
+                <select
+                  id="price-date"
+                  className={`form-select${priceDateError ? " error" : ""}`}
+                  value={form.priceDate}
+                  disabled={!form.instrument || pricesQuery.isLoading}
+                  onChange={(e) => setForm((s) => ({ ...s, priceDate: e.target.value }))}
+                >
+                  <option value="">
+                    {pricesQuery.isLoading ? t("holdings.priceLoading") : t("holdings.chooseDate")}
+                  </option>
+                  {(pricesQuery.data ?? []).map((price) => (
+                    <option key={`${price.priceDate}-${price.source}`} value={price.priceDate}>
+                      {formatDate(price.priceDate, locale)} · {formatCurrency(price.closePrice, price.currency, locale)}
+                    </option>
+                  ))}
+                </select>
+                <div className="form-hint">{t("holdings.tradeDateHint")}</div>
+                {priceDateError ? <div className="form-error">{priceDateError}</div> : null}
+                {form.instrument && pricesQuery.data?.length === 0 ? (
+                  <div className="form-error">{t("holdings.noPrices")}</div>
+                ) : null}
+                {pricesQuery.isError ? <ErrorBox error={pricesQuery.error} /> : null}
               </div>
             </div>
 
             <div className="form-row">
+              <div className="form-group">
+                <label className="form-label" htmlFor="unit-price">
+                  {t("holdings.officialClose")}
+                </label>
+                <input
+                  id="unit-price"
+                  className="form-input"
+                  value={selectedPrice
+                    ? formatCurrency(selectedPrice.closePrice, selectedPrice.currency, locale)
+                    : "—"}
+                  readOnly
+                  aria-readonly="true"
+                />
+              </div>
               <div className="form-group">
                 <label className="form-label" htmlFor="fee-amount">
                   {t("table.fee")}
@@ -238,20 +278,8 @@ export function HoldingsPage() {
                   value={form.feeAmount}
                   onChange={(e) => setForm((s) => ({ ...s, feeAmount: e.target.value }))}
                 />
+                <div className="form-hint">{t("holdings.feeHint")}</div>
                 {feeAmountError ? <div className="form-error">{feeAmountError}</div> : null}
-              </div>
-              <div className="form-group">
-                <label className="form-label" htmlFor="executed-at">
-                  {t("holdings.executedAt")}
-                </label>
-                <input
-                  id="executed-at"
-                  className={`form-input${executedAtError ? " error" : ""}`}
-                  type="datetime-local"
-                  value={form.executedAt}
-                  onChange={(e) => setForm((s) => ({ ...s, executedAt: e.target.value }))}
-                />
-                {executedAtError ? <div className="form-error">{executedAtError}</div> : null}
               </div>
             </div>
 

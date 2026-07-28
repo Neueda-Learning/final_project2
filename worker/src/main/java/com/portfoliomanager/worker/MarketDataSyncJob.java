@@ -4,6 +4,8 @@ import com.portfoliomanager.worker.provider.DailyPrice;
 import com.portfoliomanager.worker.provider.MarketDataProvider;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -19,6 +21,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -75,16 +78,28 @@ public class MarketDataSyncJob {
     }
 
     private void withGlobalLock(Runnable action) {
-        Integer acquired =
-                jdbc.queryForObject("SELECT GET_LOCK(?, 0)", Integer.class, LOCK_NAME);
-        if (acquired == null || acquired != 1) {
-            return;
-        }
-        try {
-            action.run();
-        } finally {
-            jdbc.queryForObject("SELECT RELEASE_LOCK(?)", Integer.class, LOCK_NAME);
-        }
+        jdbc.execute((ConnectionCallback<Void>) connection -> {
+            try (PreparedStatement acquire =
+                    connection.prepareStatement("SELECT GET_LOCK(?, 0)")) {
+                acquire.setString(1, LOCK_NAME);
+                try (ResultSet result = acquire.executeQuery()) {
+                    if (!result.next() || result.getInt(1) != 1) {
+                        return null;
+                    }
+                }
+            }
+
+            try {
+                action.run();
+            } finally {
+                try (PreparedStatement release =
+                        connection.prepareStatement("SELECT RELEASE_LOCK(?)")) {
+                    release.setString(1, LOCK_NAME);
+                    release.executeQuery();
+                }
+            }
+            return null;
+        });
     }
 
     private void processRun(String runId) {
@@ -140,6 +155,9 @@ public class MarketDataSyncJob {
                 } catch (RuntimeException exception) {
                     errors.add("Batch " + String.join(",", symbols) + ": "
                             + rootMessage(exception));
+                }
+                if (offset + batchSize < targets.size()) {
+                    pauseBeforeNextRequest();
                 }
             }
 
@@ -643,6 +661,19 @@ public class MarketDataSyncJob {
 
     private String normalizeSymbol(String symbol) {
         return symbol == null ? "" : symbol.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private void pauseBeforeNextRequest() {
+        long delayMillis = Math.max(0, properties.getRequestIntervalMillis());
+        if (delayMillis == 0 || !"twelve-data".equalsIgnoreCase(provider.name())) {
+            return;
+        }
+        try {
+            Thread.sleep(delayMillis);
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Market-data sync was interrupted", exception);
+        }
     }
 
     private record InstrumentTarget(

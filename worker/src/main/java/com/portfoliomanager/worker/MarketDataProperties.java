@@ -15,6 +15,7 @@ public class MarketDataProperties {
     private int requestTimeoutSeconds = 10;
     private int maxRetries = 2;
     private long retryBackoffMillis = 250;
+    private long requestIntervalMillis = 8000;
     private long manualPollIntervalMs = 2000;
 
     public String getProvider() {
@@ -79,6 +80,14 @@ public class MarketDataProperties {
 
     public void setRetryBackoffMillis(long retryBackoffMillis) {
         this.retryBackoffMillis = retryBackoffMillis;
+    }
+
+    public long getRequestIntervalMillis() {
+        return requestIntervalMillis;
+    }
+
+    public void setRequestIntervalMillis(long requestIntervalMillis) {
+        this.requestIntervalMillis = requestIntervalMillis;
     }
 
     public long getManualPollIntervalMs() {
