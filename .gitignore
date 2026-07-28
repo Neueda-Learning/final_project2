@@ -11,14 +11,24 @@ target/
 
 # JavaScript
 node_modules/
+.npm-cache/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 frontend/dist/
 frontend/coverage/
+frontend/.vite/
 
 # Editors and OS files
 .idea/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Local Python environments
+.venv/
+venv/
 
 # Runtime data
 *.log
