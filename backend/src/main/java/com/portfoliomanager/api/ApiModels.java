@@ -127,6 +127,26 @@ public final class ApiModels {
             LocalDateTime fetchedAt,
             PriceStatus priceStatus) {}
 
+    public record MarketBarResponse(
+            String instrumentId,
+            String symbol,
+            String interval,
+            LocalDateTime timestamp,
+            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal open,
+            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal high,
+            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal low,
+            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal close,
+            Long volume,
+            String currency,
+            String source) {}
+
+    public record MarketBarPageResponse(
+            List<MarketBarResponse> items,
+            int page,
+            int pageSize,
+            long total,
+            boolean hasNext) {}
+
     public record PortfolioSummaryResponse(
             String portfolioId,
             int positionCount,

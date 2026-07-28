@@ -1,14 +1,19 @@
 package com.portfoliomanager.service;
 
 import com.portfoliomanager.api.ApiModels.MarketPriceResponse;
+import com.portfoliomanager.api.ApiModels.MarketBarPageResponse;
+import com.portfoliomanager.api.ApiModels.MarketBarResponse;
 import com.portfoliomanager.api.ApiModels.SyncRunResponse;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -18,6 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class MarketDataService {
 
     private static final String LOCK_NAME = "portfolio_manager_market_sync";
+    private static final Set<String> INTRADAY_INTERVALS =
+            Set.of("1min", "5min", "15min", "30min");
 
     private final JdbcTemplate jdbc;
     private final MarketCalendarService calendar;
@@ -137,6 +144,88 @@ public class MarketDataService {
                 this::mapMarketPrice,
                 instrumentId,
                 limit);
+    }
+
+    @Cacheable(
+            cacheNames = "marketBars",
+            key = "#instrumentId + '|' + #interval + '|' + #from + '|' + #to"
+                    + " + '|' + #page + '|' + #pageSize",
+            sync = true)
+    public MarketBarPageResponse bars(
+            String instrumentId,
+            String interval,
+            LocalDateTime from,
+            LocalDateTime to,
+            int page,
+            int pageSize) {
+        requireInstrument(instrumentId);
+        if (!INTRADAY_INTERVALS.contains(interval)) {
+            throw new IllegalArgumentException(
+                    "interval must be one of 1min, 5min, 15min, or 30min");
+        }
+        LocalDateTime effectiveTo =
+                to == null ? LocalDateTime.now(ZoneOffset.UTC) : to;
+        LocalDateTime effectiveFrom =
+                from == null ? effectiveTo.minusDays(1) : from;
+        if (!effectiveFrom.isBefore(effectiveTo)) {
+            throw new InvalidDateRangeException("from must be earlier than to");
+        }
+        if (effectiveFrom.isBefore(effectiveTo.minusDays(31))) {
+            throw new InvalidDateRangeException(
+                    "Intraday queries are limited to 31 days");
+        }
+
+        Long total = jdbc.queryForObject(
+                """
+                SELECT COUNT(*)
+                FROM market_intraday_bar
+                WHERE instrument_id = ?
+                  AND interval_code = ?
+                  AND bar_timestamp >= ?
+                  AND bar_timestamp < ?
+                """,
+                Long.class,
+                instrumentId,
+                interval,
+                effectiveFrom,
+                effectiveTo);
+        int offset = (page - 1) * pageSize;
+        List<MarketBarResponse> items = jdbc.query(
+                """
+                SELECT b.instrument_id, i.symbol, b.interval_code,
+                       b.bar_timestamp, b.open_price, b.high_price,
+                       b.low_price, b.close_price, b.volume,
+                       b.currency, b.source
+                FROM market_intraday_bar b
+                JOIN instrument i ON i.id = b.instrument_id
+                WHERE b.instrument_id = ?
+                  AND b.interval_code = ?
+                  AND b.bar_timestamp >= ?
+                  AND b.bar_timestamp < ?
+                ORDER BY b.bar_timestamp DESC
+                LIMIT ? OFFSET ?
+                """,
+                (rs, rowNum) -> new MarketBarResponse(
+                        rs.getString("instrument_id"),
+                        rs.getString("symbol"),
+                        rs.getString("interval_code"),
+                        rs.getTimestamp("bar_timestamp").toLocalDateTime(),
+                        rs.getBigDecimal("open_price"),
+                        rs.getBigDecimal("high_price"),
+                        rs.getBigDecimal("low_price"),
+                        rs.getBigDecimal("close_price"),
+                        rs.getObject("volume", Long.class),
+                        rs.getString("currency"),
+                        rs.getString("source")),
+                instrumentId,
+                interval,
+                effectiveFrom,
+                effectiveTo,
+                pageSize,
+                offset);
+        long count = total == null ? 0 : total;
+        return new MarketBarPageResponse(
+                items, page, pageSize, count, (long) offset + items.size() < count);
     }
 
     public MarketPriceResponse tradablePrice(String instrumentId, LocalDate priceDate) {

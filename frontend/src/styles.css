@@ -1009,3 +1009,117 @@ select {
     animation-duration: 0.01ms !important;
   }
 }
+.intraday-card {
+  margin-top: 24px;
+}
+
+.intraday-card__header,
+.intraday-card__footer,
+.intraday-quote,
+.intraday-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.intraday-card__eyebrow {
+  color: var(--primary, #3158d4);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  margin-bottom: 6px;
+}
+
+.intraday-controls select {
+  min-width: 110px;
+}
+
+.segmented-control {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--border, #e3e6eb);
+  border-radius: 10px;
+  background: #f7f8fa;
+}
+
+.segmented-control button {
+  border: 0;
+  border-radius: 7px;
+  padding: 7px 10px;
+  background: transparent;
+  color: #667085;
+  cursor: pointer;
+}
+
+.segmented-control button.is-active {
+  background: #fff;
+  color: #3158d4;
+  box-shadow: 0 1px 4px rgba(16, 24, 40, 0.12);
+}
+
+.intraday-quote {
+  justify-content: flex-start;
+  margin: 20px 0 4px;
+}
+
+.intraday-quote strong {
+  font-size: 1.35rem;
+}
+
+.intraday-quote span,
+.intraday-card__footer {
+  color: #667085;
+  font-size: 0.85rem;
+}
+
+.chart-wrap--intraday {
+  height: 360px;
+}
+
+.intraday-card__footer {
+  margin-top: 12px;
+}
+
+@media (max-width: 720px) {
+  .intraday-card__header,
+  .intraday-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .intraday-controls select {
+    width: 100%;
+  }
+
+  .chart-wrap--intraday {
+    height: 280px;
+  }
+}
+
+.sync-progress {
+  margin: 16px 0 22px;
+}
+
+.sync-progress__meta {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  color: #475467;
+  font-size: 0.85rem;
+}
+
+.sync-progress__track {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: #eaecf0;
+}
+
+.sync-progress__track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #3158d4;
+  transition: width 240ms ease;
+}

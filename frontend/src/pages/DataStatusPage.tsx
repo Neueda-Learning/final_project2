@@ -14,7 +14,8 @@ export function DataStatusPage() {
   const latestSyncQuery = useQuery({
     queryKey: ["latest-sync"],
     queryFn: api.marketData.getLatestSync,
-    refetchInterval: 15_000,
+    refetchInterval: (query) =>
+      query.state.data?.status === "RUNNING" ? 3_000 : 15_000,
   });
 
   const triggerMutation = useMutation({
@@ -23,8 +24,17 @@ export function DataStatusPage() {
       await queryClient.invalidateQueries({ queryKey: ["latest-sync"] });
       await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       await queryClient.invalidateQueries({ queryKey: ["performance"] });
+      await queryClient.invalidateQueries({ queryKey: ["market-bars"] });
     },
   });
+  const syncData = latestSyncQuery.data;
+  const syncIsRunning = syncData?.status === "RUNNING";
+  const syncProgress = syncData?.status === "RUNNING" && syncData.requestedCount > 0
+    ? Math.round(
+        ((syncData.successCount + syncData.failureCount)
+          / syncData.requestedCount) * 100,
+      )
+    : 0;
 
   return (
     <>
@@ -35,10 +45,12 @@ export function DataStatusPage() {
           <button
             type="button"
             className="btn btn-primary"
-            disabled={triggerMutation.isPending}
+            disabled={triggerMutation.isPending || syncIsRunning}
             onClick={() => triggerMutation.mutate(false)}
           >
-            {triggerMutation.isPending ? t("data.syncing") : t("data.syncNow")}
+            {triggerMutation.isPending || syncIsRunning
+              ? t("data.syncing")
+              : t("data.syncNow")}
           </button>
         }
       />
@@ -53,6 +65,18 @@ export function DataStatusPage() {
         {latestSyncQuery.isPending ? (
           <div className="info-pill">{t("common.loading")}</div>
         ) : latestSyncQuery.data ? (
+          <>
+          {syncIsRunning ? (
+            <div className="sync-progress" aria-label={t("data.progress")}>
+              <div className="sync-progress__meta">
+                <span>{t("data.progress")}</span>
+                <strong>{syncProgress}%</strong>
+              </div>
+              <div className="sync-progress__track">
+                <span style={{ width: `${syncProgress}%` }} />
+              </div>
+            </div>
+          ) : null}
           <dl className="detail-grid">
             <div><dt>{t("data.provider")}</dt><dd>{latestSyncQuery.data.provider}</dd></div>
             <div><dt>{t("table.status")}</dt><dd>
@@ -66,6 +90,7 @@ export function DataStatusPage() {
             <div><dt>{t("data.triggeredBy")}</dt><dd>{latestSyncQuery.data.triggeredBy}</dd></div>
             {latestSyncQuery.data.errorSummary ? <div><dt>{t("data.errorSummary")}</dt><dd>{latestSyncQuery.data.errorSummary}</dd></div> : null}
           </dl>
+          </>
         ) : (
           <p className="page-subtitle">{t("data.none")}</p>
         )}

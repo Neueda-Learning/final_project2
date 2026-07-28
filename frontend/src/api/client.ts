@@ -10,6 +10,7 @@ import type {
   PositionList,
   SyncRun,
   MarketPrice,
+  MarketBarPage,
   DashboardResponse,
   PerformanceResponse,
   LiveHealth,
@@ -156,6 +157,26 @@ export const api = {
     getTradablePrices: (instrumentId: string, limit = 60) =>
       request<MarketPrice[]>(
         `${V1}/instruments/${instrumentId}/tradable-prices${qs({ limit })}`,
+      ),
+
+    getBars: (
+      instrumentId: string,
+      params: {
+        interval?: string;
+        from?: string;
+        to?: string;
+        page?: number;
+        pageSize?: number;
+      } = {},
+    ) =>
+      request<MarketBarPage>(
+        `${V1}/instruments/${instrumentId}/bars${qs({
+          interval: params.interval ?? "1min",
+          from: params.from,
+          to: params.to,
+          page: params.page ?? 1,
+          pageSize: params.pageSize ?? 200,
+        })}`,
       ),
   },
 

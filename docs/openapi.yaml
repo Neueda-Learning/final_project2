@@ -457,6 +457,47 @@ paths:
         "404":
           $ref: "#/components/responses/NotFoundError"
 
+  /api/v1/instruments/{instrumentId}/bars:
+    get:
+      tags: [Market Data]
+      operationId: listInstrumentBars
+      summary: List cached, paginated intraday OHLCV bars
+      parameters:
+        - $ref: "#/components/parameters/InstrumentId"
+        - name: interval
+          in: query
+          schema:
+            type: string
+            enum: [1min, 5min, 15min, 30min]
+            default: 1min
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: pageSize
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 500, default: 200 }
+      responses:
+        "200":
+          description: Intraday bars in reverse chronological order
+          headers:
+            Cache-Control:
+              schema: { type: string }
+              description: Private browser cache policy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketBarPage"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
   /api/v1/instruments/{instrumentId}/tradable-prices:
     get:
       tags: [Trading, Market Data]
@@ -1133,6 +1174,35 @@ components:
           format: date-time
         priceStatus:
           $ref: "#/components/schemas/PriceStatus"
+
+    MarketBar:
+      type: object
+      required: [instrumentId, symbol, interval, timestamp, open, high, low, close, currency, source]
+      properties:
+        instrumentId: { type: string, format: uuid }
+        symbol: { type: string }
+        interval: { type: string, enum: [1min, 5min, 15min, 30min] }
+        timestamp: { type: string, format: date-time }
+        open: { type: string }
+        high: { type: string }
+        low: { type: string }
+        close: { type: string }
+        volume: { type: integer, format: int64, nullable: true }
+        currency: { type: string }
+        source: { type: string }
+
+    MarketBarPage:
+      type: object
+      required: [items, page, pageSize, total, hasNext]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/MarketBar"
+        page: { type: integer }
+        pageSize: { type: integer }
+        total: { type: integer, format: int64 }
+        hasNext: { type: boolean }
 
     DashboardPortfolio:
       type: object
