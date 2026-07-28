@@ -26,6 +26,8 @@ services:
       DATABASE_URL: jdbc:mysql://mysql:3306/portfolio_manager?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       DATABASE_USERNAME: portfolio
       DATABASE_PASSWORD: portfolio
+      MARKET_DATA_PROVIDER: ${MARKET_DATA_PROVIDER:-twelve-data}
+      MARKET_TIMEZONE: ${MARKET_TIMEZONE:-America/New_York}
     ports:
       - "8000:8000"
     depends_on:
@@ -40,6 +42,14 @@ services:
       DATABASE_URL: jdbc:mysql://mysql:3306/portfolio_manager?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       DATABASE_USERNAME: portfolio
       DATABASE_PASSWORD: portfolio
+      MARKET_DATA_PROVIDER: ${MARKET_DATA_PROVIDER:-twelve-data}
+      MARKET_SYNC_CRON: ${MARKET_SYNC_CRON:-0 0 22 * * MON-FRI}
+      MARKET_TIMEZONE: ${MARKET_TIMEZONE:-America/New_York}
+      MARKET_BATCH_SIZE: ${MARKET_BATCH_SIZE:-8}
+      MARKET_REQUEST_TIMEOUT_SECONDS: ${MARKET_REQUEST_TIMEOUT_SECONDS:-10}
+      MARKET_MAX_RETRIES: ${MARKET_MAX_RETRIES:-2}
+      MARKET_RETRY_BACKOFF_MILLIS: ${MARKET_RETRY_BACKOFF_MILLIS:-250}
+      MARKET_MANUAL_POLL_INTERVAL_MS: ${MARKET_MANUAL_POLL_INTERVAL_MS:-2000}
       TWELVE_DATA_API_KEY: ${TWELVE_DATA_API_KEY:-}
     depends_on:
       mysql:

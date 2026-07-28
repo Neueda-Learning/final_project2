@@ -1,10 +1,14 @@
 spring:
   application:
     name: portfolio-manager-api
+  config:
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:../.env[.properties]
   datasource:
-    url: ${DATABASE_URL:jdbc:mysql://localhost:3306/portfolio_manager?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
-    username: ${DATABASE_USERNAME:portfolio}
-    password: ${DATABASE_PASSWORD:portfolio}
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
   jpa:
     open-in-view: false
     hibernate:
@@ -38,3 +42,8 @@ springdoc:
 app:
   cors-origins: ${CORS_ORIGINS:http://localhost:5173}
   demo-user-id: ${DEMO_USER_ID:11111111-1111-1111-1111-111111111111}
+
+market-data:
+  provider: ${MARKET_DATA_PROVIDER:twelve-data}
+  time-zone: ${MARKET_TIMEZONE:America/New_York}
+  close-time: ${MARKET_CLOSE_TIME:16:15}

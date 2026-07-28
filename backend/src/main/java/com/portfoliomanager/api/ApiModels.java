@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.portfoliomanager.domain.AssetType;
 import com.portfoliomanager.domain.PriceStatus;
 import com.portfoliomanager.domain.SyncStatus;
+import com.portfoliomanager.domain.SyncTrigger;
 import com.portfoliomanager.domain.TradeSide;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
@@ -101,7 +102,7 @@ public final class ApiModels {
             LocalDate priceDate,
             PriceStatus priceStatus) {}
 
-    public record SyncRequest(List<String> instrumentIds, boolean force) {}
+    public record SyncRequest(boolean force) {}
 
     public record SyncRunResponse(
             String id,
@@ -112,16 +113,20 @@ public final class ApiModels {
             int failureCount,
             LocalDateTime startedAt,
             LocalDateTime completedAt,
+            SyncTrigger triggeredBy,
             String errorSummary) {}
 
     public record MarketPriceResponse(
             String instrumentId,
+            String symbol,
             LocalDate priceDate,
             @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal closePrice,
             @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal adjustedClose,
             String currency,
             String source,
-            LocalDateTime fetchedAt) {}
+            LocalDateTime sourceTimestamp,
+            LocalDateTime fetchedAt,
+            PriceStatus priceStatus) {}
 
     public record PortfolioSummaryResponse(
             String portfolioId,

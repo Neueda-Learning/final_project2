@@ -29,6 +29,19 @@ cp .env.example .env
 docker compose up --build
 ```
 
+默认行情源为真实的 Twelve Data REST API。启动前在 `.env` 中设置：
+
+```text
+MARKET_DATA_PROVIDER=twelve-data
+TWELVE_DATA_API_KEY=你的真实_API_Key
+```
+
+`fixture` Provider 仅用于自动测试和离线演示。设置真实 Key 后可单独运行外部集成测试：
+
+```bash
+mvn -pl worker -Dtest=TwelveDataLiveIntegrationTest test
+```
+
 服务地址：
 
 - 前端：http://localhost:5173

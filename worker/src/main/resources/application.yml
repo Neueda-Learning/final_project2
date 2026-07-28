@@ -12,3 +12,9 @@ market-data:
   provider: ${MARKET_DATA_PROVIDER:twelve-data}
   api-key: ${TWELVE_DATA_API_KEY:}
   sync-cron: ${MARKET_SYNC_CRON:0 0 22 * * MON-FRI}
+  time-zone: ${MARKET_TIMEZONE:America/New_York}
+  batch-size: ${MARKET_BATCH_SIZE:8}
+  request-timeout-seconds: ${MARKET_REQUEST_TIMEOUT_SECONDS:10}
+  max-retries: ${MARKET_MAX_RETRIES:2}
+  retry-backoff-millis: ${MARKET_RETRY_BACKOFF_MILLIS:250}
+  manual-poll-interval-ms: ${MARKET_MANUAL_POLL_INTERVAL_MS:2000}
