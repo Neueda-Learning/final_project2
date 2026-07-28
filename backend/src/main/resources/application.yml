@@ -1,10 +1,14 @@
 spring:
   application:
     name: portfolio-manager-api
+  config:
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:../.env[.properties]
   datasource:
-    url: ${DATABASE_URL:jdbc:mysql://8.163.83.62:10806/portfolio_manager?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
-    username: ${DATABASE_USERNAME:remote_admin}
-    password: ${DATABASE_PASSWORD:__FbQnbEi6hoZFfH-n6TQsrxpus}
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
   jpa:
     open-in-view: false
     hibernate:
