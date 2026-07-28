@@ -64,11 +64,15 @@ public class ApiExceptionHandler {
     public ErrorResponse marketDataUnavailable(
             MarketDataUnavailableException exception,
             HttpServletRequest request) {
-        return error(
-                "MARKET_PROVIDER_UNAVAILABLE",
-                exception.getMessage(),
-                List.of(),
-                request);
+        return error("MARKET_DATA_UNAVAILABLE", exception.getMessage(), List.of(), request);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+    public ErrorResponse illegalArgument(
+            IllegalArgumentException exception,
+            HttpServletRequest request) {
+        return error("VALIDATION_ERROR", exception.getMessage(), List.of(), request);
     }
 
     @ExceptionHandler(ServiceNotReadyException.class)
