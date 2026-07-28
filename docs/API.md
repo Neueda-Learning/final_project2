@@ -581,6 +581,47 @@ curl -s \
 
 Errors: 404 `INSTRUMENT_NOT_FOUND`; 404 `MARKET_PRICE_NOT_FOUND`.
 
+### 7.4 Retrieve Intraday Bars
+
+`GET /api/v1/instruments/{instrumentId}/bars`
+
+Query parameters:
+
+- `interval`: `1min`, `5min`, `15min`, or `30min`; default `1min`
+- `from`, `to`: ISO-8601 timestamps interpreted as UTC; maximum range 31 days
+- `page`: one-based page number
+- `pageSize`: 1–500; default 200
+
+```bash
+curl -s \
+  "http://localhost:8000/api/v1/instruments/33333333-3333-3333-3333-333333333333/bars?interval=1min&from=2026-07-27T13:30:00&to=2026-07-27T20:00:00&page=1&pageSize=200"
+```
+
+```json
+{
+  "items": [{
+    "instrumentId": "33333333-3333-3333-3333-333333333333",
+    "symbol": "AAPL",
+    "interval": "1min",
+    "timestamp": "2026-07-27T19:59:00",
+    "open": "214.10000000",
+    "high": "214.30000000",
+    "low": "214.00000000",
+    "close": "214.25000000",
+    "volume": 1200,
+    "currency": "USD",
+    "source": "twelve-data"
+  }],
+  "page": 1,
+  "pageSize": 200,
+  "total": 390,
+  "hasNext": true
+}
+```
+
+Responses include `Cache-Control: private, max-age=15`. The backend also keeps
+each query page in a bounded 20-second Caffeine cache.
+
 ## 8. Analytics
 
 ### 8.1 Retrieve Dashboard

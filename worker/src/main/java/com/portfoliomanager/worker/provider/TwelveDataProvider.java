@@ -7,6 +7,8 @@ import java.math.BigDecimal;
 import java.net.http.HttpClient;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -110,6 +112,84 @@ public class TwelveDataProvider implements MarketDataProvider {
         } catch (Exception exception) {
             throw new MarketDataProviderException("Twelve Data request failed", exception);
         }
+    }
+
+    @Override
+    public List<IntradayBar> fetchIntradayBars(
+            String symbol,
+            String interval,
+            LocalDateTime start,
+            LocalDateTime end) {
+        requireApiKey();
+        try {
+            String response = client.get()
+                    .uri(uri -> uri.path("/time_series")
+                            .queryParam("symbol", symbol)
+                            .queryParam("interval", interval)
+                            .queryParam("start_date", formatTimestamp(start))
+                            .queryParam("end_date", formatTimestamp(end))
+                            .queryParam("timezone", "UTC")
+                            .queryParam("order", "ASC")
+                            .queryParam("outputsize", 5000)
+                            .build())
+                    .header(
+                            HttpHeaders.AUTHORIZATION,
+                            "apikey " + properties.getApiKey())
+                    .retrieve()
+                    .body(String.class);
+            return parseIntradaySeries(response, interval);
+        } catch (MarketDataProviderException exception) {
+            throw exception;
+        } catch (Exception exception) {
+            throw new MarketDataProviderException(
+                    "Twelve Data intraday request failed", exception);
+        }
+    }
+
+    List<IntradayBar> parseIntradaySeries(String response, String interval) {
+        try {
+            JsonNode root = objectMapper.readTree(response);
+            if ("error".equalsIgnoreCase(root.path("status").asText())) {
+                throw new MarketDataProviderException(
+                        "Twelve Data error: " + root.path("message").asText("unknown error"));
+            }
+            JsonNode meta = root.path("meta");
+            String symbol = meta.path("symbol").asText();
+            String currency = meta.path("currency").asText("USD");
+            List<IntradayBar> bars = new ArrayList<>();
+            for (JsonNode value : root.path("values")) {
+                bars.add(new IntradayBar(
+                        symbol,
+                        interval,
+                        parseTimestamp(value.path("datetime").asText()),
+                        decimal(value, "open"),
+                        decimal(value, "high"),
+                        decimal(value, "low"),
+                        decimal(value, "close"),
+                        value.hasNonNull("volume")
+                                ? Long.valueOf(value.path("volume").asText())
+                                : null,
+                        currency,
+                        name()));
+            }
+            return bars;
+        } catch (MarketDataProviderException exception) {
+            throw exception;
+        } catch (Exception exception) {
+            throw new MarketDataProviderException(
+                    "Invalid Twelve Data intraday response", exception);
+        }
+    }
+
+    private static String formatTimestamp(LocalDateTime value) {
+        return value.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+    }
+
+    private static LocalDateTime parseTimestamp(String value) {
+        return value.contains("T")
+                ? LocalDateTime.parse(value)
+                : LocalDateTime.parse(
+                        value, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
     }
 
     @Override

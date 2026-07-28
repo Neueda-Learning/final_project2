@@ -1,6 +1,7 @@
 package com.portfoliomanager.worker;
 
 import com.portfoliomanager.worker.provider.DailyPrice;
+import com.portfoliomanager.worker.provider.IntradayBar;
 import com.portfoliomanager.worker.provider.MarketDataProvider;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -116,49 +117,61 @@ public class MarketDataSyncJob {
                 return;
             }
 
-            LocalDate end = LocalDate.now(clock.withZone(ZoneId.of(properties.getTimeZone())))
-                    .plusDays(1);
-            LocalDate start = end.minusMonths(1);
-            Map<String, InstrumentTarget> bySymbol = new HashMap<>();
-            targets.forEach(target ->
-                    bySymbol.put(normalizeSymbol(target.providerSymbol()), target));
+            LocalDateTime endTime = LocalDateTime.now(clock);
+            LocalDateTime startTime =
+                    endTime.minusDays(Math.max(1, properties.getIntradayLookbackDays()));
 
             Set<String> successfulInstrumentIds = new HashSet<>();
-            int batchSize = Math.max(1, properties.getBatchSize());
-            for (int offset = 0; offset < targets.size(); offset += batchSize) {
-                List<InstrumentTarget> batch =
-                        targets.subList(offset, Math.min(offset + batchSize, targets.size()));
-                List<String> symbols =
-                        batch.stream().map(InstrumentTarget::providerSymbol).toList();
+            Map<String, DailyAccumulator> dailyAccumulators = new HashMap<>();
+            for (int index = 0; index < targets.size(); index++) {
+                InstrumentTarget target = targets.get(index);
                 try {
-                    List<DailyPrice> prices = fetchWithRetry(symbols, start, end);
-                    for (DailyPrice price : prices) {
-                        InstrumentTarget target =
-                                bySymbol.get(normalizeSymbol(price.symbol()));
-                        if (target == null) {
-                            errors.add("Provider returned unknown symbol " + price.symbol());
-                            continue;
-                        }
-                        String validationError = validate(price, target, start, end);
+                    List<IntradayBar> bars =
+                            fetchIntradayWithRetry(target, startTime, endTime);
+                    List<IntradayBar> validBars = new ArrayList<>();
+                    for (IntradayBar bar : bars) {
+                        String validationError =
+                                validateIntraday(bar, target, startTime, endTime);
                         if (validationError != null) {
                             errors.add(validationError);
                             continue;
                         }
-                        upsertPrice(runId, target, price);
+                        validBars.add(bar);
+                        String dayKey =
+                                target.instrumentId() + "|" + bar.timestamp().toLocalDate();
+                        dailyAccumulators
+                                .computeIfAbsent(
+                                        dayKey,
+                                        ignored -> new DailyAccumulator(target, bar))
+                                .add(bar);
+                    }
+                    if (validBars.isEmpty()) {
+                        errors.add("No valid intraday bars returned for "
+                                + target.providerSymbol());
+                    } else {
+                        upsertIntradayBars(target, validBars);
                         successfulInstrumentIds.add(target.instrumentId());
                     }
-                    for (InstrumentTarget target : batch) {
-                        if (!successfulInstrumentIds.contains(target.instrumentId())) {
-                            errors.add("No valid price returned for " + target.providerSymbol());
-                        }
-                    }
                 } catch (RuntimeException exception) {
-                    errors.add("Batch " + String.join(",", symbols) + ": "
+                    errors.add("Intraday " + target.providerSymbol() + ": "
                             + rootMessage(exception));
                 }
-                if (offset + batchSize < targets.size()) {
+                jdbc.update(
+                        """
+                        UPDATE market_data_sync_run
+                        SET success_count = ?, failure_count = ?
+                        WHERE id = ?
+                        """,
+                        successfulInstrumentIds.size(),
+                        index + 1 - successfulInstrumentIds.size(),
+                        runId);
+                if (index + 1 < targets.size()) {
                     pauseBeforeNextRequest();
                 }
+            }
+
+            for (DailyAccumulator accumulator : dailyAccumulators.values()) {
+                upsertPrice(runId, accumulator.target(), accumulator.toDailyPrice());
             }
 
             int successCount = successfulInstrumentIds.size();
@@ -168,7 +181,10 @@ public class MarketDataSyncJob {
                     : successCount == 0 ? "FAILED" : "PARTIAL";
             refreshValuationSnapshots(successfulInstrumentIds, errors);
             rebuildHistoricalValuationSnapshots(
-                    successfulInstrumentIds, start, end, errors);
+                    successfulInstrumentIds,
+                    startTime.toLocalDate(),
+                    endTime.toLocalDate().plusDays(1),
+                    errors);
             completeRun(
                     runId,
                     successCount,
@@ -203,6 +219,31 @@ public class MarketDataSyncJob {
         }
         throw lastFailure == null
                 ? new IllegalStateException("Provider request failed")
+                : lastFailure;
+    }
+
+    private List<IntradayBar> fetchIntradayWithRetry(
+            InstrumentTarget target,
+            LocalDateTime start,
+            LocalDateTime end) {
+        RuntimeException lastFailure = null;
+        int maxAttempts = Math.max(1, properties.getMaxRetries() + 1);
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                return provider.fetchIntradayBars(
+                        target.providerSymbol(),
+                        properties.getIntradayInterval(),
+                        start,
+                        end);
+            } catch (RuntimeException exception) {
+                lastFailure = exception;
+                if (attempt < maxAttempts) {
+                    pauseBeforeRetry(attempt);
+                }
+            }
+        }
+        throw lastFailure == null
+                ? new IllegalStateException("Intraday provider request failed")
                 : lastFailure;
     }
 
@@ -531,6 +572,82 @@ public class MarketDataSyncJob {
                 price.sourceTimestamp());
     }
 
+    private void upsertIntradayBars(
+            InstrumentTarget target, List<IntradayBar> bars) {
+        final int chunkSize = 200;
+        for (int offset = 0; offset < bars.size(); offset += chunkSize) {
+            List<IntradayBar> chunk =
+                    bars.subList(offset, Math.min(offset + chunkSize, bars.size()));
+            String placeholders = String.join(
+                    ",",
+                    java.util.Collections.nCopies(
+                            chunk.size(), "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP(6))"));
+            String sql = """
+                INSERT INTO market_intraday_bar (
+                    instrument_id, interval_code, bar_timestamp,
+                    open_price, high_price, low_price, close_price,
+                    volume, currency, source, fetched_at
+                ) VALUES
+                """ + placeholders + """
+                ON DUPLICATE KEY UPDATE
+                    open_price = VALUES(open_price),
+                    high_price = VALUES(high_price),
+                    low_price = VALUES(low_price),
+                    close_price = VALUES(close_price),
+                    volume = VALUES(volume),
+                    currency = VALUES(currency),
+                    fetched_at = CURRENT_TIMESTAMP(6)
+                """;
+            List<Object> parameters = new ArrayList<>(chunk.size() * 10);
+            for (IntradayBar bar : chunk) {
+                parameters.add(target.instrumentId());
+                parameters.add(bar.interval());
+                parameters.add(bar.timestamp());
+                parameters.add(bar.openPrice());
+                parameters.add(bar.highPrice());
+                parameters.add(bar.lowPrice());
+                parameters.add(bar.closePrice());
+                parameters.add(bar.volume());
+                parameters.add(bar.currency());
+                parameters.add(bar.source());
+            }
+            jdbc.update(sql, parameters.toArray());
+        }
+    }
+
+    private String validateIntraday(
+            IntradayBar bar,
+            InstrumentTarget target,
+            LocalDateTime start,
+            LocalDateTime end) {
+        if (!normalizeSymbol(bar.symbol())
+                .equals(normalizeSymbol(target.providerSymbol()))) {
+            return "Unexpected intraday symbol for " + target.providerSymbol();
+        }
+        if (!properties.getIntradayInterval().equals(bar.interval())) {
+            return "Unexpected interval for " + target.providerSymbol();
+        }
+        if (bar.timestamp() == null
+                || bar.timestamp().isBefore(start)
+                || bar.timestamp().isAfter(end)) {
+            return "Invalid intraday timestamp for " + target.providerSymbol();
+        }
+        if (!target.currency().equalsIgnoreCase(bar.currency())) {
+            return "Currency mismatch for " + target.providerSymbol();
+        }
+        if (!positive(bar.openPrice())
+                || !positive(bar.highPrice())
+                || !positive(bar.lowPrice())
+                || !positive(bar.closePrice())
+                || bar.highPrice().compareTo(bar.lowPrice()) < 0) {
+            return "Invalid intraday OHLC for " + target.providerSymbol();
+        }
+        if (bar.volume() != null && bar.volume() < 0) {
+            return "Negative intraday volume for " + target.providerSymbol();
+        }
+        return null;
+    }
+
     private String validate(
             DailyPrice price,
             InstrumentTarget target,
@@ -689,6 +806,60 @@ public class MarketDataSyncJob {
 
     private record DailyClose(
             String instrumentId, LocalDate priceDate, BigDecimal closePrice) {}
+
+    private static final class DailyAccumulator {
+        private final InstrumentTarget target;
+        private final LocalDate date;
+        private IntradayBar first;
+        private IntradayBar last;
+        private BigDecimal high;
+        private BigDecimal low;
+        private long volume;
+        private boolean hasVolume;
+
+        private DailyAccumulator(InstrumentTarget target, IntradayBar initial) {
+            this.target = target;
+            this.date = initial.timestamp().toLocalDate();
+            this.first = initial;
+            this.last = initial;
+            this.high = initial.highPrice();
+            this.low = initial.lowPrice();
+        }
+
+        private void add(IntradayBar bar) {
+            if (bar.timestamp().isBefore(first.timestamp())) {
+                first = bar;
+            }
+            if (bar.timestamp().isAfter(last.timestamp())) {
+                last = bar;
+            }
+            high = high.max(bar.highPrice());
+            low = low.min(bar.lowPrice());
+            if (bar.volume() != null) {
+                volume += bar.volume();
+                hasVolume = true;
+            }
+        }
+
+        private InstrumentTarget target() {
+            return target;
+        }
+
+        private DailyPrice toDailyPrice() {
+            return new DailyPrice(
+                    target.providerSymbol(),
+                    date,
+                    first.openPrice(),
+                    high,
+                    low,
+                    last.closePrice(),
+                    last.closePrice(),
+                    hasVolume ? volume : null,
+                    last.currency(),
+                    last.source(),
+                    last.timestamp());
+        }
+    }
 
     private static final class PositionLedger {
         private BigDecimal quantity = BigDecimal.ZERO;

@@ -19,6 +19,11 @@ spring:
           time_zone: UTC
   flyway:
     enabled: ${FLYWAY_ENABLED:false}
+  cache:
+    type: caffeine
+    cache-names: marketBars
+    caffeine:
+      spec: maximumSize=500,expireAfterWrite=20s,recordStats
 
 server:
   port: ${SERVER_PORT:8000}

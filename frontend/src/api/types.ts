@@ -139,6 +139,28 @@ export interface MarketPrice {
   priceStatus: PriceStatus;
 }
 
+export interface MarketBar {
+  instrumentId: string;
+  symbol: string;
+  interval: string;
+  timestamp: string;
+  open: DecimalString;
+  high: DecimalString;
+  low: DecimalString;
+  close: DecimalString;
+  volume: number | null;
+  currency: Currency;
+  source: string;
+}
+
+export interface MarketBarPage {
+  items: MarketBar[];
+  page: number;
+  pageSize: number;
+  total: number;
+  hasNext: boolean;
+}
+
 // ─── Analytics ────────────────────────────────────────────────────────────────
 export interface PortfolioSummary {
   positionCount: number;

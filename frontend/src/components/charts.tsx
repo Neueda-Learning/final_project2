@@ -10,7 +10,7 @@ import {
 } from "chart.js";
 import { Doughnut, Line } from "react-chartjs-2";
 
-import type { AllocationItem, PerformancePoint } from "../api/types";
+import type { AllocationItem, MarketBar, PerformancePoint } from "../api/types";
 import { formatCurrency } from "../lib/format";
 import { useLanguage } from "../i18n/LanguageContext";
 
@@ -106,6 +106,70 @@ export function PerformanceChart({
             tooltip: {
               callbacks: {
                 label: (ctx) => formatCurrency(ctx.parsed.y, currency, locale),
+              },
+            },
+          },
+        }}
+      />
+    </div>
+  );
+}
+
+export function IntradayChart({
+  bars,
+  currency,
+}: {
+  bars: MarketBar[];
+  currency: string;
+}) {
+  const { locale, t } = useLanguage();
+  return (
+    <div className="chart-wrap chart-wrap--intraday">
+      <Line
+        data={{
+          labels: bars.map((bar) =>
+            new Date(`${bar.timestamp}Z`).toLocaleTimeString(locale, {
+              month: "short",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+          ),
+          datasets: [{
+            label: t("intraday.close"),
+            data: bars.map((bar) => Number(bar.close)),
+            borderColor: "#3158d4",
+            backgroundColor: "rgba(49,88,212,0.08)",
+            borderWidth: 2,
+            pointRadius: 0,
+            pointHitRadius: 8,
+            tension: 0.12,
+            fill: true,
+          }],
+        }}
+        options={{
+          maintainAspectRatio: false,
+          animation: { duration: 250 },
+          interaction: { intersect: false, mode: "index" },
+          scales: {
+            x: {
+              ticks: { maxTicksLimit: 8, maxRotation: 0 },
+              grid: { display: false },
+            },
+            y: {
+              position: "right",
+              ticks: {
+                callback: (value) =>
+                  formatCurrency(Number(value), currency, locale),
+              },
+            },
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) =>
+                  formatCurrency(ctx.parsed.y, currency, locale),
               },
             },
           },

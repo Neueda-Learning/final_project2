@@ -8,18 +8,21 @@
 |---|---|
 | Primary owner | Member 4 (replace with a name before submission) |
 | Scope | Market-data provider, worker, synchronization API, MySQL, and backend tests |
-| Primary tables | `market_data_sync_run`, `market_price` |
+| Primary tables | `market_data_sync_run`, `market_price`, `market_intraday_bar` |
 | Out of scope | Frontend and valuation charts |
 | Interface contracts | [API Reference](../API.md) / [OpenAPI Specification](../openapi.yaml) |
 | Status | Implemented (real environments require `TWELVE_DATA_API_KEY`) |
 
 ## 2. Module Goal
 
-Fetch the latest daily closing prices for stocks and ETFs from a real external provider, persist them idempotently in MySQL, and provide price date, source, freshness, and synchronization-run status to the frontend and valuation module.
+Fetch one-minute OHLCV bars for stocks and ETFs from a real external provider,
+persist them idempotently in MySQL, derive daily closes for valuation, and expose
+cached, paginated bar history to the frontend.
 
 ## 3. Market-Data Definition
 
-- The MVP uses the latest available daily closing price, not streaming intraday quotes.
+- The UI uses one-minute OHLCV bars. Portfolio valuation continues to use
+  derived daily closes so intraday refreshes do not rewrite historical accounting.
 - The first real provider is the Twelve Data REST API.
 - Isolate providers behind the Java `MarketDataProvider` interface.
 - Use a fixture provider for automated tests and offline demonstrations.
@@ -33,6 +36,7 @@ Fetch the latest daily closing prices for stocks and ETFs from a real external p
 | GET | `/api/v1/market-data/sync-runs/latest` | 200 |
 | GET | `/api/v1/instruments/{instrumentId}/latest-price` | 200 |
 | GET | `/api/v1/instruments/{instrumentId}/tradable-prices?limit=60` | 200 |
+| GET | `/api/v1/instruments/{instrumentId}/bars?interval=1min&from=...&to=...&page=1&pageSize=200` | 200 |
 
 See [API.md](../API.md) and [openapi.yaml](../openapi.yaml) for request and response examples.
 
@@ -41,6 +45,7 @@ See [API.md](../API.md) and [openapi.yaml](../openapi.yaml) for request and resp
 ```text
 search_instruments(query, limit)
 fetch_daily_closes(symbols, start_date, end_date)
+fetch_intraday_bars(symbol, interval, start_time, end_time)
 health_check()
 ```
 
@@ -57,9 +62,9 @@ A normalized price contains:
 1. Acquire a global named lock using MySQL `GET_LOCK()`.
 2. Create a `RUNNING` synchronization record.
 3. Query active instruments whose position quantity is greater than zero.
-4. Call the provider in batches with timeouts and limited retries.
+4. Request configurable one-minute history with timeouts, rate limiting, and retries.
 5. Validate symbol, date, currency, and positive price.
-6. Upsert by instrument + trading date + source.
+6. Upsert minute bars in explicit multi-row chunks and derive each day's OHLCV.
 7. Record successful, failed, and categorized errors.
 8. Mark the run `SUCCEEDED`, `PARTIAL`, or `FAILED`.
 9. Notify Member 5 to generate snapshots for affected portfolios.
@@ -71,6 +76,7 @@ The current Twelve Data implementation requests one instrument at a time (`MARKE
 
 - `market_data_sync_run`
 - `market_price`
+- `market_intraday_bar`
 - Latest-price and synchronization-run indexes
 - Market-price unique key
 - `latest_market_price` view
@@ -104,8 +110,13 @@ Do not determine staleness from calendar-day age alone; account for weekends and
 | `MARKET_REQUEST_TIMEOUT_SECONDS` | Request timeout |
 | `MARKET_MAX_RETRIES` | Maximum retries |
 | `TWELVE_DATA_API_KEY` | Conditionally required |
+| `MARKET_INTRADAY_INTERVAL` | Intraday bar interval; defaults to `1min` |
+| `MARKET_INTRADAY_LOOKBACK_DAYS` | Rolling minute-history refresh window |
+| `MARKET_REQUEST_INTERVAL_MILLIS` | Provider rate-limit spacing |
 
-The defaults use Twelve Data, the `America/New_York` market time zone, and a weekday after-close schedule. Supply credentials and configuration overrides through environment variables in deployed environments.
+The defaults use Twelve Data, UTC-normalized bar timestamps, the
+`America/New_York` market schedule, and a five-minute polling cadence during
+market hours. Supply credentials and overrides through environment variables.
 
 ## 10. Backend Tests
 

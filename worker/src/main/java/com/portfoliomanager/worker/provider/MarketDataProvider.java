@@ -1,6 +1,7 @@
 package com.portfoliomanager.worker.provider;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface MarketDataProvider {
@@ -13,6 +14,12 @@ public interface MarketDataProvider {
             List<String> symbols,
             LocalDate start,
             LocalDate end);
+
+    List<IntradayBar> fetchIntradayBars(
+            String symbol,
+            String interval,
+            LocalDateTime start,
+            LocalDateTime end);
 
     boolean healthCheck();
 }

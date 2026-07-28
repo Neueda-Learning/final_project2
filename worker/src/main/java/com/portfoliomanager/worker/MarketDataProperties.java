@@ -9,7 +9,7 @@ public class MarketDataProperties {
 
     private String provider = "twelve-data";
     private String apiKey = "";
-    private String syncCron = "0 0 22 * * MON-FRI";
+    private String syncCron = "0 */5 9-16 * * MON-FRI";
     private String timeZone = "America/New_York";
     private int batchSize = 1;
     private int requestTimeoutSeconds = 10;
@@ -17,6 +17,8 @@ public class MarketDataProperties {
     private long retryBackoffMillis = 250;
     private long requestIntervalMillis = 8000;
     private long manualPollIntervalMs = 2000;
+    private String intradayInterval = "1min";
+    private int intradayLookbackDays = 5;
 
     public String getProvider() {
         return provider;
@@ -96,5 +98,21 @@ public class MarketDataProperties {
 
     public void setManualPollIntervalMs(long manualPollIntervalMs) {
         this.manualPollIntervalMs = manualPollIntervalMs;
+    }
+
+    public String getIntradayInterval() {
+        return intradayInterval;
+    }
+
+    public void setIntradayInterval(String intradayInterval) {
+        this.intradayInterval = intradayInterval;
+    }
+
+    public int getIntradayLookbackDays() {
+        return intradayLookbackDays;
+    }
+
+    public void setIntradayLookbackDays(int intradayLookbackDays) {
+        this.intradayLookbackDays = intradayLookbackDays;
     }
 }

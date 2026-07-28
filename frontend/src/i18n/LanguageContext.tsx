@@ -125,7 +125,20 @@ const en = {
   "data.completed": "Completed",
   "data.triggeredBy": "Triggered by",
   "data.errorSummary": "Error summary",
+  "data.progress": "Synchronization progress",
   "chart.marketValue": "Market value",
+  "intraday.eyebrow": "LIVE MARKET",
+  "intraday.title": "One-minute price",
+  "intraday.subtitle": "Intraday OHLCV bars refresh automatically every minute.",
+  "intraday.instrument": "Instrument",
+  "intraday.range": "Time range",
+  "intraday.daySuffix": "D",
+  "intraday.close": "Close",
+  "intraday.updated": "Updated {time}",
+  "intraday.points": "{count} minute bars",
+  "intraday.loadOlder": "Load older",
+  "intraday.emptyTitle": "No minute data yet",
+  "intraday.emptyDescription": "Synchronize market data to load the latest one-minute bars.",
 } as const;
 
 type TranslationKey = keyof typeof en;
@@ -253,7 +266,20 @@ const zh: Record<TranslationKey, string> = {
   "data.completed": "完成时间",
   "data.triggeredBy": "触发者",
   "data.errorSummary": "错误摘要",
+  "data.progress": "同步进度",
   "chart.marketValue": "市值",
+  "intraday.eyebrow": "分钟行情",
+  "intraday.title": "一分钟价格走势",
+  "intraday.subtitle": "盘中 OHLCV 分钟线每分钟自动刷新。",
+  "intraday.instrument": "标的",
+  "intraday.range": "时间范围",
+  "intraday.daySuffix": "日",
+  "intraday.close": "收盘价",
+  "intraday.updated": "更新于 {time}",
+  "intraday.points": "已加载 {count} 根分钟线",
+  "intraday.loadOlder": "加载更早数据",
+  "intraday.emptyTitle": "暂无分钟行情",
+  "intraday.emptyDescription": "同步市场数据后即可查看最新一分钟行情。",
 };
 
 type Variables = Record<string, string | number>;

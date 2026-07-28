@@ -69,4 +69,33 @@ class TwelveDataProviderTest {
                 .isInstanceOf(MarketDataProviderException.class)
                 .hasMessageContaining("rate limit");
     }
+
+    @Test
+    void normalizesOneMinuteBarsInUtc() {
+        String response =
+                """
+                {
+                  "meta": {"symbol": "AAPL", "currency": "USD"},
+                  "values": [{
+                    "datetime": "2026-07-27 19:59:00",
+                    "open": "214.10",
+                    "high": "214.30",
+                    "low": "214.00",
+                    "close": "214.25",
+                    "volume": "1200"
+                  }],
+                  "status": "ok"
+                }
+                """;
+
+        assertThat(provider.parseIntradaySeries(response, "1min"))
+                .singleElement()
+                .satisfies(bar -> {
+                    assertThat(bar.interval()).isEqualTo("1min");
+                    assertThat(bar.timestamp().toString())
+                            .isEqualTo("2026-07-27T19:59");
+                    assertThat(bar.closePrice()).isEqualByComparingTo("214.25");
+                    assertThat(bar.volume()).isEqualTo(1_200L);
+                });
+    }
 }
