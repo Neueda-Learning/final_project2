@@ -3,8 +3,10 @@ package com.portfoliomanager.worker;
 import com.portfoliomanager.worker.provider.DailyPrice;
 import com.portfoliomanager.worker.provider.MarketDataProvider;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -101,7 +103,7 @@ public class MarketDataSyncJob {
 
             LocalDate end = LocalDate.now(clock.withZone(ZoneId.of(properties.getTimeZone())))
                     .plusDays(1);
-            LocalDate start = end.minusDays(10);
+            LocalDate start = end.minusMonths(1);
             Map<String, InstrumentTarget> bySymbol = new HashMap<>();
             targets.forEach(target ->
                     bySymbol.put(normalizeSymbol(target.providerSymbol()), target));
@@ -146,7 +148,9 @@ public class MarketDataSyncJob {
             String status = successCount == targets.size()
                     ? "SUCCEEDED"
                     : successCount == 0 ? "FAILED" : "PARTIAL";
-                refreshValuationSnapshots(successfulInstrumentIds, errors);
+            refreshValuationSnapshots(successfulInstrumentIds, errors);
+            rebuildHistoricalValuationSnapshots(
+                    successfulInstrumentIds, start, end, errors);
             completeRun(
                     runId,
                     successCount,
@@ -231,6 +235,182 @@ public class MarketDataSyncJob {
                                 + rootMessage(exception));
             }
         }
+    }
+
+    private void rebuildHistoricalValuationSnapshots(
+            Set<String> successfulInstrumentIds,
+            LocalDate start,
+            LocalDate end,
+            List<String> errors) {
+        if (successfulInstrumentIds.isEmpty()) {
+            return;
+        }
+
+        for (String portfolioId : loadAffectedPortfolioIds(successfulInstrumentIds)) {
+            try {
+                rebuildHistoricalValuationSnapshots(portfolioId, start, end);
+            } catch (RuntimeException exception) {
+                errors.add(
+                        "Historical snapshot rebuild failed for portfolio "
+                                + portfolioId
+                                + ": "
+                                + rootMessage(exception));
+            }
+        }
+    }
+
+    private void rebuildHistoricalValuationSnapshots(
+            String portfolioId, LocalDate start, LocalDate end) {
+        List<TradeEvent> trades = loadTrades(portfolioId, end);
+        List<DailyClose> closes = loadDailyCloses(portfolioId, start, end);
+        if (trades.isEmpty() || closes.isEmpty()) {
+            log.warn(
+                    "Historical snapshot rebuild skipped for portfolio {}: {} trades, {} closes",
+                    portfolioId,
+                    trades.size(),
+                    closes.size());
+            return;
+        }
+
+        Map<LocalDate, Map<String, BigDecimal>> closesByDate = new java.util.TreeMap<>();
+        for (DailyClose close : closes) {
+            closesByDate
+                    .computeIfAbsent(close.priceDate(), ignored -> new HashMap<>())
+                    .put(close.instrumentId(), close.closePrice());
+        }
+
+        Map<String, PositionLedger> positions = new HashMap<>();
+        int tradeIndex = 0;
+        int snapshotCount = 0;
+        for (Map.Entry<LocalDate, Map<String, BigDecimal>> day : closesByDate.entrySet()) {
+            LocalDate valuationDate = day.getKey();
+            while (tradeIndex < trades.size()
+                    && !trades.get(tradeIndex).executedAt().toLocalDate().isAfter(valuationDate)) {
+                applyTrade(positions, trades.get(tradeIndex));
+                tradeIndex++;
+            }
+
+            SnapshotSummary summary =
+                    summarizeHistoricalDay(valuationDate, positions, day.getValue());
+            if (summary.pricedPositionCount() > 0) {
+                upsertSnapshot(portfolioId, summary);
+                snapshotCount++;
+            }
+        }
+        log.info(
+                "Rebuilt {} historical snapshots for portfolio {} from {} daily closes",
+                snapshotCount,
+                portfolioId,
+                closes.size());
+    }
+
+    private List<TradeEvent> loadTrades(String portfolioId, LocalDate end) {
+        return jdbc.query(
+                """
+                SELECT instrument_id, side, quantity, unit_price, fee_amount, executed_at
+                FROM trade_transaction
+                WHERE portfolio_id = ?
+                  AND executed_at < ?
+                ORDER BY executed_at, created_at, id
+                """,
+                (rs, rowNum) -> new TradeEvent(
+                        rs.getString("instrument_id"),
+                        rs.getString("side"),
+                        rs.getBigDecimal("quantity"),
+                        rs.getBigDecimal("unit_price"),
+                        rs.getBigDecimal("fee_amount"),
+                        rs.getTimestamp("executed_at").toLocalDateTime()),
+                portfolioId,
+                end.atStartOfDay());
+    }
+
+    private List<DailyClose> loadDailyCloses(
+            String portfolioId, LocalDate start, LocalDate end) {
+        return jdbc.query(
+                """
+                SELECT mp.instrument_id, mp.price_date, mp.close_price
+                FROM market_price mp
+                WHERE mp.price_date >= ?
+                  AND mp.price_date < ?
+                  AND EXISTS (
+                      SELECT 1
+                      FROM trade_transaction t
+                      WHERE t.portfolio_id = ?
+                        AND t.instrument_id = mp.instrument_id
+                  )
+                ORDER BY mp.price_date, mp.instrument_id
+                """,
+                (rs, rowNum) -> new DailyClose(
+                        rs.getString("instrument_id"),
+                        rs.getDate("price_date").toLocalDate(),
+                        rs.getBigDecimal("close_price")),
+                start,
+                end,
+                portfolioId);
+    }
+
+    private void applyTrade(
+            Map<String, PositionLedger> positions, TradeEvent trade) {
+        PositionLedger position =
+                positions.computeIfAbsent(trade.instrumentId(), ignored -> new PositionLedger());
+        if ("BUY".equals(trade.side())) {
+            BigDecimal newQuantity = position.quantity.add(trade.quantity());
+            BigDecimal newCostBasis = position.quantity
+                    .multiply(position.averageCost)
+                    .add(trade.quantity().multiply(trade.unitPrice()))
+                    .add(trade.feeAmount());
+            position.quantity = newQuantity;
+            position.averageCost = newCostBasis.divide(newQuantity, 8, RoundingMode.HALF_UP);
+            return;
+        }
+
+        position.quantity = position.quantity.subtract(trade.quantity());
+        if (position.quantity.signum() <= 0) {
+            position.quantity = BigDecimal.ZERO;
+            position.averageCost = BigDecimal.ZERO;
+        }
+    }
+
+    private SnapshotSummary summarizeHistoricalDay(
+            LocalDate valuationDate,
+            Map<String, PositionLedger> positions,
+            Map<String, BigDecimal> closes) {
+        BigDecimal pricedMarketValue = BigDecimal.ZERO;
+        BigDecimal totalCostBasis = BigDecimal.ZERO;
+        BigDecimal pricedCostBasis = BigDecimal.ZERO;
+        int pricedPositionCount = 0;
+        int unpricedPositionCount = 0;
+
+        for (Map.Entry<String, PositionLedger> entry : positions.entrySet()) {
+            PositionLedger position = entry.getValue();
+            if (position.quantity.signum() <= 0) {
+                continue;
+            }
+
+            BigDecimal costBasis = position.quantity.multiply(position.averageCost);
+            totalCostBasis = totalCostBasis.add(costBasis);
+            BigDecimal close = closes.get(entry.getKey());
+            if (close == null) {
+                unpricedPositionCount++;
+                continue;
+            }
+
+            pricedPositionCount++;
+            pricedCostBasis = pricedCostBasis.add(costBasis);
+            pricedMarketValue =
+                    pricedMarketValue.add(position.quantity.multiply(close));
+        }
+
+        return new SnapshotSummary(
+                valuationDate,
+                pricedMarketValue.setScale(8, RoundingMode.HALF_UP),
+                totalCostBasis.setScale(8, RoundingMode.HALF_UP),
+                pricedCostBasis.setScale(8, RoundingMode.HALF_UP),
+                pricedMarketValue
+                        .subtract(pricedCostBasis)
+                        .setScale(8, RoundingMode.HALF_UP),
+                pricedPositionCount,
+                unpricedPositionCount);
     }
 
     private List<String> loadAffectedPortfolioIds(Set<String> instrumentIds) {
@@ -468,7 +648,23 @@ public class MarketDataSyncJob {
     private record InstrumentTarget(
             String instrumentId, String providerSymbol, String currency) {}
 
-        private record SnapshotSummary(
+    private record TradeEvent(
+            String instrumentId,
+            String side,
+            BigDecimal quantity,
+            BigDecimal unitPrice,
+            BigDecimal feeAmount,
+            LocalDateTime executedAt) {}
+
+    private record DailyClose(
+            String instrumentId, LocalDate priceDate, BigDecimal closePrice) {}
+
+    private static final class PositionLedger {
+        private BigDecimal quantity = BigDecimal.ZERO;
+        private BigDecimal averageCost = BigDecimal.ZERO;
+    }
+
+    private record SnapshotSummary(
             LocalDate valuationDate,
             BigDecimal pricedMarketValue,
             BigDecimal totalCostBasis,

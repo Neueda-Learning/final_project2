@@ -116,7 +116,9 @@ class MarketDataSyncJobTest {
         job.processManualRequests();
 
         verify(provider).fetchDailyCloses(
-                eq(List.of("AAPL")), any(LocalDate.class), any(LocalDate.class));
+                eq(List.of("AAPL")),
+                eq(LocalDate.of(2026, 6, 28)),
+                eq(LocalDate.of(2026, 7, 28)));
         verify(jdbc).update(
                 argThat(sql -> sql.contains("INSERT INTO market_price")),
                 any(Object[].class));

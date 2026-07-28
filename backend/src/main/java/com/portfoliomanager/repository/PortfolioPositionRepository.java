@@ -14,7 +14,7 @@ public interface PortfolioPositionRepository
         extends JpaRepository<PortfolioPosition, PortfolioPositionId> {
 
     /**
-     * 按组合 ID 查询所有当前持仓，按持仓数量倒序。
+     * Finds current positions by portfolio ID, ordered by quantity descending.
      */
     @Query(
             "SELECT p FROM PortfolioPosition p "
@@ -24,8 +24,7 @@ public interface PortfolioPositionRepository
     List<PortfolioPosition> findByPortfolioId(@Param("portfolioId") String portfolioId);
 
     /**
-     * 按组合ID和标的ID查询持仓，使用 SELECT FOR UPDATE 锁定以支持并发交易。
-     * 用于更新持仓前获取锁。
+     * Finds and locks a position by portfolio and instrument ID for concurrent trading.
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query(

@@ -86,22 +86,22 @@ public class Portfolio {
         return updatedAt;
     }
 
-    /** 返回所属用户 ID，用于所有权校验（避免直接暴露 user 代理对象） */
+    /** Returns the owning user ID without exposing the user proxy. */
     public String getUserId() {
         return user != null ? user.getId() : null;
     }
 
-    /** 更新组合名称（PATCH 接口使用） */
+    /** Updates the portfolio name. */
     public void setName(String name) {
         this.name = name;
     }
 
-    /** 更新组合描述（PATCH 接口使用，传 null 则不修改） */
+    /** Updates the portfolio description when the supplied value is not null. */
     public void setDescription(String description) {
         this.description = description;
     }
 
-    /** 归档/取消归档（归档后不出现在默认列表） */
+    /** Changes the archive state; archived portfolios are hidden by default. */
     public void setArchived(boolean archived) {
         this.archived = archived;
     }

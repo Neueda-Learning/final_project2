@@ -8,6 +8,7 @@ import { EmptyState } from "../components/EmptyState";
 import { ErrorBox } from "../components/ErrorBox";
 import { PageHeader } from "../components/PageHeader";
 import { formatDateTime } from "../lib/format";
+import { useLanguage } from "../i18n/LanguageContext";
 
 interface FormState {
   name: string;
@@ -26,6 +27,7 @@ function fieldError(error: unknown, field: string): string | null {
 export function PortfoliosPage() {
   const queryClient = useQueryClient();
   const { portfolioId, setPortfolioId } = usePortfolio();
+  const { locale, t } = useLanguage();
 
   const [editing, setEditing] = useState<Portfolio | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -109,11 +111,11 @@ export function PortfoliosPage() {
   return (
     <>
       <PageHeader
-        title="Portfolios"
-        subtitle="创建、重命名和归档投资组合"
+        title={t("portfolios.title")}
+        subtitle={t("portfolios.subtitle")}
         actions={
           <button type="button" className="btn btn-primary" onClick={openCreate}>
-            新建组合
+            {t("portfolios.new")}
           </button>
         }
       />
@@ -124,11 +126,11 @@ export function PortfoliosPage() {
       {listQuery.data && listQuery.data.items.length === 0 ? (
         <EmptyState
           icon="📁"
-          title="还没有任何组合"
-          description="先创建第一个组合，再开始录入交易和查看估值。"
+          title={t("portfolios.emptyTitle")}
+          description={t("portfolios.emptyDescription")}
           action={
             <button type="button" className="btn btn-primary" onClick={openCreate}>
-              创建第一个组合
+              {t("portfolios.createFirst")}
             </button>
           }
         />
@@ -139,12 +141,12 @@ export function PortfoliosPage() {
           <table className="data-table">
             <thead>
               <tr>
-                <th>名称</th>
-                <th>币种</th>
-                <th>创建时间</th>
-                <th>更新时间</th>
-                <th>状态</th>
-                <th>操作</th>
+                <th>{t("table.name")}</th>
+                <th>{t("table.currency")}</th>
+                <th>{t("table.created")}</th>
+                <th>{t("table.updated")}</th>
+                <th>{t("table.status")}</th>
+                <th>{t("table.actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -155,16 +157,16 @@ export function PortfoliosPage() {
                     {row.description ? <div className="page-subtitle">{row.description}</div> : null}
                   </td>
                   <td>{row.baseCurrency}</td>
-                  <td>{formatDateTime(row.createdAt)}</td>
-                  <td>{formatDateTime(row.updatedAt)}</td>
-                  <td>{row.id === portfolioId ? <span className="badge badge-fresh">当前组合</span> : <span className="info-pill">可切换</span>}</td>
+                  <td>{formatDateTime(row.createdAt, locale)}</td>
+                  <td>{formatDateTime(row.updatedAt, locale)}</td>
+                  <td>{row.id === portfolioId ? <span className="badge badge-fresh">{t("portfolios.current")}</span> : <span className="info-pill">{t("portfolios.available")}</span>}</td>
                   <td>
-                    <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                    <div className="table-actions">
                       <button type="button" className="btn btn-secondary btn-sm" onClick={() => setPortfolioId(row.id)}>
-                        选择
+                        {t("portfolios.select")}
                       </button>
                       <button type="button" className="btn btn-ghost btn-sm" onClick={() => openEdit(row)}>
-                        编辑
+                        {t("portfolios.edit")}
                       </button>
                       <button
                         type="button"
@@ -172,7 +174,7 @@ export function PortfoliosPage() {
                         disabled={archiveMutation.isPending}
                         onClick={() => archiveMutation.mutate(row.id)}
                       >
-                        归档
+                        {t("portfolios.archive")}
                       </button>
                     </div>
                   </td>
@@ -184,10 +186,10 @@ export function PortfoliosPage() {
       ) : null}
 
       {open ? (
-        <div className="modal-overlay" role="dialog" aria-modal="true" aria-label={editing ? "编辑组合" : "创建组合"}>
+        <div className="modal-overlay" role="dialog" aria-modal="true" aria-label={editing ? t("portfolios.editTitle") : t("portfolios.createTitle")}>
           <div className="modal">
             <header className="modal-header">
-              <h2 className="modal-title">{editing ? "编辑组合" : "创建组合"}</h2>
+              <h2 className="modal-title">{editing ? t("portfolios.editTitle") : t("portfolios.createTitle")}</h2>
               <button type="button" className="modal-close" onClick={closeModal}>
                 x
               </button>
@@ -199,7 +201,7 @@ export function PortfoliosPage() {
 
               <div className="form-group">
                 <label className="form-label" htmlFor="portfolio-name">
-                  名称
+                  {t("table.name")}
                 </label>
                 <input
                   id="portfolio-name"
@@ -214,7 +216,7 @@ export function PortfoliosPage() {
 
               <div className="form-group">
                 <label className="form-label" htmlFor="portfolio-desc">
-                  描述
+                  {t("portfolios.description")}
                 </label>
                 <textarea
                   id="portfolio-desc"
@@ -229,7 +231,7 @@ export function PortfoliosPage() {
               {!editing ? (
                 <div className="form-group">
                   <label className="form-label" htmlFor="portfolio-currency">
-                    基础币种
+                    {t("portfolios.baseCurrency")}
                   </label>
                   <input
                     id="portfolio-currency"
@@ -244,10 +246,10 @@ export function PortfoliosPage() {
 
               <div className="form-actions">
                 <button type="button" className="btn btn-ghost" onClick={closeModal}>
-                  取消
+                  {t("common.cancel")}
                 </button>
                 <button type="submit" className="btn btn-primary" disabled={pending}>
-                  {pending ? "提交中..." : editing ? "保存" : "创建"}
+                  {pending ? t("common.submitting") : editing ? t("common.save") : t("common.create")}
                 </button>
               </div>
             </form>

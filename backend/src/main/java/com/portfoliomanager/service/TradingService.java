@@ -27,11 +27,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 交易和持仓管理服务。
- * 
- * 实现标的搜索、交易记录和原子持仓更新。
- * 使用 SELECT FOR UPDATE 处理并发交易，确保持仓的一致性。
- * 幂等键保证相同请求不会重复执行。
+ * Manages instruments, transactions, and current positions.
+ *
+ * Position updates use SELECT FOR UPDATE for concurrency, and idempotency keys
+ * prevent duplicate execution of the same logical request.
  */
 @Service
 public class TradingService {
@@ -53,8 +52,7 @@ public class TradingService {
     }
 
     /**
-     * 按资产类型搜索活跃标的。
-     * 仅支持 STOCK 或 ETF 搜索。
+     * Searches active instruments by supported asset type.
      */
     public List<InstrumentResponse> searchInstruments(String query) {
         if (query == null || query.isBlank()) {
@@ -74,25 +72,18 @@ public class TradingService {
     }
 
     /**
-     * 创建买入或卖出交易，同时原子更新持仓。
+     * Creates a purchase or sale and atomically updates the position.
      *
-     * <p>业务流程：
-     * 1. 验证组合存在且可用
-     * 2. 验证标的存在且活跃
-     * 3. 检查幂等键冲突
-     * 4. 使用 SELECT FOR UPDATE 锁定持仓
-     * 5. 验证卖出数量不超过当前持仓
-     * 6. 计算新数量、平均成本和已实现盈亏
-     * 7. 插入不可变交易记录
-     * 8. 新增或更新持仓投影
-     * 9. 在同一事务提交或整体回滚
+     * <p>The operation validates its resources, handles idempotent replay, locks
+     * the position, validates sale quantity, calculates financial effects, writes
+     * the immutable transaction, and updates the projection in one transaction.
      *
-     * @param portfolioId 组合 ID
-     * @param idempotencyKey 幂等键
-     * @param request 交易请求
-     * @return 交易响应
-     * @throws IllegalArgumentException 如果输入数据无效
-     * @throws IllegalStateException 如果卖出数量超过持仓
+     * @param portfolioId portfolio ID
+     * @param idempotencyKey idempotency key
+     * @param request trade request
+     * @return created or replayed transaction
+     * @throws IllegalArgumentException when input data is invalid
+     * @throws IllegalStateException when a sale exceeds the current position
      */
     @Transactional
     public TransactionResponse createTransaction(
@@ -100,7 +91,7 @@ public class TradingService {
             String idempotencyKey,
             TransactionCreateRequest request) {
 
-        // 1. 验证组合存在且可用（不能被归档）
+        // Validate that the portfolio exists and is active.
         Portfolio portfolio =
                 portfolios
                         .findById(portfolioId)
@@ -112,7 +103,7 @@ public class TradingService {
             throw new IllegalArgumentException("Portfolio is archived: " + portfolioId);
         }
 
-        // 2. 验证标的存在且活跃
+        // Validate that the instrument exists and is active.
         Instrument instrument =
                 instruments
                         .findById(request.instrumentId())
@@ -126,15 +117,15 @@ public class TradingService {
                     "Instrument is inactive: " + request.instrumentId());
         }
 
-        // 3. 检查幂等键冲突 - 如果相同幂等键的交易已存在，返回原有交易
+        // Replay the original transaction when the idempotency key already exists.
         Optional<TradeTransaction> existingTrade =
                 transactions.findByPortfolioIdAndIdempotencyKey(portfolioId, idempotencyKey);
         if (existingTrade.isPresent()) {
-            // 幂等重放：返回已有的交易
+            // Idempotent replay returns the existing transaction.
             return toTransactionResponse(existingTrade.get());
         }
 
-        // 4. 使用 SELECT FOR UPDATE 锁定持仓
+        // Lock the position with SELECT FOR UPDATE.
         Optional<PortfolioPosition> existingPosition =
                 positions.findByPortfolioAndInstrumentForUpdate(
                         portfolioId, request.instrumentId());
@@ -150,7 +141,7 @@ public class TradingService {
             currentRealizedPnl = pos.getRealizedPnl();
         }
 
-        // 5. 验证卖出数量不超过当前持仓
+        // Ensure a sale does not exceed the current position.
         if (request.side() == TradeSide.SELL) {
             if (request.quantity().compareTo(currentQuantity) > 0) {
                 throw new IllegalStateException(
@@ -161,21 +152,21 @@ public class TradingService {
             }
         }
 
-        // 6. 计算新持仓数量、平均成本和已实现盈亏
+        // Calculate the new quantity, average cost, and realized P&L.
         BigDecimal totalCost;
         BigDecimal totalQuantity;
         BigDecimal newAverageCost;
         BigDecimal newRealizedPnl = currentRealizedPnl;
 
         if (request.side() == TradeSide.BUY) {
-            // 买入：成本 = 数量 * 成交价 + 手续费
+            // Purchase cost = quantity * execution price + fee.
             totalCost =
                     request.quantity()
                             .multiply(request.unitPrice())
                             .add(request.feeAmount());
-            // 新持仓 = 旧持仓 + 买入数量
+            // Add the purchased quantity to the current position.
             totalQuantity = currentQuantity.add(request.quantity());
-            // 加权平均成本
+            // Calculate weighted average cost.
             if (totalQuantity.compareTo(BigDecimal.ZERO) > 0) {
                 BigDecimal totalCostBasis =
                         currentQuantity
@@ -186,7 +177,7 @@ public class TradingService {
                 newAverageCost = BigDecimal.ZERO;
             }
         } else {
-            // 卖出：已实现盈亏 = 卖出数量 * (成交价 - 平均成本) - 手续费
+            // Realized P&L = sale quantity * (price - average cost) - fee.
             BigDecimal proceeds =
                     request.quantity()
                             .multiply(request.unitPrice())
@@ -195,13 +186,13 @@ public class TradingService {
             BigDecimal pnl = proceeds.subtract(costOfSold);
             newRealizedPnl = currentRealizedPnl.add(pnl);
 
-            // 新持仓 = 旧持仓 - 卖出数量
+            // Subtract the sold quantity from the current position.
             totalQuantity = currentQuantity.subtract(request.quantity());
-            // 卖出后平均成本不变（剩余持仓）
+            // Average cost remains unchanged for the remaining position.
             newAverageCost = currentAverageCost;
         }
 
-        // 7. 插入不可变交易记录
+        // Insert the immutable transaction record.
         String transactionId = UUID.randomUUID().toString();
         TradeTransaction newTransaction =
                 new TradeTransaction(
@@ -218,49 +209,49 @@ public class TradingService {
                         request.note());
         transactions.save(newTransaction);
 
-        // 8. 新增或更新持仓投影
+        // Create, update, or remove the current-position projection.
         if (totalQuantity.compareTo(BigDecimal.ZERO) > 0) {
-            // 有持仓，新增或更新
+            // A positive quantity requires a position projection.
             if (existingPosition.isPresent()) {
-                // 更新现有持仓
+                // Update the existing position.
                 PortfolioPosition pos = existingPosition.get();
                 pos.setQuantity(totalQuantity);
                 pos.setAverageCost(newAverageCost);
                 pos.setRealizedPnl(newRealizedPnl);
                 positions.save(pos);
             } else {
-                // 新增持仓
+                // Create a new position.
                 PortfolioPosition newPosition =
                         new PortfolioPosition(
                                 portfolio, instrument, totalQuantity, newAverageCost, newRealizedPnl);
                 positions.save(newPosition);
             }
         } else if (existingPosition.isPresent()) {
-            // 无持仓且之前有持仓，删除（卖光了）
+            // Remove the projection after a complete liquidation.
             positions.delete(existingPosition.get());
         }
 
-        // 9. 事务自动提交或回滚
+        // The surrounding transaction commits or rolls back the complete change.
         return toTransactionResponse(newTransaction);
     }
 
     /**
-     * 分页查询交易历史，按成交时间倒序。
+     * Lists paginated transaction history by execution time descending.
      *
-     * @param portfolioId 组合 ID
-     * @param page 页码（1-based）
-     * @param pageSize 每页数量
-     * @return 分页结果
+     * @param portfolioId portfolio ID
+     * @param page one-based page number
+     * @param pageSize number of items per page
+     * @return paginated transactions
      */
     @Transactional(readOnly = true)
     public PageResponse<TransactionResponse> listTransactions(
             String portfolioId, int page, int pageSize) {
-        // 验证组合存在
+        // Validate that the portfolio exists.
         if (!portfolios.existsById(portfolioId)) {
             throw new IllegalArgumentException("Portfolio not found: " + portfolioId);
         }
 
-        // 使用 0-based 页码查询
+        // Spring Data uses zero-based page numbers.
         Pageable pageable = PageRequest.of(page - 1, pageSize);
         Page<TradeTransaction> transactionPage =
                 transactions.findByPortfolioIdOrderByExecutedAtDesc(portfolioId, pageable);
@@ -275,14 +266,14 @@ public class TradingService {
     }
 
     /**
-     * 查询组合的当前持仓（数量 > 0），按持仓数量倒序。
+     * Lists positive current positions ordered by quantity descending.
      *
-     * @param portfolioId 组合 ID
-     * @return 持仓列表
+     * @param portfolioId portfolio ID
+     * @return current positions
      */
     @Transactional(readOnly = true)
     public List<PositionResponse> listPositions(String portfolioId) {
-        // 验证组合存在
+        // Validate that the portfolio exists.
         if (!portfolios.existsById(portfolioId)) {
             throw new IllegalArgumentException("Portfolio not found: " + portfolioId);
         }
@@ -292,7 +283,7 @@ public class TradingService {
                 .toList();
     }
 
-    // ==================== 转换方法 ====================
+    // Response mapping helpers.
 
     static InstrumentResponse toInstrumentResponse(Instrument instrument) {
         return new InstrumentResponse(

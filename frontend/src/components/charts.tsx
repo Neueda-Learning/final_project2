@@ -12,6 +12,7 @@ import { Doughnut, Line } from "react-chartjs-2";
 
 import type { AllocationItem, PerformancePoint } from "../api/types";
 import { formatCurrency } from "../lib/format";
+import { useLanguage } from "../i18n/LanguageContext";
 
 ChartJS.register(
   ArcElement,
@@ -23,7 +24,7 @@ ChartJS.register(
   LineElement,
 );
 
-const PALETTE = ["#176b4d", "#26885f", "#3da972", "#7ecf9a", "#b7eac7", "#0f4a35"];
+const PALETTE = ["#3158d4", "#111317", "#6c83d9", "#98a2b3", "#8aa4f8", "#475467"];
 
 export function AllocationChart({
   data,
@@ -32,6 +33,7 @@ export function AllocationChart({
   data: AllocationItem[];
   currency: string;
 }) {
+  const { locale } = useLanguage();
   return (
     <div className="chart-wrap">
       <Doughnut
@@ -54,7 +56,7 @@ export function AllocationChart({
                 label: (ctx) => {
                   const label = ctx.label ?? "";
                   const value = ctx.parsed as number;
-                  return `${label}: ${formatCurrency(value, currency)}`;
+                  return `${label}: ${formatCurrency(value, currency, locale)}`;
                 },
               },
             },
@@ -72,6 +74,7 @@ export function PerformanceChart({
   points: PerformancePoint[];
   currency: string;
 }) {
+  const { locale, t } = useLanguage();
   return (
     <div className="chart-wrap">
       <Line
@@ -79,10 +82,10 @@ export function PerformanceChart({
           labels: points.map((p) => p.valuationDate),
           datasets: [
             {
-              label: "市值",
+              label: t("chart.marketValue"),
               data: points.map((p) => Number(p.pricedMarketValue)),
-              borderColor: "#176b4d",
-              backgroundColor: "rgba(23,107,77,0.15)",
+              borderColor: "#3158d4",
+              backgroundColor: "rgba(49,88,212,0.12)",
               tension: 0.25,
               pointRadius: 2,
               fill: true,
@@ -94,7 +97,7 @@ export function PerformanceChart({
           scales: {
             y: {
               ticks: {
-                callback: (value) => formatCurrency(Number(value), currency),
+                callback: (value) => formatCurrency(Number(value), currency, locale),
               },
             },
           },
@@ -102,7 +105,7 @@ export function PerformanceChart({
             legend: { display: false },
             tooltip: {
               callbacks: {
-                label: (ctx) => formatCurrency(ctx.parsed.y, currency),
+                label: (ctx) => formatCurrency(ctx.parsed.y, currency, locale),
               },
             },
           },

@@ -42,7 +42,7 @@ public class MarketDataService {
         if (acquired == null || acquired != 1) {
             return currentRunningSync().orElseThrow(
                     () -> new MarketDataUnavailableException(
-                            "行情同步任务当前不可用，请稍后重试"));
+                            "Market-data synchronization is unavailable. Please try again later."));
         }
 
         try {
@@ -85,7 +85,7 @@ public class MarketDataService {
         Integer instrumentCount = jdbc.queryForObject(
                 "SELECT COUNT(*) FROM instrument WHERE id = ?", Integer.class, instrumentId);
         if (instrumentCount == null || instrumentCount == 0) {
-            throw new ResourceNotFoundException("标的不存在: " + instrumentId);
+            throw new ResourceNotFoundException("Instrument not found: " + instrumentId);
         }
 
         return jdbc.query(
@@ -112,7 +112,7 @@ public class MarketDataService {
                 .stream()
                 .findFirst()
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("该标的暂无可用行情: " + instrumentId));
+                        new ResourceNotFoundException("No market data is available for instrument: " + instrumentId));
     }
 
     private Optional<SyncRunResponse> currentRunningSync() {

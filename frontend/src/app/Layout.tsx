@@ -1,24 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
-import { NavLink, Outlet, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect, useMemo } from "react";
+import { NavLink, Outlet, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
 import { api } from "../api/client";
-import { PortfolioProvider } from "./PortfolioContext";
 import { SyncStatusBadge } from "../components/StatusBadge";
-
-const NAV_ITEMS = [
-  { to: "/dashboard", label: "Dashboard" },
-  { to: "/portfolios", label: "Portfolios" },
-  { to: "/holdings", label: "Holdings" },
-  { to: "/transactions", label: "Transactions" },
-  { to: "/data-status", label: "Data Status" },
-];
+import { useLanguage } from "../i18n/LanguageContext";
+import { PortfolioProvider } from "./PortfolioContext";
 
 export function Layout() {
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const { language, t, toggleLanguage } = useLanguage();
 
   const portfoliosQuery = useQuery({
     queryKey: ["portfolios", { includeArchived: false }],
@@ -42,100 +33,102 @@ export function Layout() {
   }, [portfolioId, portfolios, searchParams, setSearchParams]);
 
   const selectedPortfolio = useMemo(
-    () => portfolios.find((p) => p.id === portfolioId) ?? null,
+    () => portfolios.find((portfolio) => portfolio.id === portfolioId) ?? null,
     [portfolios, portfolioId],
   );
 
   const setPortfolioId = (id: string) => {
     const params = new URLSearchParams(searchParams);
-    params.set("portfolioId", id);
+    if (id) params.set("portfolioId", id);
+    else params.delete("portfolioId");
     setSearchParams(params);
   };
 
   const linkWithCurrentPortfolio = (path: string) => {
-    const params = new URLSearchParams(searchParams);
-    const search = params.toString();
+    const search = searchParams.toString();
     return search ? `${path}?${search}` : path;
   };
 
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [location.pathname, location.search]);
+  const navItems = [
+    { to: "/dashboard", label: t("nav.dashboard") },
+    { to: "/portfolios", label: t("nav.portfolios") },
+    { to: "/holdings", label: t("nav.holdings") },
+    { to: "/transactions", label: t("nav.transactions") },
+    { to: "/data-status", label: t("nav.dataStatus") },
+  ];
 
   return (
     <PortfolioProvider value={{ portfolioId, setPortfolioId, selectedPortfolio }}>
-      <div className="app-layout">
-        {mobileOpen && <div className="sidebar-overlay" onClick={() => setMobileOpen(false)} />}
+      <a className="skip-link" href="#main-content">
+        Skip to content
+      </a>
+      <div className="site-shell">
+        <header className="site-header">
+          <NavLink className="brand" to={linkWithCurrentPortfolio("/dashboard")}>
+            <span className="brand-mark" aria-hidden="true">C</span>
+            <span>
+              <strong>{t("app.name")}</strong>
+              <small>{t("app.tagline")}</small>
+            </span>
+          </NavLink>
 
-        <aside className={`sidebar ${mobileOpen ? "sidebar--open" : ""}`}>
-          <header className="sidebar-header">
-            <button
-              type="button"
-              className="sidebar-logo"
-              onClick={() => navigate(linkWithCurrentPortfolio("/dashboard"))}
-            >
-              Portfolio Manager
-            </button>
-            <button className="sidebar-close" type="button" onClick={() => setMobileOpen(false)}>
-              x
-            </button>
-          </header>
-
-          <section className="sidebar-section">
-            <label className="sidebar-label" htmlFor="portfolio-select">
-              Current Portfolio
-            </label>
-            {portfoliosQuery.isPending ? (
-              <div className="sidebar-skeleton" />
-            ) : (
-              <select
-                id="portfolio-select"
-                className="sidebar-select"
-                value={portfolioId ?? ""}
-                onChange={(e) => setPortfolioId(e.target.value)}
+          <nav className="primary-nav" aria-label={t("nav.primary")}>
+            {navItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={linkWithCurrentPortfolio(item.to)}
+                className={({ isActive }) => `nav-link${isActive ? " nav-link--active" : ""}`}
               >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+
+          <div className="header-actions">
+            <label className="compact-field">
+              <span>{t("layout.portfolio")}</span>
+              <select
+                value={portfolioId ?? ""}
+                onChange={(event) => setPortfolioId(event.target.value)}
+                disabled={portfoliosQuery.isPending}
+                aria-label={t("layout.portfolio")}
+              >
+                {portfolios.length === 0 ? (
+                  <option value="">{t("layout.noPortfolio")}</option>
+                ) : null}
                 {portfolios.map((portfolio) => (
                   <option key={portfolio.id} value={portfolio.id}>
                     {portfolio.name}
                   </option>
                 ))}
               </select>
-            )}
-          </section>
+            </label>
 
-          <section className="sidebar-section">
-            <span className="sidebar-label">Sync Status</span>
-            {syncQuery.isPending && <div className="sidebar-skeleton" />}
-            {syncQuery.data ? <SyncStatusBadge status={syncQuery.data.status} /> : <span className="info-pill">No run yet</span>}
-          </section>
+            <div className="sync-indicator" aria-label={t("layout.sync")}>
+              <span>{t("layout.sync")}</span>
+              {syncQuery.data ? (
+                <SyncStatusBadge status={syncQuery.data.status} />
+              ) : (
+                <span className="status-dot-label">{t("layout.noRun")}</span>
+              )}
+            </div>
 
-          <nav className="sidebar-nav" aria-label="Primary">
-            {NAV_ITEMS.map((item) => (
-              <NavLink
-                key={item.to}
-                to={linkWithCurrentPortfolio(item.to)}
-                className={({ isActive }) =>
-                  `sidebar-link${isActive ? " sidebar-link--active" : ""}`
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
-        </aside>
-
-        <div className="main-wrapper">
-          <header className="topbar">
-            <button className="topbar-menu-btn" type="button" onClick={() => setMobileOpen(true)}>
-              ≡
+            <button
+              className="language-toggle"
+              type="button"
+              onClick={toggleLanguage}
+              aria-label={language === "en" ? t("layout.switchToChinese") : t("layout.switchToEnglish")}
+            >
+              <span className={language === "en" ? "is-active" : ""}>EN</span>
+              <span aria-hidden="true">/</span>
+              <span className={language === "zh" ? "is-active" : ""}>{t("layout.chinese")}</span>
             </button>
-            <div className="topbar-title">Portfolio Manager</div>
-          </header>
+          </div>
+        </header>
 
-          <main className="main-content">
-            <Outlet />
-          </main>
-        </div>
+        <main className="main-content" id="main-content">
+          <Outlet />
+        </main>
       </div>
     </PortfolioProvider>
   );

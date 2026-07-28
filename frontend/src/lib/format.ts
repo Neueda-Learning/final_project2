@@ -2,11 +2,12 @@
 export function formatCurrency(
   value: string | number | null | undefined,
   currency = "USD",
+  locale = "en-US",
 ): string {
   if (value === null || value === undefined || value === "") return "—";
   const num = typeof value === "string" ? parseFloat(value) : value;
   if (isNaN(num)) return "—";
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat(locale, {
     style: "currency",
     currency,
     minimumFractionDigits: 2,
@@ -27,23 +28,23 @@ export function formatPercent(
 }
 
 /** Format a quantity decimal string, dropping unnecessary trailing zeros. */
-export function formatQuantity(value: string | null | undefined): string {
+export function formatQuantity(value: string | null | undefined, locale = "en-US"): string {
   if (!value) return "—";
   const num = parseFloat(value);
   if (isNaN(num)) return value;
-  return num.toLocaleString("en-US", {
+  return num.toLocaleString(locale, {
     maximumFractionDigits: 8,
     minimumFractionDigits: 0,
   });
 }
 
 /** Format an ISO date string as a short date (e.g. Jul 27, 2026). */
-export function formatDate(value: string | null | undefined): string {
+export function formatDate(value: string | null | undefined, locale = "en-US"): string {
   if (!value) return "—";
   try {
-    // Parse YYYY-MM-DD without timezone offset to avoid off-by-one day
+    // Parse YYYY-MM-DD without a timezone offset to avoid an off-by-one date.
     const d = value.includes("T") ? new Date(value) : new Date(value + "T00:00:00");
-    return d.toLocaleDateString("en-US", {
+    return d.toLocaleDateString(locale, {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -54,10 +55,10 @@ export function formatDate(value: string | null | undefined): string {
 }
 
 /** Format an ISO date-time string as a short datetime. */
-export function formatDateTime(value: string | null | undefined): string {
+export function formatDateTime(value: string | null | undefined, locale = "en-US"): string {
   if (!value) return "—";
   try {
-    return new Date(value).toLocaleString("en-US", {
+    return new Date(value).toLocaleString(locale, {
       year: "numeric",
       month: "short",
       day: "numeric",

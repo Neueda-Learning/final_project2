@@ -10,9 +10,11 @@ import { SummaryCards } from "../components/SummaryCards";
 import { AllocationChart, PerformanceChart } from "../components/charts";
 import { PriceStatusBadge } from "../components/StatusBadge";
 import { formatCurrency, formatDate, formatPercent, formatQuantity, pnlSign } from "../lib/format";
+import { useLanguage } from "../i18n/LanguageContext";
 
 export function DashboardPage() {
   const { portfolioId, selectedPortfolio } = usePortfolio();
+  const { locale, t } = useLanguage();
 
   const dashboardQuery = useQuery({
     queryKey: ["dashboard", portfolioId],
@@ -31,15 +33,19 @@ export function DashboardPage() {
   return (
     <>
       <PageHeader
-        title="Dashboard"
-        subtitle={selectedPortfolio ? `${selectedPortfolio.name} 的估值与表现` : "选择组合后查看数据"}
+        title={t("dashboard.title")}
+        subtitle={
+          selectedPortfolio
+            ? t("dashboard.subtitle", { name: selectedPortfolio.name })
+            : t("dashboard.noSelectionSubtitle")
+        }
       />
 
       {!portfolioId ? (
         <EmptyState
           icon="🧭"
-          title="请选择一个组合"
-          description="左侧选择组合后即可查看摘要、持仓、配置和历史表现。"
+          title={t("dashboard.emptyTitle")}
+          description={t("dashboard.emptyDescription")}
         />
       ) : null}
 
@@ -50,21 +56,21 @@ export function DashboardPage() {
         <>
           <SummaryCards summary={dashboardQuery.data.summary} currency={currency} />
 
-          <section className="charts-row" aria-label="组合图表">
+          <section className="charts-row" aria-label={t("dashboard.charts")}>
             <article className="chart-card">
-              <h2 className="chart-card__title">资产配置</h2>
+              <h2 className="chart-card__title">{t("dashboard.allocation")}</h2>
               {dashboardQuery.data.allocation.length > 0 ? (
                 <AllocationChart data={dashboardQuery.data.allocation} currency={currency} />
               ) : (
                 <EmptyState
                   icon="🧩"
-                  title="暂无可配置资产"
-                  description="当前没有可计入配置图的已定价持仓。"
+                  title={t("dashboard.noAllocationTitle")}
+                  description={t("dashboard.noAllocationDescription")}
                 />
               )}
             </article>
             <article className="chart-card">
-              <h2 className="chart-card__title">历史估值</h2>
+              <h2 className="chart-card__title">{t("dashboard.performance")}</h2>
               {performanceQuery.isPending ? (
                 <TableSkeleton />
               ) : performanceQuery.isError ? (
@@ -74,8 +80,8 @@ export function DashboardPage() {
               ) : (
                 <EmptyState
                   icon="📉"
-                  title="暂无估值历史"
-                  description="完成行情同步后，系统会逐日生成估值快照。"
+                  title={t("dashboard.noPerformanceTitle")}
+                  description={t("dashboard.noPerformanceDescription")}
                 />
               )}
             </article>
@@ -83,22 +89,22 @@ export function DashboardPage() {
 
           <section>
             <div className="section-header">
-              <h2 className="section-title">持仓明细</h2>
+              <h2 className="section-title">{t("dashboard.holdings")}</h2>
             </div>
             <div className="table-wrap">
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>标的</th>
-                    <th>类型</th>
-                    <th className="num">数量</th>
-                    <th className="num">成本</th>
-                    <th className="num">现价</th>
-                    <th className="num">市值</th>
-                    <th className="num">未实现盈亏</th>
-                    <th className="num">收益率</th>
-                    <th>价格日期</th>
-                    <th>状态</th>
+                    <th>{t("table.symbol")}</th>
+                    <th>{t("table.type")}</th>
+                    <th className="num">{t("table.quantity")}</th>
+                    <th className="num">{t("table.cost")}</th>
+                    <th className="num">{t("table.price")}</th>
+                    <th className="num">{t("table.marketValue")}</th>
+                    <th className="num">{t("table.unrealizedPnl")}</th>
+                    <th className="num">{t("table.return")}</th>
+                    <th>{t("table.priceDate")}</th>
+                    <th>{t("table.status")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -106,15 +112,15 @@ export function DashboardPage() {
                     <tr key={position.instrumentId}>
                       <td className="sym">{position.symbol}</td>
                       <td>{position.assetType}</td>
-                      <td className="num">{formatQuantity(position.quantity)}</td>
-                      <td className="num">{formatCurrency(position.costBasis, currency)}</td>
-                      <td className="num">{formatCurrency(position.closePrice, currency)}</td>
-                      <td className="num">{formatCurrency(position.marketValue, currency)}</td>
+                      <td className="num">{formatQuantity(position.quantity, locale)}</td>
+                      <td className="num">{formatCurrency(position.costBasis, currency, locale)}</td>
+                      <td className="num">{formatCurrency(position.closePrice, currency, locale)}</td>
+                      <td className="num">{formatCurrency(position.marketValue, currency, locale)}</td>
                       <td className={`num ${pnlSign(position.unrealizedPnl)}`}>
-                        {formatCurrency(position.unrealizedPnl, currency)}
+                        {formatCurrency(position.unrealizedPnl, currency, locale)}
                       </td>
                       <td className={`num ${pnlSign(position.returnPct)}`}>{formatPercent(position.returnPct)}</td>
-                      <td>{formatDate(position.priceDate)}</td>
+                      <td>{formatDate(position.priceDate, locale)}</td>
                       <td>
                         <PriceStatusBadge status={position.priceStatus} />
                       </td>
