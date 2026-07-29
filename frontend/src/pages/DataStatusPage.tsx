@@ -24,11 +24,17 @@ export function DataStatusPage() {
       await queryClient.invalidateQueries({ queryKey: ["latest-sync"] });
       await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       await queryClient.invalidateQueries({ queryKey: ["performance"] });
+      await queryClient.invalidateQueries({ queryKey: ["intraday-bars"] });
     },
   });
   const syncData = latestSyncQuery.data;
   const syncIsRunning = syncData?.status === "RUNNING";
-  const syncProgress = syncData?.status === "RUNNING" && syncData.requestedCount > 0
+  const syncIsStuck = syncIsRunning
+    && syncData != null
+    && new Date().getTime() - new Date(syncData.startedAt).getTime() > 10 * 60 * 1000;
+  // Show progress for both running and terminal states so the bar doesn't
+  // snap back to 0% when a run fails or completes.
+  const syncProgress = syncData != null && syncData.requestedCount > 0
     ? Math.round(
         ((syncData.successCount + syncData.failureCount)
           / syncData.requestedCount) * 100,
@@ -50,16 +56,29 @@ export function DataStatusPage() {
         title={t("data.title")}
         subtitle={t("data.subtitle")}
         actions={
-          <button
-            type="button"
-            className="btn btn-primary"
-            disabled={triggerMutation.isPending || syncIsRunning}
-            onClick={() => triggerMutation.mutate(false)}
-          >
-            {triggerMutation.isPending || syncIsRunning
-              ? t("data.syncing")
-              : t("data.syncNow")}
-          </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            {syncIsStuck ? (
+              <button
+                type="button"
+                className="btn btn-danger"
+                disabled={triggerMutation.isPending}
+                onClick={() => triggerMutation.mutate(true)}
+                title="强制中断当前卡死的同步并重新开始"
+              >
+                {t("data.forceSync")}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={triggerMutation.isPending || syncIsRunning}
+              onClick={() => triggerMutation.mutate(false)}
+            >
+              {triggerMutation.isPending || syncIsRunning
+                ? t("data.syncing")
+                : t("data.syncNow")}
+            </button>
+          </div>
         }
       />
 
@@ -74,7 +93,7 @@ export function DataStatusPage() {
           <div className="info-pill">{t("common.loading")}</div>
         ) : latestSyncQuery.data ? (
           <>
-          {syncIsRunning ? (
+          {syncData && syncData.requestedCount > 0 ? (
             <div className="sync-progress" aria-label={t("data.progress")}>
               <div className="sync-progress__meta">
                 <span>{t("data.progress")}</span>
@@ -82,6 +101,16 @@ export function DataStatusPage() {
               </div>
               <div className="sync-progress__track">
                 <span style={{ width: `${syncProgress}%` }} />
+              </div>
+            </div>
+          ) : syncIsRunning ? (
+            <div className="sync-progress" aria-label={t("data.progress")}>
+              <div className="sync-progress__meta">
+                <span>{t("data.progress")}</span>
+                <strong>—</strong>
+              </div>
+              <div className="sync-progress__track">
+                <span style={{ width: "0%" }} />
               </div>
             </div>
           ) : null}
