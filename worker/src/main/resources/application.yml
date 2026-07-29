@@ -5,6 +5,8 @@ spring:
     import:
       - optional:file:.env[.properties]
       - optional:file:../.env[.properties]
+      - optional:file:.env.local[.properties]
+      - optional:file:../.env.local[.properties]
   main:
     web-application-type: none
   datasource:

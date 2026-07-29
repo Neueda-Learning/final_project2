@@ -5,6 +5,8 @@ spring:
     import:
       - optional:file:.env[.properties]
       - optional:file:../.env[.properties]
+      - optional:file:.env.local[.properties]
+      - optional:file:../.env.local[.properties]
   datasource:
     url: ${DATABASE_URL}
     username: ${DATABASE_USERNAME}
