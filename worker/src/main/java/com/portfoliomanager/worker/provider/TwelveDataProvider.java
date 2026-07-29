@@ -22,17 +22,19 @@ import org.springframework.web.client.RestClient;
 @Component
 @ConditionalOnProperty(
         name = "market-data.provider",
-        havingValue = "twelve-data",
-        matchIfMissing = true)
+        havingValue = "twelve-data")
 public class TwelveDataProvider implements MarketDataProvider {
 
     private final RestClient client;
     private final MarketDataProperties properties;
     private final ObjectMapper objectMapper;
+    private final RequestRateLimiter rateLimiter;
 
     public TwelveDataProvider(MarketDataProperties properties) {
         this.properties = properties;
         this.objectMapper = new ObjectMapper();
+        this.rateLimiter = RequestRateLimiter.fixedInterval(
+                Duration.ofMillis(properties.getTwelveDataRequestIntervalMillis()));
         Duration timeout = Duration.ofSeconds(properties.getRequestTimeoutSeconds());
         var httpClient = HttpClient.newBuilder().connectTimeout(timeout).build();
         var requestFactory = new JdkClientHttpRequestFactory(httpClient);
@@ -52,6 +54,7 @@ public class TwelveDataProvider implements MarketDataProvider {
     public List<InstrumentSearchResult> searchInstruments(String query, int limit) {
         requireApiKey();
         try {
+            rateLimiter.acquire();
             String response = client.get()
                     .uri(uri -> uri.path("/symbol_search")
                             .queryParam("symbol", query)
@@ -92,6 +95,7 @@ public class TwelveDataProvider implements MarketDataProvider {
         }
         requireApiKey();
         try {
+            rateLimiter.acquire();
             String response = client.get()
                     .uri(uri -> uri.path("/time_series")
                             .queryParam("symbol", String.join(",", symbols))
@@ -122,6 +126,7 @@ public class TwelveDataProvider implements MarketDataProvider {
             LocalDateTime end) {
         requireApiKey();
         try {
+            rateLimiter.acquire();
             String response = client.get()
                     .uri(uri -> uri.path("/time_series")
                             .queryParam("symbol", symbol)

@@ -33,7 +33,7 @@ public class MarketDataService {
     public MarketDataService(
             JdbcTemplate jdbc,
             MarketCalendarService calendar,
-            @Value("${market-data.provider:twelve-data}") String provider) {
+            @Value("${market-data.provider:alpaca}") String provider) {
         this.jdbc = jdbc;
         this.calendar = calendar;
         this.provider = provider;
@@ -189,11 +189,25 @@ public class MarketDataService {
         Long total = jdbc.queryForObject(
                 """
                 SELECT COUNT(*)
-                FROM market_intraday_bar
-                WHERE instrument_id = ?
-                  AND interval_code = ?
-                  AND bar_timestamp >= ?
-                  AND bar_timestamp < ?
+                FROM market_intraday_bar b
+                WHERE b.instrument_id = ?
+                  AND b.interval_code = ?
+                  AND b.bar_timestamp >= ?
+                  AND b.bar_timestamp < ?
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM market_intraday_bar newer
+                      WHERE newer.instrument_id = b.instrument_id
+                        AND newer.interval_code = b.interval_code
+                        AND newer.bar_timestamp = b.bar_timestamp
+                        AND (
+                            newer.fetched_at > b.fetched_at
+                            OR (
+                                newer.fetched_at = b.fetched_at
+                                AND newer.id > b.id
+                            )
+                        )
+                  )
                 """,
                 Long.class,
                 instrumentId,
@@ -213,6 +227,20 @@ public class MarketDataService {
                   AND b.interval_code = ?
                   AND b.bar_timestamp >= ?
                   AND b.bar_timestamp < ?
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM market_intraday_bar newer
+                      WHERE newer.instrument_id = b.instrument_id
+                        AND newer.interval_code = b.interval_code
+                        AND newer.bar_timestamp = b.bar_timestamp
+                        AND (
+                            newer.fetched_at > b.fetched_at
+                            OR (
+                                newer.fetched_at = b.fetched_at
+                                AND newer.id > b.id
+                            )
+                        )
+                  )
                 ORDER BY b.bar_timestamp DESC
                 LIMIT ? OFFSET ?
                 """,

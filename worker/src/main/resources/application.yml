@@ -13,16 +13,26 @@ spring:
     password: "${DATABASE_${DATABASE_TARGET:REMOTE}_PASSWORD:${DATABASE_PASSWORD:portfolio}}"
 
 market-data:
-  provider: ${MARKET_DATA_PROVIDER:twelve-data}
+  provider: ${MARKET_DATA_PROVIDER:alpaca}
   api-key: ${TWELVE_DATA_API_KEY:}
+  alpaca-api-base-url: ${ALPACA_API_BASE_URL:https://paper-api.alpaca.markets/v2}
+  alpaca-data-base-url: ${ALPACA_DATA_BASE_URL:https://data.alpaca.markets/v2}
+  alpaca-api-key-id: ${ALPACA_API_KEY_ID:}
+  alpaca-api-secret-key: ${ALPACA_API_SECRET_KEY:}
+  alpaca-feed: ${ALPACA_DATA_FEED:iex}
+  # Leave headroom below Alpaca Basic's documented 200 historical calls/minute.
+  alpaca-requests-per-minute: ${ALPACA_REQUESTS_PER_MINUTE:180}
   sync-cron: ${MARKET_SYNC_CRON:0 0 22 * * MON-FRI}
   time-zone: ${MARKET_TIMEZONE:America/New_York}
-  # Twelve Data truncates multi-symbol historical responses; one symbol per
-  # request guarantees the full requested date range is returned.
-  batch-size: ${MARKET_BATCH_SIZE:1}
+  # Alpaca supports multi-symbol historical bars. Twelve fallback requests are
+  # split to one symbol by the failover adapter.
+  batch-size: ${MARKET_BATCH_SIZE:50}
+  request-concurrency: ${MARKET_REQUEST_CONCURRENCY:4}
   request-timeout-seconds: ${MARKET_REQUEST_TIMEOUT_SECONDS:10}
   max-retries: ${MARKET_MAX_RETRIES:2}
   retry-backoff-millis: ${MARKET_RETRY_BACKOFF_MILLIS:250}
   # The basic Twelve Data plan permits eight API credits per minute.
-  request-interval-millis: ${MARKET_REQUEST_INTERVAL_MILLIS:8000}
+  twelve-data-request-interval-millis: ${TWELVE_DATA_REQUEST_INTERVAL_MILLIS:${MARKET_REQUEST_INTERVAL_MILLIS:8000}}
   manual-poll-interval-ms: ${MARKET_MANUAL_POLL_INTERVAL_MS:15000}
+  intraday-interval: ${MARKET_INTRADAY_INTERVAL:1min}
+  intraday-lookback-days: ${MARKET_INTRADAY_LOOKBACK_DAYS:5}
