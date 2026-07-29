@@ -1,13 +1,17 @@
 package com.portfoliomanager.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.portfoliomanager.api.ApiModels.TransactionCreateRequest;
+import com.portfoliomanager.domain.AssetType;
 import com.portfoliomanager.domain.TradeSide;
 import com.portfoliomanager.domain.model.Instrument;
 import com.portfoliomanager.domain.model.Portfolio;
+import com.portfoliomanager.domain.model.PortfolioPosition;
 import com.portfoliomanager.domain.model.TradeTransaction;
 import com.portfoliomanager.repository.InstrumentRepository;
 import com.portfoliomanager.repository.PortfolioPositionRepository;
@@ -23,6 +27,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 
 @ExtendWith(MockitoExtension.class)
 class TradingServiceTest {
@@ -33,6 +39,8 @@ class TradingServiceTest {
     @Mock private PortfolioPositionRepository positions;
     @Mock private Portfolio portfolio;
     @Mock private Instrument instrument;
+    @Mock private PortfolioPosition position;
+    @Mock private TradeTransaction transaction;
 
     private TradingService service;
 
@@ -84,5 +92,61 @@ class TradingServiceTest {
         assertThat(saved.getCurrency()).isEqualTo("USD");
         assertThat(saved.getExecutedAt()).isEqualTo(tradeDate.atTime(16, 0));
         assertThat(saved.getFeeAmount()).isEqualByComparingTo("0");
+    }
+
+    @Test
+    void populatedPositionsSkipTheSeparatePortfolioExistenceQuery() {
+        String portfolioId = "portfolio-id";
+        given(positions.findByPortfolioId(portfolioId)).willReturn(List.of(position));
+        given(position.getInstrument()).willReturn(instrument);
+        given(instrument.getId()).willReturn("instrument-id");
+        given(instrument.getSymbol()).willReturn("AAPL");
+        given(instrument.getName()).willReturn("Apple Inc.");
+        given(instrument.getAssetType()).willReturn(AssetType.STOCK);
+
+        assertThat(service.listPositions(portfolioId)).hasSize(1);
+
+        verify(portfolios, never()).existsById(portfolioId);
+    }
+
+    @Test
+    void emptyPositionsStillDistinguishAMissingPortfolio() {
+        String portfolioId = "missing-portfolio";
+        given(positions.findByPortfolioId(portfolioId)).willReturn(List.of());
+        given(portfolios.existsById(portfolioId)).willReturn(false);
+
+        assertThatThrownBy(() -> service.listPositions(portfolioId))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Portfolio not found: " + portfolioId);
+    }
+
+    @Test
+    void populatedTransactionPageSkipsTheSeparatePortfolioExistenceQuery() {
+        String portfolioId = "portfolio-id";
+        PageRequest pageable = PageRequest.of(0, 20);
+        given(transactions.findByPortfolioIdOrderByExecutedAtDesc(portfolioId, pageable))
+                .willReturn(new PageImpl<>(List.of(transaction), pageable, 1));
+        given(transaction.getPortfolio()).willReturn(portfolio);
+        given(portfolio.getId()).willReturn(portfolioId);
+        given(transaction.getInstrument()).willReturn(instrument);
+        given(instrument.getId()).willReturn("instrument-id");
+        given(instrument.getSymbol()).willReturn("AAPL");
+
+        assertThat(service.listTransactions(portfolioId, 1, 20).items()).hasSize(1);
+
+        verify(portfolios, never()).existsById(portfolioId);
+    }
+
+    @Test
+    void emptyTransactionPageStillDistinguishesAMissingPortfolio() {
+        String portfolioId = "missing-portfolio";
+        PageRequest pageable = PageRequest.of(0, 20);
+        given(transactions.findByPortfolioIdOrderByExecutedAtDesc(portfolioId, pageable))
+                .willReturn(new PageImpl<>(List.of(), pageable, 0));
+        given(portfolios.existsById(portfolioId)).willReturn(false);
+
+        assertThatThrownBy(() -> service.listTransactions(portfolioId, 1, 20))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Portfolio not found: " + portfolioId);
     }
 }

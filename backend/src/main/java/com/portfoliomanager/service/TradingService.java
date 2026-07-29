@@ -247,15 +247,16 @@ public class TradingService {
     @Transactional(readOnly = true)
     public PageResponse<TransactionResponse> listTransactions(
             String portfolioId, int page, int pageSize) {
-        // Validate that the portfolio exists.
-        if (!portfolios.existsById(portfolioId)) {
-            throw new IllegalArgumentException("Portfolio not found: " + portfolioId);
-        }
-
         // Spring Data uses zero-based page numbers.
         Pageable pageable = PageRequest.of(page - 1, pageSize);
         Page<TradeTransaction> transactionPage =
                 transactions.findByPortfolioIdOrderByExecutedAtDesc(portfolioId, pageable);
+
+        // Avoid a separate round trip on the normal, non-empty path while preserving
+        // the existing not-found response for empty or out-of-range pages.
+        if (transactionPage.isEmpty() && !portfolios.existsById(portfolioId)) {
+            throw new IllegalArgumentException("Portfolio not found: " + portfolioId);
+        }
 
         List<TransactionResponse> items =
                 transactionPage.getContent().stream()
@@ -274,12 +275,15 @@ public class TradingService {
      */
     @Transactional(readOnly = true)
     public List<PositionResponse> listPositions(String portfolioId) {
-        // Validate that the portfolio exists.
-        if (!portfolios.existsById(portfolioId)) {
+        List<PortfolioPosition> portfolioPositions = positions.findByPortfolioId(portfolioId);
+
+        // A populated result already proves the portfolio exists. Only pay for a
+        // separate existence query when an empty result is ambiguous.
+        if (portfolioPositions.isEmpty() && !portfolios.existsById(portfolioId)) {
             throw new IllegalArgumentException("Portfolio not found: " + portfolioId);
         }
 
-        return positions.findByPortfolioId(portfolioId).stream()
+        return portfolioPositions.stream()
                 .map(TradingService::toPositionResponse)
                 .toList();
     }
