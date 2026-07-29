@@ -25,7 +25,7 @@ market data, and review portfolio valuations and analytics.
 | Viko | MikeyHHH | User and portfolio backend (PRD 2) |
 | Leon | N1rVana96 | Valuation analysis and backend integration (PRD 5) |
 | Tommy | ziyet3 | Instrument, trade, and holding backend (PRD 3) |
-| Kristen | DanilleZhao-tech | All frontend development (PRD 1) |
+| Kristen | DanielleZhao-tech | All frontend development (PRD 1) |
 
 
 
