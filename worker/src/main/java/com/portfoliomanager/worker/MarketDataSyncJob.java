@@ -72,10 +72,11 @@ public class MarketDataSyncJob {
     }
 
     @Scheduled(
-            fixedDelayString = "${market-data.manual-poll-interval-ms:2000}",
-            initialDelayString = "${market-data.manual-poll-interval-ms:2000}")
+            fixedDelayString = "${market-data.manual-poll-interval-ms:15000}",
+            initialDelayString = "${market-data.manual-poll-interval-ms:15000}")
     public void processManualRequests() {
-        withGlobalLock(() -> findPendingManualRun().ifPresent(this::processRun));
+        findPendingManualRun().ifPresent(runId ->
+                withGlobalLock(() -> processRun(runId)));
     }
 
     private void withGlobalLock(Runnable action) {
@@ -128,7 +129,8 @@ public class MarketDataSyncJob {
             targets.forEach(target ->
                     bySymbol.put(normalizeSymbol(target.providerSymbol()), target));
 
-            Set<String> successfulInstrumentIds = new HashSet<>();
+            Set<String> validatedInstrumentIds = new HashSet<>();
+            List<PriceWrite> priceWrites = new ArrayList<>();
             int batchSize = Math.max(1, properties.getBatchSize());
             for (int offset = 0; offset < targets.size(); offset += batchSize) {
                 List<InstrumentTarget> batch =
@@ -149,11 +151,11 @@ public class MarketDataSyncJob {
                             errors.add(validationError);
                             continue;
                         }
-                        upsertPrice(runId, target, price);
-                        successfulInstrumentIds.add(target.instrumentId());
+                        priceWrites.add(new PriceWrite(target, price));
+                        validatedInstrumentIds.add(target.instrumentId());
                     }
                     for (InstrumentTarget target : batch) {
-                        if (!successfulInstrumentIds.contains(target.instrumentId())) {
+                        if (!validatedInstrumentIds.contains(target.instrumentId())) {
                             errors.add("No valid price returned for " + target.providerSymbol());
                         }
                     }
@@ -164,13 +166,15 @@ public class MarketDataSyncJob {
                 int processedCount = Math.min(offset + batch.size(), targets.size());
                 updateRunProgress(
                         runId,
-                        successfulInstrumentIds.size(),
-                        processedCount - successfulInstrumentIds.size());
+                        validatedInstrumentIds.size(),
+                        processedCount - validatedInstrumentIds.size());
                 if (offset + batchSize < targets.size()) {
                     pauseBeforeNextRequest();
                 }
             }
 
+            upsertPrices(runId, priceWrites);
+            Set<String> successfulInstrumentIds = Set.copyOf(validatedInstrumentIds);
             int successCount = successfulInstrumentIds.size();
             int failureCount = targets.size() - successCount;
             String status = successCount == targets.size()
@@ -275,13 +279,14 @@ public class MarketDataSyncJob {
             return;
         }
 
+        List<SnapshotWrite> snapshots = new ArrayList<>();
         for (String portfolioId : loadAffectedPortfolioIds(successfulInstrumentIds)) {
             try {
                 SnapshotSummary summary = loadSnapshotSummary(portfolioId);
                 if (summary == null || summary.valuationDate() == null) {
                     continue;
                 }
-                upsertSnapshot(portfolioId, summary);
+                snapshots.add(new SnapshotWrite(portfolioId, summary));
             } catch (RuntimeException exception) {
                 errors.add(
                         "Snapshot refresh failed for portfolio "
@@ -289,6 +294,11 @@ public class MarketDataSyncJob {
                                 + ": "
                                 + rootMessage(exception));
             }
+        }
+        try {
+            upsertSnapshots(snapshots);
+        } catch (RuntimeException exception) {
+            errors.add("Snapshot batch refresh failed: " + rootMessage(exception));
         }
     }
 
@@ -301,9 +311,11 @@ public class MarketDataSyncJob {
             return;
         }
 
+        List<SnapshotWrite> snapshots = new ArrayList<>();
         for (String portfolioId : loadAffectedPortfolioIds(successfulInstrumentIds)) {
             try {
-                rebuildHistoricalValuationSnapshots(portfolioId, start, end);
+                snapshots.addAll(
+                        buildHistoricalValuationSnapshots(portfolioId, start, end));
             } catch (RuntimeException exception) {
                 errors.add(
                         "Historical snapshot rebuild failed for portfolio "
@@ -312,9 +324,14 @@ public class MarketDataSyncJob {
                                 + rootMessage(exception));
             }
         }
+        try {
+            upsertSnapshots(snapshots);
+        } catch (RuntimeException exception) {
+            errors.add("Historical snapshot batch upsert failed: " + rootMessage(exception));
+        }
     }
 
-    private void rebuildHistoricalValuationSnapshots(
+    private List<SnapshotWrite> buildHistoricalValuationSnapshots(
             String portfolioId, LocalDate start, LocalDate end) {
         List<TradeEvent> trades = loadTrades(portfolioId, end);
         List<DailyClose> closes = loadDailyCloses(portfolioId, start, end);
@@ -324,7 +341,7 @@ public class MarketDataSyncJob {
                     portfolioId,
                     trades.size(),
                     closes.size());
-            return;
+            return List.of();
         }
 
         Map<LocalDate, Map<String, BigDecimal>> closesByDate = new java.util.TreeMap<>();
@@ -335,8 +352,8 @@ public class MarketDataSyncJob {
         }
 
         Map<String, PositionLedger> positions = new HashMap<>();
+        List<SnapshotWrite> snapshots = new ArrayList<>();
         int tradeIndex = 0;
-        int snapshotCount = 0;
         for (Map.Entry<LocalDate, Map<String, BigDecimal>> day : closesByDate.entrySet()) {
             LocalDate valuationDate = day.getKey();
             while (tradeIndex < trades.size()
@@ -348,15 +365,15 @@ public class MarketDataSyncJob {
             SnapshotSummary summary =
                     summarizeHistoricalDay(valuationDate, positions, day.getValue());
             if (summary.pricedPositionCount() > 0) {
-                upsertSnapshot(portfolioId, summary);
-                snapshotCount++;
+                snapshots.add(new SnapshotWrite(portfolioId, summary));
             }
         }
         log.info(
                 "Rebuilt {} historical snapshots for portfolio {} from {} daily closes",
-                snapshotCount,
+                snapshots.size(),
                 portfolioId,
                 closes.size());
+        return snapshots;
     }
 
     private List<TradeEvent> loadTrades(String portfolioId, LocalDate end) {
@@ -506,14 +523,22 @@ public class MarketDataSyncJob {
                 .orElse(null);
     }
 
-    private void upsertSnapshot(String portfolioId, SnapshotSummary summary) {
-        jdbc.update(
-                """
+    private void upsertSnapshots(List<SnapshotWrite> snapshots) {
+        final int chunkSize = 200;
+        for (int offset = 0; offset < snapshots.size(); offset += chunkSize) {
+            List<SnapshotWrite> chunk =
+                    snapshots.subList(offset, Math.min(offset + chunkSize, snapshots.size()));
+            String placeholders = String.join(
+                    ",",
+                    java.util.Collections.nCopies(
+                            chunk.size(), "(?, ?, ?, ?, ?, ?, ?, ?)"));
+            String sql = """
                 INSERT INTO portfolio_valuation_snapshot (
                     portfolio_id, valuation_date, priced_market_value,
                     total_cost_basis, priced_cost_basis, unrealized_pnl,
                     priced_position_count, unpriced_position_count
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES
+                """ + placeholders + """
                 ON DUPLICATE KEY UPDATE
                     priced_market_value = VALUES(priced_market_value),
                     total_cost_basis = VALUES(total_cost_basis),
@@ -522,26 +547,39 @@ public class MarketDataSyncJob {
                     priced_position_count = VALUES(priced_position_count),
                     unpriced_position_count = VALUES(unpriced_position_count),
                     calculated_at = CURRENT_TIMESTAMP(6)
-                """,
-                portfolioId,
-                summary.valuationDate(),
-                summary.pricedMarketValue(),
-                summary.totalCostBasis(),
-                summary.pricedCostBasis(),
-                summary.unrealizedPnl(),
-                summary.pricedPositionCount(),
-                summary.unpricedPositionCount());
+                """;
+            List<Object> parameters = new ArrayList<>(chunk.size() * 8);
+            for (SnapshotWrite snapshot : chunk) {
+                parameters.add(snapshot.portfolioId());
+                parameters.add(snapshot.summary().valuationDate());
+                parameters.add(snapshot.summary().pricedMarketValue());
+                parameters.add(snapshot.summary().totalCostBasis());
+                parameters.add(snapshot.summary().pricedCostBasis());
+                parameters.add(snapshot.summary().unrealizedPnl());
+                parameters.add(snapshot.summary().pricedPositionCount());
+                parameters.add(snapshot.summary().unpricedPositionCount());
+            }
+            jdbc.update(sql, parameters.toArray());
+        }
     }
 
-    private void upsertPrice(
-            String runId, InstrumentTarget target, DailyPrice price) {
-        jdbc.update(
-                """
+    private void upsertPrices(String runId, List<PriceWrite> prices) {
+        final int chunkSize = 200;
+        for (int offset = 0; offset < prices.size(); offset += chunkSize) {
+            List<PriceWrite> chunk =
+                    prices.subList(offset, Math.min(offset + chunkSize, prices.size()));
+            String placeholders = String.join(
+                    ",",
+                    java.util.Collections.nCopies(
+                            chunk.size(),
+                            "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP(6))"));
+            String sql = """
                 INSERT INTO market_price (
                     instrument_id, sync_run_id, price_date, open_price, high_price,
                     low_price, close_price, adjusted_close, volume, currency, source,
                     source_timestamp, fetched_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP(6))
+                ) VALUES
+                """ + placeholders + """
                 ON DUPLICATE KEY UPDATE
                     sync_run_id = VALUES(sync_run_id),
                     open_price = VALUES(open_price),
@@ -553,19 +591,25 @@ public class MarketDataSyncJob {
                     currency = VALUES(currency),
                     source_timestamp = VALUES(source_timestamp),
                     fetched_at = CURRENT_TIMESTAMP(6)
-                """,
-                target.instrumentId(),
-                runId,
-                price.priceDate(),
-                price.openPrice(),
-                price.highPrice(),
-                price.lowPrice(),
-                price.closePrice(),
-                price.adjustedClose(),
-                price.volume(),
-                price.currency(),
-                price.source(),
-                price.sourceTimestamp());
+                """;
+            List<Object> parameters = new ArrayList<>(chunk.size() * 12);
+            for (PriceWrite write : chunk) {
+                DailyPrice price = write.price();
+                parameters.add(write.target().instrumentId());
+                parameters.add(runId);
+                parameters.add(price.priceDate());
+                parameters.add(price.openPrice());
+                parameters.add(price.highPrice());
+                parameters.add(price.lowPrice());
+                parameters.add(price.closePrice());
+                parameters.add(price.adjustedClose());
+                parameters.add(price.volume());
+                parameters.add(price.currency());
+                parameters.add(price.source());
+                parameters.add(price.sourceTimestamp());
+            }
+            jdbc.update(sql, parameters.toArray());
+        }
     }
 
     private void upsertIntradayBars(
@@ -811,6 +855,10 @@ public class MarketDataSyncJob {
 
     private record InstrumentTarget(
             String instrumentId, String providerSymbol, String currency) {}
+
+    private record PriceWrite(InstrumentTarget target, DailyPrice price) {}
+
+    private record SnapshotWrite(String portfolioId, SnapshotSummary summary) {}
 
     private record TradeEvent(
             String instrumentId,

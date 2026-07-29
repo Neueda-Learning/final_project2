@@ -25,4 +25,4 @@ market-data:
   retry-backoff-millis: ${MARKET_RETRY_BACKOFF_MILLIS:250}
   # The basic Twelve Data plan permits eight API credits per minute.
   request-interval-millis: ${MARKET_REQUEST_INTERVAL_MILLIS:8000}
-  manual-poll-interval-ms: ${MARKET_MANUAL_POLL_INTERVAL_MS:2000}
+  manual-poll-interval-ms: ${MARKET_MANUAL_POLL_INTERVAL_MS:15000}
