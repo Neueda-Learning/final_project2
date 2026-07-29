@@ -21,7 +21,7 @@ market data, and review portfolio valuations and analytics.
 
 | Member | GitHub | Responsibility |
 | --- | --- | --- |
-| Kristen | DanielleZhao-tech | All frontend development (PRD 1) |
+| Kristen | DanielleZhao-tech, kristen | All frontend development (PRD 1) |
 | Viko | MikeyHHH | User and portfolio backend (PRD 2) |
 | Tommy | ziyet3, ZiyeTang | Instrument, trade, and holding backend (PRD 3) |
 | Jermaine | zqq7695zq | Market-data synchronization backend (PRD 4) |
