@@ -3,6 +3,7 @@ package com.portfoliomanager.worker;
 import com.portfoliomanager.worker.provider.DailyPrice;
 import com.portfoliomanager.worker.provider.IntradayBar;
 import com.portfoliomanager.worker.provider.MarketDataProvider;
+import jakarta.annotation.PostConstruct;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.PreparedStatement;
@@ -11,6 +12,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -55,6 +57,20 @@ public class MarketDataSyncJob {
         this.jdbc = jdbc;
         this.properties = properties;
         this.clock = clock;
+    }
+
+    @PostConstruct
+    public void recoverAbandonedRuns() {
+        int recovered = jdbc.update("""
+                UPDATE market_data_sync_run
+                SET status = 'FAILED', stage = 'COMPLETED',
+                    completed_at = CURRENT_TIMESTAMP(6),
+                    error_summary = 'Abandoned: worker restarted while sync was in progress'
+                WHERE status = 'RUNNING'
+                """);
+        if (recovered > 0) {
+            log.info("Recovered {} abandoned sync run(s) on worker startup", recovered);
+        }
     }
 
     @Scheduled(
@@ -175,6 +191,57 @@ public class MarketDataSyncJob {
 
             upsertPrices(runId, priceWrites);
             Set<String> successfulInstrumentIds = Set.copyOf(validatedInstrumentIds);
+
+            // ── Intraday bars ────────────────────────────────────────────
+            // Use UTC for both the request window and validation so that the
+            // timestamps returned by the provider (which uses timezone=UTC) are
+            // compared on the same axis.
+            LocalDateTime intradayEnd = LocalDateTime.now(clock.withZone(ZoneOffset.UTC));
+            LocalDateTime intradayStart =
+                    intradayEnd.minusDays(properties.getIntradayLookbackDays());
+            for (InstrumentTarget target : targets) {
+                // Fetch intraday for every active target regardless of whether
+                // its daily price succeeded – the two data types are independent.
+                try {
+                    List<IntradayBar> bars =
+                            fetchIntradayWithRetry(target, intradayStart, intradayEnd);
+                    List<IntradayBar> validBars = bars.stream()
+                            .filter(bar -> validateIntraday(
+                                    bar, target, intradayStart, intradayEnd) == null)
+                            .toList();
+                    if (!validBars.isEmpty()) {
+                        upsertIntradayBars(target, validBars);
+                        log.info(
+                                "Upserted {} intraday bars for {}",
+                                validBars.size(),
+                                target.providerSymbol());
+                    } else if (!bars.isEmpty()) {
+                        // All bars returned by the provider failed validation –
+                        // log the first failure reason to aid debugging.
+                        String sampleError =
+                                validateIntraday(bars.get(0), target, intradayStart, intradayEnd);
+                        log.warn(
+                                "Fetched {} bars for {} but all failed validation (e.g. {})",
+                                bars.size(),
+                                target.providerSymbol(),
+                                sampleError);
+                    } else {
+                        log.warn("Provider returned 0 intraday bars for {}", target.providerSymbol());
+                    }
+                    if (!target.instrumentId().equals(
+                            targets.get(targets.size() - 1).instrumentId())) {
+                        pauseBeforeNextRequest();
+                    }
+                } catch (RuntimeException exception) {
+                    log.warn(
+                            "Intraday fetch failed for {}: {}",
+                            target.providerSymbol(),
+                            rootMessage(exception));
+                    errors.add("Intraday " + target.providerSymbol()
+                            + ": " + rootMessage(exception));
+                }
+            }
+
             int successCount = successfulInstrumentIds.size();
             int failureCount = targets.size() - successCount;
             String status = successCount == targets.size()
