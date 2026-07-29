@@ -2,6 +2,7 @@ package com.portfoliomanager.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -72,6 +73,8 @@ class TradingServiceTest {
         given(instrument.getCurrency()).willReturn("USD");
         given(transactions.findByPortfolioIdAndIdempotencyKey(portfolioId, "key"))
                 .willReturn(Optional.empty());
+        given(transactions.findHistoryByPortfolioIdAndInstrumentId(portfolioId, instrumentId))
+            .willReturn(List.of());
         given(positions.findByPortfolioAndInstrumentForUpdate(portfolioId, instrumentId))
                 .willReturn(Optional.empty());
         service.createTransaction(
@@ -95,6 +98,114 @@ class TradingServiceTest {
         assertThat(saved.getExecutedAt()).isEqualTo(tradeDate.atTime(16, 0));
         assertThat(saved.getFeeAmount()).isEqualByComparingTo("0");
     }
+
+        @Test
+        void sellWithoutAnyOwnedSharesIsRejected() {
+        String portfolioId = "portfolio-id";
+        String instrumentId = "instrument-id";
+        given(portfolios.findById(portfolioId)).willReturn(Optional.of(portfolio));
+        given(portfolio.isArchived()).willReturn(false);
+        given(instruments.findById(instrumentId)).willReturn(Optional.of(instrument));
+        given(instrument.isActive()).willReturn(true);
+        given(transactions.findByPortfolioIdAndIdempotencyKey(portfolioId, "key"))
+            .willReturn(Optional.empty());
+        given(transactions.findHistoryByPortfolioIdAndInstrumentId(portfolioId, instrumentId))
+            .willReturn(List.of());
+        given(positions.findByPortfolioAndInstrumentForUpdate(portfolioId, instrumentId))
+            .willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.createTransaction(
+            portfolioId,
+            "key",
+            new TransactionCreateRequest(
+                instrumentId,
+                TradeSide.SELL,
+                new BigDecimal("1"),
+                LocalDate.of(2026, 7, 27),
+                new BigDecimal("214.05000000"),
+                null,
+                null)))
+            .isInstanceOf(ConflictException.class)
+            .hasMessage("INSUFFICIENT_QUANTITY");
+
+        verify(transactions, never()).save(any());
+        }
+
+        @Test
+        void sellMoreThanOwnedSharesIsRejected() {
+        String portfolioId = "portfolio-id";
+        String instrumentId = "instrument-id";
+        given(portfolios.findById(portfolioId)).willReturn(Optional.of(portfolio));
+        given(portfolio.isArchived()).willReturn(false);
+        given(instruments.findById(instrumentId)).willReturn(Optional.of(instrument));
+        given(instrument.isActive()).willReturn(true);
+        given(instrument.getCurrency()).willReturn("USD");
+        given(transactions.findByPortfolioIdAndIdempotencyKey(portfolioId, "key"))
+            .willReturn(Optional.empty());
+        given(transactions.findHistoryByPortfolioIdAndInstrumentId(portfolioId, instrumentId))
+            .willReturn(List.of(existingTrade(
+                "buy-1",
+                TradeSide.BUY,
+                new BigDecimal("10"),
+                new BigDecimal("100.00000000"),
+                LocalDate.of(2026, 7, 22))));
+        given(positions.findByPortfolioAndInstrumentForUpdate(portfolioId, instrumentId))
+            .willReturn(Optional.of(position));
+
+        assertThatThrownBy(() -> service.createTransaction(
+            portfolioId,
+            "key",
+            new TransactionCreateRequest(
+                instrumentId,
+                TradeSide.SELL,
+                new BigDecimal("15"),
+                LocalDate.of(2026, 7, 23),
+                new BigDecimal("214.05000000"),
+                null,
+                null)))
+            .isInstanceOf(ConflictException.class)
+            .hasMessage("INSUFFICIENT_QUANTITY");
+
+        verify(transactions, never()).save(any());
+        }
+
+        @Test
+        void backdatedSellBeforeTheFirstBuyIsRejected() {
+        String portfolioId = "portfolio-id";
+        String instrumentId = "instrument-id";
+        given(portfolios.findById(portfolioId)).willReturn(Optional.of(portfolio));
+        given(portfolio.isArchived()).willReturn(false);
+        given(instruments.findById(instrumentId)).willReturn(Optional.of(instrument));
+        given(instrument.isActive()).willReturn(true);
+        given(instrument.getCurrency()).willReturn("USD");
+        given(transactions.findByPortfolioIdAndIdempotencyKey(portfolioId, "key"))
+            .willReturn(Optional.empty());
+        given(transactions.findHistoryByPortfolioIdAndInstrumentId(portfolioId, instrumentId))
+            .willReturn(List.of(existingTrade(
+                "buy-1",
+                TradeSide.BUY,
+                new BigDecimal("10"),
+                new BigDecimal("100.00000000"),
+                LocalDate.of(2026, 7, 22))));
+        given(positions.findByPortfolioAndInstrumentForUpdate(portfolioId, instrumentId))
+            .willReturn(Optional.of(position));
+
+        assertThatThrownBy(() -> service.createTransaction(
+            portfolioId,
+            "key",
+            new TransactionCreateRequest(
+                instrumentId,
+                TradeSide.SELL,
+                new BigDecimal("5"),
+                LocalDate.of(2026, 7, 15),
+                new BigDecimal("214.05000000"),
+                null,
+                null)))
+            .isInstanceOf(ConflictException.class)
+            .hasMessage("INSUFFICIENT_QUANTITY");
+
+        verify(transactions, never()).save(any());
+        }
 
     @Test
     void populatedPositionsSkipTheSeparatePortfolioExistenceQuery() {
@@ -150,5 +261,25 @@ class TradingServiceTest {
         assertThatThrownBy(() -> service.listTransactions(portfolioId, 1, 20))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Portfolio not found: " + portfolioId);
+    }
+
+    private TradeTransaction existingTrade(
+            String id,
+            TradeSide side,
+            BigDecimal quantity,
+            BigDecimal unitPrice,
+            LocalDate tradeDate) {
+        return new TradeTransaction(
+                id,
+                portfolio,
+                instrument,
+                side,
+                quantity,
+                unitPrice,
+                BigDecimal.ZERO,
+                "USD",
+                tradeDate.atTime(16, 0),
+                id + "-key",
+                null);
     }
 }

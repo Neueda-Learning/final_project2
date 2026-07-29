@@ -16,8 +16,11 @@ import com.portfoliomanager.repository.PortfolioRepository;
 import com.portfoliomanager.repository.TradeTransactionRepository;
 import jakarta.persistence.OptimisticLockException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -36,6 +39,13 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class TradingService {
+
+    private static final Comparator<TradeTransaction> TRADE_HISTORY_ORDER =
+        Comparator.comparing(TradeTransaction::getExecutedAt)
+            .thenComparing(
+                TradeTransaction::getCreatedAt,
+                Comparator.nullsLast(Comparator.naturalOrder()))
+            .thenComparing(TradeTransaction::getId);
 
     private final InstrumentRepository instruments;
     private final PortfolioRepository portfolios;
@@ -135,64 +145,9 @@ public class TradingService {
         Optional<PortfolioPosition> existingPosition =
                 positions.findByPortfolioAndInstrumentForUpdate(
                         portfolioId, request.instrumentId());
-
-        BigDecimal currentQuantity = BigDecimal.ZERO;
-        BigDecimal currentAverageCost = BigDecimal.ZERO;
-        BigDecimal currentRealizedPnl = BigDecimal.ZERO;
-
-        if (existingPosition.isPresent()) {
-            PortfolioPosition pos = existingPosition.get();
-            currentQuantity = pos.getQuantity();
-            currentAverageCost = pos.getAverageCost();
-            currentRealizedPnl = pos.getRealizedPnl();
-        }
-
-        // Ensure a sale does not exceed the current position.
-        if (request.side() == TradeSide.SELL) {
-            if (request.quantity().compareTo(currentQuantity) > 0) {
-                throw new ConflictException("INSUFFICIENT_QUANTITY");
-            }
-        }
-
-        // Calculate the new quantity, average cost, and realized P&L.
-        BigDecimal totalCost;
-        BigDecimal totalQuantity;
-        BigDecimal newAverageCost;
-        BigDecimal newRealizedPnl = currentRealizedPnl;
-
-        if (request.side() == TradeSide.BUY) {
-            // Purchase cost = quantity * execution price + fee.
-            totalCost =
-                    request.quantity()
-                            .multiply(unitPrice)
-                            .add(feeAmount);
-            // Add the purchased quantity to the current position.
-            totalQuantity = currentQuantity.add(request.quantity());
-            // Calculate weighted average cost.
-            if (totalQuantity.compareTo(BigDecimal.ZERO) > 0) {
-                BigDecimal totalCostBasis =
-                        currentQuantity
-                                .multiply(currentAverageCost)
-                                .add(totalCost);
-                newAverageCost = totalCostBasis.divide(totalQuantity, 8, BigDecimal.ROUND_HALF_UP);
-            } else {
-                newAverageCost = BigDecimal.ZERO;
-            }
-        } else {
-            // Realized P&L = sale quantity * (price - average cost) - fee.
-            BigDecimal proceeds =
-                    request.quantity()
-                            .multiply(unitPrice)
-                            .subtract(feeAmount);
-            BigDecimal costOfSold = request.quantity().multiply(currentAverageCost);
-            BigDecimal pnl = proceeds.subtract(costOfSold);
-            newRealizedPnl = currentRealizedPnl.add(pnl);
-
-            // Subtract the sold quantity from the current position.
-            totalQuantity = currentQuantity.subtract(request.quantity());
-            // Average cost remains unchanged for the remaining position.
-            newAverageCost = currentAverageCost;
-        }
+        List<TradeTransaction> tradeHistory = transactions.findHistoryByPortfolioIdAndInstrumentId(
+                portfolioId,
+                request.instrumentId());
 
         // Insert the immutable transaction record.
         String transactionId = UUID.randomUUID().toString();
@@ -209,29 +164,11 @@ public class TradingService {
                         executedAt,
                         idempotencyKey,
                         request.note());
+
+        PositionState nextState = replayTradeHistory(tradeHistory, newTransaction);
         transactions.save(newTransaction);
 
-        // Create, update, or remove the current-position projection.
-        if (totalQuantity.compareTo(BigDecimal.ZERO) > 0) {
-            // A positive quantity requires a position projection.
-            if (existingPosition.isPresent()) {
-                // Update the existing position.
-                PortfolioPosition pos = existingPosition.get();
-                pos.setQuantity(totalQuantity);
-                pos.setAverageCost(newAverageCost);
-                pos.setRealizedPnl(newRealizedPnl);
-                positions.save(pos);
-            } else {
-                // Create a new position.
-                PortfolioPosition newPosition =
-                        new PortfolioPosition(
-                                portfolio, instrument, totalQuantity, newAverageCost, newRealizedPnl);
-                positions.save(newPosition);
-            }
-        } else if (existingPosition.isPresent()) {
-            // Remove the projection after a complete liquidation.
-            positions.delete(existingPosition.get());
-        }
+        syncCurrentPosition(existingPosition, portfolio, instrument, nextState);
 
         // Rebuild valuation snapshots from trade date to today to reflect historical performance
         rebuildValuationSnapshotsAfterTrade(portfolioId, request.tradeDate());
@@ -290,6 +227,76 @@ public class TradingService {
         return portfolioPositions.stream()
                 .map(TradingService::toPositionResponse)
                 .toList();
+    }
+
+    private PositionState replayTradeHistory(
+            List<TradeTransaction> existingTrades,
+            TradeTransaction pendingTrade) {
+        List<TradeTransaction> orderedTrades = new ArrayList<>(existingTrades);
+        orderedTrades.add(pendingTrade);
+        orderedTrades.sort(TRADE_HISTORY_ORDER);
+
+        BigDecimal quantity = BigDecimal.ZERO;
+        BigDecimal averageCost = BigDecimal.ZERO;
+        BigDecimal realizedPnl = BigDecimal.ZERO;
+
+        for (TradeTransaction trade : orderedTrades) {
+            if (trade.getSide() == TradeSide.BUY) {
+                BigDecimal totalCost = trade.getQuantity()
+                        .multiply(trade.getUnitPrice())
+                        .add(trade.getFeeAmount());
+                BigDecimal totalQuantity = quantity.add(trade.getQuantity());
+                BigDecimal totalCostBasis = quantity.multiply(averageCost).add(totalCost);
+
+                quantity = totalQuantity;
+                averageCost = totalCostBasis.divide(totalQuantity, 8, RoundingMode.HALF_UP);
+                continue;
+            }
+
+            if (trade.getQuantity().compareTo(quantity) > 0) {
+                throw new ConflictException("INSUFFICIENT_QUANTITY");
+            }
+
+            BigDecimal proceeds = trade.getQuantity()
+                    .multiply(trade.getUnitPrice())
+                    .subtract(trade.getFeeAmount());
+            BigDecimal costOfSold = trade.getQuantity().multiply(averageCost);
+            realizedPnl = realizedPnl.add(proceeds.subtract(costOfSold));
+            quantity = quantity.subtract(trade.getQuantity());
+
+            if (quantity.signum() == 0) {
+                averageCost = BigDecimal.ZERO;
+            }
+        }
+
+        return new PositionState(quantity, averageCost, realizedPnl);
+    }
+
+    private void syncCurrentPosition(
+            Optional<PortfolioPosition> existingPosition,
+            Portfolio portfolio,
+            Instrument instrument,
+            PositionState nextState) {
+        if (nextState.quantity().signum() > 0) {
+            if (existingPosition.isPresent()) {
+                PortfolioPosition position = existingPosition.get();
+                position.setQuantity(nextState.quantity());
+                position.setAverageCost(nextState.averageCost());
+                position.setRealizedPnl(nextState.realizedPnl());
+                positions.save(position);
+                return;
+            }
+
+            positions.save(new PortfolioPosition(
+                    portfolio,
+                    instrument,
+                    nextState.quantity(),
+                    nextState.averageCost(),
+                    nextState.realizedPnl()));
+            return;
+        }
+
+        existingPosition.ifPresent(positions::delete);
     }
 
     // Response mapping helpers.
@@ -490,4 +497,9 @@ public class TradingService {
             // Skip if this date's snapshot cannot be calculated
         }
     }
+
+    private record PositionState(
+            BigDecimal quantity,
+            BigDecimal averageCost,
+            BigDecimal realizedPnl) {}
 }

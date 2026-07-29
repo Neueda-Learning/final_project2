@@ -1,6 +1,7 @@
 package com.portfoliomanager.repository;
 
 import com.portfoliomanager.domain.model.TradeTransaction;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -37,4 +38,16 @@ public interface TradeTransactionRepository extends JpaRepository<TradeTransacti
     Optional<TradeTransaction> findByPortfolioIdAndIdempotencyKey(
             @Param("portfolioId") String portfolioId,
             @Param("idempotencyKey") String idempotencyKey);
+
+    /**
+     * Returns the full transaction history for one instrument in chronological order.
+     */
+    @Query(
+            "SELECT t FROM TradeTransaction t "
+                    + "WHERE t.portfolio.id = :portfolioId "
+                    + "AND t.instrument.id = :instrumentId "
+                    + "ORDER BY t.executedAt ASC, t.createdAt ASC, t.id ASC")
+    List<TradeTransaction> findHistoryByPortfolioIdAndInstrumentId(
+            @Param("portfolioId") String portfolioId,
+            @Param("instrumentId") String instrumentId);
 }
