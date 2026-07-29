@@ -42,7 +42,7 @@ public class MarketDataService {
     @Transactional
     public SyncRunResponse requestManualSync(boolean force) {
         Optional<SyncRunResponse> running = currentRunningSync();
-        if (running.isPresent()) {
+        if (running.isPresent() && !force) {
             return running.get();
         }
 
@@ -55,9 +55,20 @@ public class MarketDataService {
         }
 
         try {
-            running = currentRunningSync();
-            if (running.isPresent()) {
-                return running.get();
+            if (force) {
+                // Abandon any stuck running sync so a fresh one can start
+                jdbc.update("""
+                        UPDATE market_data_sync_run
+                        SET status = 'FAILED', stage = 'COMPLETED',
+                            completed_at = CURRENT_TIMESTAMP(6),
+                            error_summary = 'Abandoned: force-resync requested'
+                        WHERE status = 'RUNNING'
+                        """);
+            } else {
+                running = currentRunningSync();
+                if (running.isPresent()) {
+                    return running.get();
+                }
             }
 
             String id = UUID.randomUUID().toString();

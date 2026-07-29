@@ -8,6 +8,7 @@ import { CuratedInstrumentPicker } from "../components/CuratedInstrumentPicker";
 import { EmptyState } from "../components/EmptyState";
 import { ErrorBox } from "../components/ErrorBox";
 import { PageHeader } from "../components/PageHeader";
+import { IntradayChart } from "../components/charts";
 import type { CuratedSectorId } from "../data/curatedInstruments";
 import { formatCurrency, formatQuantity } from "../lib/format";
 import { useLanguage } from "../i18n/LanguageContext";
@@ -77,6 +78,26 @@ export function HoldingsPage() {
       pricesQuery.data?.find((price) => price.priceDate === form.tradeDate) ?? null,
     [form.tradeDate, pricesQuery.data],
   );
+
+  const barsQuery = useQuery({
+    queryKey: ["intraday-bars", form.instrument?.id],
+    queryFn: async () => {
+      const id = form.instrument!.id;
+      const symbol = form.instrument!.symbol;
+      console.log(`[IntradayChart] Fetching bars for ${symbol} (${id})`);
+      try {
+        const result = await api.marketData.getBars(id, { interval: "1min", pageSize: 120 });
+        console.log(`[IntradayChart] Response for ${symbol}: ${result.items.length} bars, total=${result.total}`);
+        return result;
+      } catch (err) {
+        console.error(`[IntradayChart] Error fetching bars for ${symbol}:`, err);
+        throw err;
+      }
+    },
+    enabled: Boolean(form.instrument),
+    staleTime: 0,
+    refetchInterval: 60 * 1000,
+  });
 
   const submitMutation = useMutation({
     mutationFn: () =>
@@ -338,6 +359,65 @@ export function HoldingsPage() {
               </button>
             </div>
           </form>
+        </section>
+      ) : null}
+
+      {form.instrument ? (
+        <section className="card intraday-card" aria-label={t("intraday.title")}>
+          <div className="intraday-card__header">
+            <div>
+              <p className="intraday-card__eyebrow">{t("intraday.eyebrow")}</p>
+              <h2 className="section-title">
+                {form.instrument.symbol} &mdash; {t("intraday.title")}
+              </h2>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                disabled={barsQuery.isFetching}
+                onClick={() => {
+                  console.log("[IntradayChart] Manual refresh triggered");
+                  barsQuery.refetch();
+                }}
+              >
+                {barsQuery.isFetching ? t("common.loading") : t("intraday.refresh")}
+              </button>
+              {barsQuery.dataUpdatedAt ? (
+                <span style={{ fontSize: "0.75rem", color: "#667085" }}>
+                  {t("intraday.updated", { time: new Date(barsQuery.dataUpdatedAt).toLocaleTimeString(locale) })}
+                </span>
+              ) : null}
+              {barsQuery.isError ? (
+                <span style={{ fontSize: "0.75rem", color: "#d92d20" }}>
+                  ⚠ 请求失败，请检查后端服务
+                </span>
+              ) : null}
+            </div>
+          </div>
+          {barsQuery.isPending ? (
+            <div style={{ height: 360, display: "flex", alignItems: "center", justifyContent: "center", color: "#667085" }}>
+              {t("common.loading")}
+            </div>
+          ) : barsQuery.isError ? (
+            <ErrorBox error={barsQuery.error} onRetry={() => barsQuery.refetch()} />
+          ) : barsQuery.data && barsQuery.data.items.length > 0 ? (
+            <>
+              <IntradayChart bars={barsQuery.data.items} currency={form.instrument.currency} />
+              <p className="intraday-card__footer">
+                {t("intraday.points", { count: String(barsQuery.data.items.length) })}
+                {barsQuery.dataUpdatedAt
+                  ? ` · ${t("intraday.updated", { time: new Date(barsQuery.dataUpdatedAt).toLocaleTimeString(locale) })}`
+                  : null}
+              </p>
+            </>
+          ) : (
+            <EmptyState
+              icon="📉"
+              title={t("intraday.emptyTitle")}
+              description={t("intraday.emptyDescription")}
+            />
+          )}
         </section>
       ) : null}
 

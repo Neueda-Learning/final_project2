@@ -158,6 +158,7 @@ const en = {
   "data.stage.refreshingValuations": "Refreshing current valuations",
   "data.stage.rebuildingHistory": "Rebuilding valuation history",
   "data.stage.completed": "Completed",
+  "data.forceSync": "Force Resync",
   "chart.return": "Return",
   "intraday.eyebrow": "LIVE MARKET",
   "intraday.title": "One-minute price",
@@ -171,6 +172,7 @@ const en = {
   "intraday.loadOlder": "Load older",
   "intraday.emptyTitle": "No minute data yet",
   "intraday.emptyDescription": "Synchronize market data to load the latest one-minute bars.",
+  "intraday.refresh": "Refresh",
 } as const;
 
 type TranslationKey = keyof typeof en;
@@ -331,6 +333,7 @@ const zh: Record<TranslationKey, string> = {
   "data.stage.refreshingValuations": "正在刷新当前估值",
   "data.stage.rebuildingHistory": "正在重建历史估值",
   "data.stage.completed": "已完成",
+  "data.forceSync": "强制重新同步",
   "chart.return": "收益率",
   "intraday.eyebrow": "分钟行情",
   "intraday.title": "一分钟价格走势",
@@ -344,6 +347,7 @@ const zh: Record<TranslationKey, string> = {
   "intraday.loadOlder": "加载更早数据",
   "intraday.emptyTitle": "暂无分钟行情",
   "intraday.emptyDescription": "同步市场数据后即可查看最新一分钟行情。",
+  "intraday.refresh": "刷新",
 };
 
 type Variables = Record<string, string | number>;

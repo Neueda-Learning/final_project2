@@ -5,6 +5,8 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -14,18 +16,39 @@ import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
-import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 
 class MarketDataSyncJobTest {
+
+    @Test
+    void idleManualPollDoesNotAcquireTheGlobalLock() {
+        var provider = mock(MarketDataProvider.class);
+        var jdbc = mock(JdbcTemplate.class);
+        when(jdbc.query(
+                        org.mockito.ArgumentMatchers.<String>argThat(
+                                sql -> sql != null
+                                        && sql.contains("triggered_by = 'MANUAL'")),
+                        any(RowMapper.class)))
+                .thenReturn(List.of());
+
+        var job = new MarketDataSyncJob(
+                provider, jdbc, new MarketDataProperties(), Clock.systemUTC());
+
+        job.processManualRequests();
+
+        verify(jdbc, never()).execute(
+                org.mockito.ArgumentMatchers.<ConnectionCallback<Object>>any());
+    }
 
     @Test
     void manualRunPersistsValidPriceAndCompletesSuccessfully() throws Exception {
@@ -54,7 +77,9 @@ class MarketDataSyncJobTest {
                         eq(List.of("AAPL")),
                         any(LocalDate.class),
                         any(LocalDate.class)))
-                .thenReturn(List.of(price()));
+                .thenReturn(List.of(
+                        price(LocalDate.of(2026, 7, 24)),
+                        price(LocalDate.of(2026, 7, 25))));
         when(jdbc.queryForObject(
                         eq("SELECT GET_LOCK(?, 0)"),
                         eq(Integer.class),
@@ -123,6 +148,52 @@ class MarketDataSyncJobTest {
                     when(resultSet.getInt("unpriced_position_count")).thenReturn(0);
                     return List.of(mapper.mapRow(resultSet, 0));
                 });
+        when(jdbc.query(
+                        org.mockito.ArgumentMatchers.<String>argThat(
+                                sql -> sql != null
+                                        && sql.contains("FROM trade_transaction")),
+                        any(RowMapper.class),
+                        eq("portfolio-1"),
+                        any(LocalDateTime.class)))
+                .thenAnswer(invocation -> {
+                    @SuppressWarnings("unchecked")
+                    RowMapper<Object> mapper = invocation.getArgument(1);
+                    ResultSet resultSet = mock(ResultSet.class);
+                    when(resultSet.getString("instrument_id")).thenReturn("instrument-1");
+                    when(resultSet.getString("side")).thenReturn("BUY");
+                    when(resultSet.getBigDecimal("quantity")).thenReturn(BigDecimal.ONE);
+                    when(resultSet.getBigDecimal("unit_price"))
+                            .thenReturn(new BigDecimal("200.00"));
+                    when(resultSet.getBigDecimal("fee_amount")).thenReturn(BigDecimal.ZERO);
+                    when(resultSet.getTimestamp("executed_at"))
+                            .thenReturn(Timestamp.valueOf("2026-07-01 16:00:00"));
+                    return List.of(mapper.mapRow(resultSet, 0));
+                });
+        when(jdbc.query(
+                        org.mockito.ArgumentMatchers.<String>argThat(
+                                sql -> sql != null
+                                        && sql.contains("FROM market_price mp")),
+                        any(RowMapper.class),
+                        eq(LocalDate.of(2026, 6, 28)),
+                        eq(LocalDate.of(2026, 7, 28)),
+                        eq("portfolio-1")))
+                .thenAnswer(invocation -> {
+                    @SuppressWarnings("unchecked")
+                    RowMapper<Object> mapper = invocation.getArgument(1);
+                    ResultSet first = mock(ResultSet.class);
+                    when(first.getString("instrument_id")).thenReturn("instrument-1");
+                    when(first.getDate("price_date"))
+                            .thenReturn(java.sql.Date.valueOf(LocalDate.of(2026, 7, 24)));
+                    when(first.getBigDecimal("close_price"))
+                            .thenReturn(new BigDecimal("213.55"));
+                    ResultSet second = mock(ResultSet.class);
+                    when(second.getString("instrument_id")).thenReturn("instrument-1");
+                    when(second.getDate("price_date"))
+                            .thenReturn(java.sql.Date.valueOf(LocalDate.of(2026, 7, 25)));
+                    when(second.getBigDecimal("close_price"))
+                            .thenReturn(new BigDecimal("214.25"));
+                    return List.of(mapper.mapRow(first, 0), mapper.mapRow(second, 1));
+                });
 
         var job = new MarketDataSyncJob(
                 provider,
@@ -162,6 +233,9 @@ class MarketDataSyncJobTest {
                 eq(new BigDecimal("6002.00000000")),
                 eq(1),
                 eq(0));
+        verify(jdbc, times(2)).update(
+                argThat(sql -> sql.contains("INSERT INTO portfolio_valuation_snapshot")),
+                any(Object[].class));
         verify(jdbc).update(
                 argThat(sql -> sql.contains("SET status = ?")),
                 eq("SUCCEEDED"),
@@ -171,10 +245,10 @@ class MarketDataSyncJobTest {
                 eq("run-1"));
     }
 
-    private DailyPrice price() {
+    private DailyPrice price(LocalDate priceDate) {
         return new DailyPrice(
                 "AAPL",
-                LocalDate.of(2026, 7, 24),
+                priceDate,
                 new BigDecimal("212.10"),
                 new BigDecimal("215.00"),
                 new BigDecimal("211.50"),

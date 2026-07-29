@@ -18,6 +18,7 @@ public interface PortfolioPositionRepository
      */
     @Query(
             "SELECT p FROM PortfolioPosition p "
+                    + "JOIN FETCH p.instrument "
                     + "WHERE p.portfolio.id = :portfolioId "
                     + "AND p.quantity > 0 "
                     + "ORDER BY p.quantity DESC")

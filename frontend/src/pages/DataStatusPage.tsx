@@ -25,10 +25,14 @@ export function DataStatusPage() {
       await queryClient.invalidateQueries({ queryKey: ["latest-sync"] });
       await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       await queryClient.invalidateQueries({ queryKey: ["performance"] });
+      await queryClient.invalidateQueries({ queryKey: ["intraday-bars"] });
     },
   });
   const syncData = latestSyncQuery.data;
   const syncIsRunning = syncData?.status === "RUNNING";
+  const syncIsStuck = syncIsRunning
+    && syncData != null
+    && new Date().getTime() - new Date(syncData.startedAt).getTime() > 10 * 60 * 1000;
 
   return (
     <>
@@ -36,18 +40,31 @@ export function DataStatusPage() {
         title={t("data.title")}
         subtitle={t("data.subtitle")}
         actions={
-          <button
-            type="button"
-            className="btn btn-primary"
-            disabled={triggerMutation.isPending || syncIsRunning}
-            onClick={() => triggerMutation.mutate(false)}
-          >
-            {triggerMutation.isPending
-              ? t("data.syncing")
-              : syncIsRunning
-                ? t("data.syncRunning")
-              : t("data.syncNow")}
-          </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            {syncIsStuck ? (
+              <button
+                type="button"
+                className="btn btn-danger"
+                disabled={triggerMutation.isPending}
+                onClick={() => triggerMutation.mutate(true)}
+                title="强制中断当前卡死的同步并重新开始"
+              >
+                {t("data.forceSync")}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={triggerMutation.isPending || syncIsRunning}
+              onClick={() => triggerMutation.mutate(false)}
+            >
+              {triggerMutation.isPending
+                ? t("data.syncing")
+                : syncIsRunning
+                  ? t("data.syncRunning")
+                  : t("data.syncNow")}
+            </button>
+          </div>
         }
       />
 

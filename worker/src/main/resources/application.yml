@@ -8,9 +8,9 @@ spring:
   main:
     web-application-type: none
   datasource:
-    url: ${DATABASE_URL:jdbc:mysql://localhost:3306/portfolio_manager?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
-    username: ${DATABASE_USERNAME:portfolio}
-    password: ${DATABASE_PASSWORD:portfolio}
+    url: "${DATABASE_${DATABASE_TARGET:REMOTE}_URL:${DATABASE_URL:jdbc:mysql://localhost:3306/portfolio_manager?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}}"
+    username: "${DATABASE_${DATABASE_TARGET:REMOTE}_USERNAME:${DATABASE_USERNAME:portfolio}}"
+    password: "${DATABASE_${DATABASE_TARGET:REMOTE}_PASSWORD:${DATABASE_PASSWORD:portfolio}}"
 
 market-data:
   provider: ${MARKET_DATA_PROVIDER:twelve-data}
@@ -25,4 +25,4 @@ market-data:
   retry-backoff-millis: ${MARKET_RETRY_BACKOFF_MILLIS:250}
   # The basic Twelve Data plan permits eight API credits per minute.
   request-interval-millis: ${MARKET_REQUEST_INTERVAL_MILLIS:8000}
-  manual-poll-interval-ms: ${MARKET_MANUAL_POLL_INTERVAL_MS:2000}
+  manual-poll-interval-ms: ${MARKET_MANUAL_POLL_INTERVAL_MS:15000}
