@@ -4,6 +4,7 @@ import com.portfoliomanager.domain.model.TradeTransaction;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -20,6 +21,7 @@ public interface TradeTransactionRepository extends JpaRepository<TradeTransacti
     /**
      * Finds paginated transaction history ordered by execution time descending.
      */
+    @EntityGraph(attributePaths = "instrument")
     Page<TradeTransaction> findByPortfolioIdOrderByExecutedAtDesc(
             @Param("portfolioId") String portfolioId, Pageable pageable);
 
@@ -31,6 +33,7 @@ public interface TradeTransactionRepository extends JpaRepository<TradeTransacti
             "SELECT t FROM TradeTransaction t "
                     + "WHERE t.portfolio.id = :portfolioId "
                     + "AND t.idempotencyKey = :idempotencyKey")
+    @EntityGraph(attributePaths = "instrument")
     Optional<TradeTransaction> findByPortfolioIdAndIdempotencyKey(
             @Param("portfolioId") String portfolioId,
             @Param("idempotencyKey") String idempotencyKey);
