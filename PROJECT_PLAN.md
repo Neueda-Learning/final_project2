@@ -47,6 +47,9 @@ Source: `git log --first-parent` on `main` and selected feature commits.
 | 2026-07-28 | ca364c8 / e482eca | Minute-level market data support | Data granularity expanded |
 | 2026-07-28 | 19cdbad / 36bc781 | Curated holdings universe merged | Better default holdings set |
 | 2026-07-28 | eae89ed / 757ec6e / 8170bd4 / 052454e | Intraday trade entry merged | Minute-level execution flow completed |
+| 2026-07-29 | ada0b55 / 7f3e394 | Sync progress and return-curve reporting merged | Worker visibility and analytics feedback improved |
+| 2026-07-29 | fcad49f | Environment property import support | Configuration portability improved across runtime environments |
+| 2026-07-29 | 57bb6f2 | Frontend test step added in CI | Delivery quality gate strengthened |
 
 ## 5. Delivery Plan with Progress
 
@@ -74,6 +77,7 @@ Source: `git log --first-parent` on `main` and selected feature commits.
 |---|---|---|---|
 | Daily sync baseline | Done | 8b92623 | Monitor sync error handling |
 | Minute-level data extension | Done | e482eca, 052454e | Confirm valuation compatibility |
+| Sync progress and return reporting | Done | 7f3e394, ada0b55 | Expose metrics consistently to dashboard consumers |
 | Provider and fixture paths | Done | recent feature merges and docs updates | Add explicit operational runbook |
 
 ### 5.4 Database and Data Quality
@@ -91,11 +95,12 @@ Source: `git log --first-parent` on `main` and selected feature commits.
 | Architecture baseline | Done | `docs/ARCHITECTURE.md` | Keep diagrams consistent with runtime |
 | PRD decomposition | Done | `docs/prd/*` | Track PRD acceptance per release |
 | API contract docs | Done | `docs/openapi.yaml`, `docs/API.md` | Add release checklist for contract updates |
+| CI quality gates (frontend tests) | Done | 57bb6f2 | Extend CI to cover lint/build and key backend checks |
 | Project plan with progress marking | Done | this file | Update weekly or per major merge |
 
 ## 6. Current Overall Progress
 
-Estimated overall completion: **90%**
+Estimated overall completion: **92%**
 
 - Completed: core feature set, major integration paths, docs baseline
 - Remaining: startup reliability hardening, additional regression coverage, release-level runbook polish
@@ -129,8 +134,11 @@ When updating this document:
 3. Update overall completion percentage.
 4. Record blockers and mitigation changes.
 5. Keep `Last Updated` current.
+6. Record substantive iterative changes (`feat`/`fix`/`ci`) that improve functionality, reliability, observability, or delivery quality, even if they are not large milestone merges.
 
 ## 10. Progress Log
 
 - 2026-07-29: Initial project-plan tracker created from repository history and architecture/docs baseline.
 - 2026-07-29: Routine sync update completed (`git fetch origin` + delta review). No new commits on `origin/main` relative to local `main`; tracker refreshed and process reaffirmed.
+- 2026-07-29: Progress sync rerun completed. `origin/main` still has no delta versus local `main`; remote activity observed on `origin/feature/Viko` (advanced from `d14b250` to `0d4294a`) and flagged for future mainline merge tracking.
+- 2026-07-29: Backfilled substantive mainline progress for today: sync progress + return-curve reporting (`ada0b55`/`7f3e394`), environment property-import support (`fcad49f`), and frontend test CI step (`57bb6f2`). Tracking policy updated to include meaningful iterative improvements, not only major merges.

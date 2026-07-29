@@ -23,11 +23,17 @@ interface TradeFormState {
   note: string;
 }
 
+function localTodayISODate(): string {
+  const now = new Date();
+  const tzOffsetMs = now.getTimezoneOffset() * 60_000;
+  return new Date(now.getTime() - tzOffsetMs).toISOString().slice(0, 10);
+}
+
 const initialForm = (): TradeFormState => ({
   side: "BUY",
   instrument: null,
   quantity: "",
-  tradeDate: new Date().toISOString().slice(0, 10),
+  tradeDate: localTodayISODate(),
   unitPrice: "",
   feeAmount: "0",
   note: "",
@@ -113,6 +119,7 @@ export function HoldingsPage() {
         queryClient.invalidateQueries({ queryKey: ["positions", portfolioId] }),
         queryClient.invalidateQueries({ queryKey: ["transactions", portfolioId] }),
         queryClient.invalidateQueries({ queryKey: ["dashboard", portfolioId] }),
+        queryClient.invalidateQueries({ queryKey: ["performance", portfolioId] }),
       ]);
       setForm(initialForm());
       setIdemKey(crypto.randomUUID());
