@@ -5,12 +5,10 @@ spring:
     import:
       - optional:file:.env[.properties]
       - optional:file:../.env[.properties]
-      - optional:file:.env.local[.properties]
-      - optional:file:../.env.local[.properties]
   datasource:
-    url: ${DATABASE_URL}
-    username: ${DATABASE_USERNAME}
-    password: ${DATABASE_PASSWORD}
+    url: "${DATABASE_${DATABASE_TARGET:REMOTE}_URL:${DATABASE_URL}}"
+    username: "${DATABASE_${DATABASE_TARGET:REMOTE}_USERNAME:${DATABASE_USERNAME}}"
+    password: "${DATABASE_${DATABASE_TARGET:REMOTE}_PASSWORD:${DATABASE_PASSWORD}}"
   jpa:
     open-in-view: false
     hibernate:
