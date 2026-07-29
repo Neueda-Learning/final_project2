@@ -101,6 +101,11 @@ npm run lint
 npm run build
 ```
 
+## Project plan and progress
+
+- Project plan document: [PROJECT_PLAN.md](PROJECT_PLAN.md)
+- This tracker is updated from repository milestones and delivery progress.
+
 The canonical API contract is [docs/openapi.yaml](docs/openapi.yaml). The database
 definition is [docs/database/schema.sql](docs/database/schema.sql). The current
 baseline uses Spring Boot 4.1.0 and Java 21.
