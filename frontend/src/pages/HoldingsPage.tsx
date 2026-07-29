@@ -8,6 +8,7 @@ import { CuratedInstrumentPicker } from "../components/CuratedInstrumentPicker";
 import { EmptyState } from "../components/EmptyState";
 import { ErrorBox } from "../components/ErrorBox";
 import { PageHeader } from "../components/PageHeader";
+import { IntradayChart } from "../components/charts";
 import type { CuratedSectorId } from "../data/curatedInstruments";
 import { formatCurrency, formatQuantity } from "../lib/format";
 import { useLanguage } from "../i18n/LanguageContext";
@@ -71,6 +72,15 @@ export function HoldingsPage() {
       pricesQuery.data?.find((price) => price.priceDate === form.tradeDate) ?? null,
     [form.tradeDate, pricesQuery.data],
   );
+
+  const barsQuery = useQuery({
+    queryKey: ["intraday-bars", form.instrument?.id],
+    queryFn: () =>
+      api.marketData.getBars(form.instrument!.id, { interval: "1min", pageSize: 120 }),
+    enabled: Boolean(form.instrument),
+    staleTime: 60 * 1000,
+    refetchInterval: 60 * 1000,
+  });
 
   const submitMutation = useMutation({
     mutationFn: () =>
@@ -331,6 +341,39 @@ export function HoldingsPage() {
               </button>
             </div>
           </form>
+        </section>
+      ) : null}
+
+      {form.instrument ? (
+        <section className="card intraday-card" aria-label={t("intraday.title")}>
+          <div className="intraday-card__header">
+            <div>
+              <p className="intraday-card__eyebrow">{t("intraday.eyebrow")}</p>
+              <h2 className="section-title">
+                {form.instrument.symbol} &mdash; {t("intraday.title")}
+              </h2>
+            </div>
+          </div>
+          {barsQuery.isPending ? (
+            <div style={{ height: 360, display: "flex", alignItems: "center", justifyContent: "center", color: "#667085" }}>
+              {t("common.loading")}
+            </div>
+          ) : barsQuery.isError ? (
+            <ErrorBox error={barsQuery.error} onRetry={() => barsQuery.refetch()} />
+          ) : barsQuery.data && barsQuery.data.items.length > 0 ? (
+            <>
+              <IntradayChart bars={barsQuery.data.items} currency={form.instrument.currency} />
+              <p className="intraday-card__footer">
+                {t("intraday.points", { count: String(barsQuery.data.items.length) })}
+              </p>
+            </>
+          ) : (
+            <EmptyState
+              icon="📉"
+              title={t("intraday.emptyTitle")}
+              description={t("intraday.emptyDescription")}
+            />
+          )}
         </section>
       ) : null}
 
