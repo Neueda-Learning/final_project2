@@ -27,8 +27,7 @@ market data, and review portfolio valuations and analytics.
 | Tommy | ziyet3 | Instrument, trade, and holding backend (PRD 3) |
 | Kristen | DanilleZhao-tech | All frontend development (PRD 1) |
 
-Identity mapping note:
-- Kristen is also referred to as Keristen in some previous drafts.
+
 
 ## Project structure
 
