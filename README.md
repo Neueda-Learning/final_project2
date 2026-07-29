@@ -19,13 +19,16 @@ market data, and review portfolio valuations and analytics.
 
 ### Team
 
-| Member | Responsibility |
-| --- | --- |
-| Keristen | All frontend development (PRD 1) |
-| Viko | User and portfolio backend (PRD 2) |
-| Tommy | Instrument, trade, and holding backend (PRD 3) |
-| Jermaine | Market-data synchronization backend (PRD 4) |
-| Leon | Valuation analysis and backend integration (PRD 5) |
+| Member | GitHub | Responsibility |
+| --- | --- | --- |
+| Jermaine | zqq7695zq | Market-data synchronization backend (PRD 4) |
+| Viko | MikeyHHH | User and portfolio backend (PRD 2) |
+| Leon | N1rVana96 | Valuation analysis and backend integration (PRD 5) |
+| Tommy | ziyet3 | Instrument, trade, and holding backend (PRD 3) |
+| Kristen | DanilleZhao-tech | All frontend development (PRD 1) |
+
+Identity mapping note:
+- Kristen is also referred to as Keristen in some previous drafts.
 
 ## Project structure
 
