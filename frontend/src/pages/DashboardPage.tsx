@@ -66,7 +66,10 @@ export function DashboardPage() {
   }, [latestSyncQuery.data, queryClient]);
 
   const currency = selectedPortfolio?.baseCurrency ?? "USD";
+  const hasHoldings = (dashboardQuery.data?.summary.positionCount ?? 0) > 0;
   const chartPoints = useMemo(() => {
+    if (!hasHoldings) return [];
+
     const points = performanceQuery.data?.points ?? [];
     if (!dashboardQuery.data?.summary.newestPriceDate) return points;
 
@@ -95,7 +98,7 @@ export function DashboardPage() {
 
     next.sort((a, b) => a.valuationDate.localeCompare(b.valuationDate));
     return next;
-  }, [dashboardQuery.data, performanceQuery.data]);
+  }, [dashboardQuery.data, hasHoldings, performanceQuery.data]);
   const syncRun = latestSyncQuery.data;
   const syncIsRunning = syncRun?.status === "RUNNING";
   const syncProviderName =

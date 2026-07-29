@@ -59,6 +59,50 @@ afterEach(() => {
 });
 
 describe("DashboardPage market-data sync", () => {
+  it("hides performance chart when there are no current holdings", async () => {
+    vi.spyOn(api.analytics, "getDashboard").mockResolvedValue(dashboard);
+    vi.spyOn(api.analytics, "getPerformance").mockResolvedValue({
+      portfolioId: portfolio.id,
+      baseCurrency: "USD",
+      points: [
+        {
+          valuationDate: "2026-07-28",
+          pricedMarketValue: "100.00",
+          totalCostBasis: "90.00",
+          pricedCostBasis: "90.00",
+          unrealizedPnl: "10.00",
+          returnPct: "11.11111111",
+          pricedPositionCount: 1,
+          unpricedPositionCount: 0,
+        },
+      ],
+    });
+    vi.spyOn(api.marketData, "getLatestSync").mockResolvedValue(null);
+
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <LanguageProvider>
+          <PortfolioProvider
+            value={{
+              portfolioId: portfolio.id,
+              selectedPortfolio: portfolio,
+              setPortfolioId: vi.fn(),
+            }}
+          >
+            <DashboardPage />
+          </PortfolioProvider>
+        </LanguageProvider>
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText("No return history")).toBeInTheDocument();
+    expect(document.querySelectorAll("canvas")).toHaveLength(0);
+  });
+
   it("starts a sync and shows its live progress without leaving the dashboard", async () => {
     vi.spyOn(api.analytics, "getDashboard").mockResolvedValue(dashboard);
     vi.spyOn(api.analytics, "getPerformance").mockResolvedValue({

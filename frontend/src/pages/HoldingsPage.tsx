@@ -118,8 +118,8 @@ export function HoldingsPage() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["positions", portfolioId] }),
         queryClient.invalidateQueries({ queryKey: ["transactions", portfolioId] }),
-        queryClient.invalidateQueries({ queryKey: ["dashboard", portfolioId] }),
-        queryClient.invalidateQueries({ queryKey: ["performance", portfolioId] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+        queryClient.invalidateQueries({ queryKey: ["performance"] }),
       ]);
       setForm(initialForm());
       setIdemKey(crypto.randomUUID());
