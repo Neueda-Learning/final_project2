@@ -1,6 +1,10 @@
 spring:
   application:
     name: portfolio-manager-market-worker
+  config:
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:../.env[.properties]
   main:
     web-application-type: none
   datasource:
