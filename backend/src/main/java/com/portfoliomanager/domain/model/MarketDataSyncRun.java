@@ -1,6 +1,7 @@
 package com.portfoliomanager.domain.model;
 
 import com.portfoliomanager.domain.SyncStatus;
+import com.portfoliomanager.domain.SyncStage;
 import com.portfoliomanager.domain.SyncTrigger;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -25,6 +26,10 @@ public class MarketDataSyncRun {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private SyncStatus status = SyncStatus.RUNNING;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private SyncStage stage = SyncStage.QUEUED;
 
     @Column(name = "requested_count", nullable = false)
     private int requestedCount;

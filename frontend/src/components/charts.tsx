@@ -11,7 +11,7 @@ import {
 import { Doughnut, Line } from "react-chartjs-2";
 
 import type { AllocationItem, MarketBar, PerformancePoint } from "../api/types";
-import { formatCurrency } from "../lib/format";
+import { formatCurrency, formatPercent } from "../lib/format";
 import { useLanguage } from "../i18n/LanguageContext";
 
 ChartJS.register(
@@ -69,12 +69,10 @@ export function AllocationChart({
 
 export function PerformanceChart({
   points,
-  currency,
 }: {
   points: PerformancePoint[];
-  currency: string;
 }) {
-  const { locale, t } = useLanguage();
+  const { t } = useLanguage();
   return (
     <div className="chart-wrap">
       <Line
@@ -82,8 +80,10 @@ export function PerformanceChart({
           labels: points.map((p) => p.valuationDate),
           datasets: [
             {
-              label: t("chart.marketValue"),
-              data: points.map((p) => Number(p.pricedMarketValue)),
+              label: t("chart.return"),
+              data: points.map((p) =>
+                p.returnPct === null ? null : Number(p.returnPct),
+              ),
               borderColor: "#3158d4",
               backgroundColor: "rgba(49,88,212,0.12)",
               tension: 0.25,
@@ -97,7 +97,7 @@ export function PerformanceChart({
           scales: {
             y: {
               ticks: {
-                callback: (value) => formatCurrency(Number(value), currency, locale),
+                callback: (value) => formatPercent(String(value), false),
               },
             },
           },
@@ -105,7 +105,10 @@ export function PerformanceChart({
             legend: { display: false },
             tooltip: {
               callbacks: {
-                label: (ctx) => formatCurrency(ctx.parsed.y, currency, locale),
+                label: (ctx) =>
+                  formatPercent(
+                    ctx.parsed.y === null ? null : String(ctx.parsed.y),
+                  ),
               },
             },
           },

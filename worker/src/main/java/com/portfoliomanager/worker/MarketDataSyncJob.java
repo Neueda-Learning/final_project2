@@ -108,7 +108,11 @@ public class MarketDataSyncJob {
         try {
             List<InstrumentTarget> targets = loadActiveTargets();
             jdbc.update(
-                    "UPDATE market_data_sync_run SET requested_count = ? WHERE id = ?",
+                    """
+                    UPDATE market_data_sync_run
+                    SET requested_count = ?, stage = 'FETCHING_MARKET_DATA'
+                    WHERE id = ?
+                    """,
                     targets.size(),
                     runId);
 
@@ -157,6 +161,11 @@ public class MarketDataSyncJob {
                     errors.add("Batch " + String.join(",", symbols) + ": "
                             + rootMessage(exception));
                 }
+                int processedCount = Math.min(offset + batch.size(), targets.size());
+                updateRunProgress(
+                        runId,
+                        successfulInstrumentIds.size(),
+                        processedCount - successfulInstrumentIds.size());
                 if (offset + batchSize < targets.size()) {
                     pauseBeforeNextRequest();
                 }
@@ -167,7 +176,9 @@ public class MarketDataSyncJob {
             String status = successCount == targets.size()
                     ? "SUCCEEDED"
                     : successCount == 0 ? "FAILED" : "PARTIAL";
+            updateRunStage(runId, "REFRESHING_CURRENT_VALUATIONS");
             refreshValuationSnapshots(successfulInstrumentIds, errors);
+            updateRunStage(runId, "REBUILDING_HISTORICAL_VALUATIONS");
             rebuildHistoricalValuationSnapshots(
                     successfulInstrumentIds, start, end, errors);
             completeRun(
@@ -722,7 +733,8 @@ public class MarketDataSyncJob {
         jdbc.update(
                 """
                 UPDATE market_data_sync_run
-                SET status = ?, success_count = ?, failure_count = ?,
+                SET status = ?, stage = 'COMPLETED',
+                    success_count = ?, failure_count = ?,
                     completed_at = CURRENT_TIMESTAMP(6), error_summary = ?
                 WHERE id = ?
                 """,
@@ -733,17 +745,36 @@ public class MarketDataSyncJob {
                 runId);
     }
 
-    private void failRun(String runId, String error) {
-        Integer requested = jdbc.queryForObject(
-                "SELECT requested_count FROM market_data_sync_run WHERE id = ?",
-                Integer.class,
+    private void updateRunProgress(String runId, int successCount, int failureCount) {
+        jdbc.update(
+                """
+                UPDATE market_data_sync_run
+                SET success_count = ?, failure_count = ?
+                WHERE id = ?
+                """,
+                successCount,
+                failureCount,
                 runId);
-        completeRun(
-                runId,
-                0,
-                requested == null ? 0 : requested,
-                "FAILED",
-                summarize(List.of(error)));
+    }
+
+    private void updateRunStage(String runId, String stage) {
+        jdbc.update(
+                "UPDATE market_data_sync_run SET stage = ? WHERE id = ?",
+                stage,
+                runId);
+    }
+
+    private void failRun(String runId, String error) {
+        jdbc.update(
+                """
+                UPDATE market_data_sync_run
+                SET status = 'FAILED', stage = 'COMPLETED',
+                    failure_count = requested_count - success_count,
+                    completed_at = CURRENT_TIMESTAMP(6), error_summary = ?
+                WHERE id = ?
+                """,
+                summarize(List.of(error)),
+                runId);
     }
 
     private String summarize(List<String> errors) {

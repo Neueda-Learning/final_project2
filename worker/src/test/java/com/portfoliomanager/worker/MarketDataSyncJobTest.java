@@ -140,6 +140,19 @@ class MarketDataSyncJobTest {
                 argThat(sql -> sql.contains("INSERT INTO market_price")),
                 any(Object[].class));
         verify(jdbc).update(
+                argThat(sql -> sql.contains("SET success_count = ?, failure_count = ?")),
+                eq(1),
+                eq(0),
+                eq("run-1"));
+        verify(jdbc).update(
+                eq("UPDATE market_data_sync_run SET stage = ? WHERE id = ?"),
+                eq("REFRESHING_CURRENT_VALUATIONS"),
+                eq("run-1"));
+        verify(jdbc).update(
+                eq("UPDATE market_data_sync_run SET stage = ? WHERE id = ?"),
+                eq("REBUILDING_HISTORICAL_VALUATIONS"),
+                eq("run-1"));
+        verify(jdbc).update(
                 argThat(sql -> sql.contains("INSERT INTO portfolio_valuation_snapshot")),
                 eq("portfolio-1"),
                 eq(LocalDate.of(2026, 7, 24)),

@@ -3,6 +3,7 @@ package com.portfoliomanager.api;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.portfoliomanager.domain.AssetType;
 import com.portfoliomanager.domain.PriceStatus;
+import com.portfoliomanager.domain.SyncStage;
 import com.portfoliomanager.domain.SyncStatus;
 import com.portfoliomanager.domain.SyncTrigger;
 import com.portfoliomanager.domain.TradeSide;
@@ -108,6 +109,7 @@ public final class ApiModels {
             String id,
             String provider,
             SyncStatus status,
+            SyncStage stage,
             int requestedCount,
             int successCount,
             int failureCount,
@@ -201,6 +203,7 @@ public final class ApiModels {
             @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal totalCostBasis,
             @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal pricedCostBasis,
             @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal unrealizedPnl,
+            @JsonFormat(shape = JsonFormat.Shape.STRING) BigDecimal returnPct,
             int pricedPositionCount,
             int unpricedPositionCount) {}
 

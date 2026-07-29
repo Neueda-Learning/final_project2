@@ -34,6 +34,15 @@ export function DataStatusPage() {
           / syncData.requestedCount) * 100,
       )
     : 0;
+  const syncStageLabel = syncData
+    ? {
+        QUEUED: t("data.stage.queued"),
+        FETCHING_MARKET_DATA: t("data.stage.fetching"),
+        REFRESHING_CURRENT_VALUATIONS: t("data.stage.refreshingValuations"),
+        REBUILDING_HISTORICAL_VALUATIONS: t("data.stage.rebuildingHistory"),
+        COMPLETED: t("data.stage.completed"),
+      }[syncData.stage]
+    : null;
 
   return (
     <>
@@ -81,6 +90,7 @@ export function DataStatusPage() {
             <div><dt>{t("table.status")}</dt><dd>
               <SyncStatusBadge status={latestSyncQuery.data.status} />
             </dd></div>
+            <div><dt>{t("data.stage")}</dt><dd>{syncStageLabel}</dd></div>
             <div><dt>{t("data.requested")}</dt><dd>{latestSyncQuery.data.requestedCount}</dd></div>
             <div><dt>{t("data.successful")}</dt><dd>{latestSyncQuery.data.successCount}</dd></div>
             <div><dt>{t("data.failed")}</dt><dd>{latestSyncQuery.data.failureCount}</dd></div>

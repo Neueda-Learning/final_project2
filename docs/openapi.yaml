@@ -390,6 +390,7 @@ paths:
                 id: 66666666-6666-6666-6666-666666666666
                 provider: twelve-data
                 status: RUNNING
+                stage: FETCHING_MARKET_DATA
                 requestedCount: 2
                 successCount: 0
                 failureCount: 0
@@ -421,6 +422,7 @@ paths:
                 id: 66666666-6666-6666-6666-666666666666
                 provider: twelve-data
                 status: SUCCEEDED
+                stage: COMPLETED
                 requestedCount: 2
                 successCount: 2
                 failureCount: 0
@@ -657,6 +659,7 @@ paths:
                     totalCostBasis: "110000.00000000"
                     pricedCostBasis: "110000.00000000"
                     unrealizedPnl: "15430.18000000"
+                    returnPct: "14.02743636"
                     pricedPositionCount: 2
                     unpricedPositionCount: 0
         "404":
@@ -819,6 +822,14 @@ components:
     SyncStatus:
       type: string
       enum: [RUNNING, SUCCEEDED, PARTIAL, FAILED]
+    SyncStage:
+      type: string
+      enum:
+        - QUEUED
+        - FETCHING_MARKET_DATA
+        - REFRESHING_CURRENT_VALUATIONS
+        - REBUILDING_HISTORICAL_VALUATIONS
+        - COMPLETED
 
     ErrorResponse:
       type: object
@@ -1106,6 +1117,7 @@ components:
         - id
         - provider
         - status
+        - stage
         - requestedCount
         - successCount
         - failureCount
@@ -1119,6 +1131,8 @@ components:
           type: string
         status:
           $ref: "#/components/schemas/SyncStatus"
+        stage:
+          $ref: "#/components/schemas/SyncStage"
         requestedCount:
           type: integer
           minimum: 0
@@ -1350,6 +1364,7 @@ components:
         - totalCostBasis
         - pricedCostBasis
         - unrealizedPnl
+        - returnPct
         - pricedPositionCount
         - unpricedPositionCount
       properties:
@@ -1364,6 +1379,11 @@ components:
           $ref: "#/components/schemas/DecimalString"
         unrealizedPnl:
           $ref: "#/components/schemas/DecimalString"
+        returnPct:
+          oneOf:
+            - $ref: "#/components/schemas/DecimalString"
+            - type: "null"
+          description: Unrealized return percentage based on priced cost basis.
         pricedPositionCount:
           type: integer
         unpricedPositionCount:

@@ -93,6 +93,7 @@ class AnalyticsControllerTest {
                 .andExpect(jsonPath("$.portfolioId").value(PORTFOLIO_ID))
                 .andExpect(jsonPath("$.baseCurrency").value("USD"))
                 .andExpect(jsonPath("$.points[0].valuationDate").value("2026-07-23"))
+                .andExpect(jsonPath("$.points[0].returnPct").value("13.46363636"))
                 .andExpect(jsonPath("$.points[0].pricedPositionCount").value(2));
     }
 
@@ -156,6 +157,7 @@ class AnalyticsControllerTest {
                         new BigDecimal("110000.00000000"),
                         new BigDecimal("110000.00000000"),
                         new BigDecimal("14810.00000000"),
+                        new BigDecimal("13.46363636"),
                         2,
                         0)));
     }

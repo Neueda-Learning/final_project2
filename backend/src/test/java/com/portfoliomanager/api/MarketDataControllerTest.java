@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.portfoliomanager.api.ApiModels.SyncRunResponse;
+import com.portfoliomanager.domain.SyncStage;
 import com.portfoliomanager.domain.SyncStatus;
 import com.portfoliomanager.domain.SyncTrigger;
 import com.portfoliomanager.service.MarketDataService;
@@ -39,6 +40,7 @@ class MarketDataControllerTest {
                         .content("{\"force\":false}"))
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.status").value("RUNNING"))
+                .andExpect(jsonPath("$.stage").value("FETCHING_MARKET_DATA"))
                 .andExpect(jsonPath("$.triggeredBy").value("MANUAL"));
     }
 
@@ -55,6 +57,7 @@ class MarketDataControllerTest {
                 "run-1",
                 "fixture",
                 SyncStatus.RUNNING,
+                SyncStage.FETCHING_MARKET_DATA,
                 2,
                 0,
                 0,

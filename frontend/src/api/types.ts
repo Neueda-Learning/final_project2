@@ -5,6 +5,12 @@ export type AssetType = "STOCK" | "ETF";
 export type TradeSide = "BUY" | "SELL";
 export type PriceStatus = "FRESH" | "STALE" | "UNAVAILABLE";
 export type SyncStatus = "RUNNING" | "SUCCEEDED" | "PARTIAL" | "FAILED";
+export type SyncStage =
+  | "QUEUED"
+  | "FETCHING_MARKET_DATA"
+  | "REFRESHING_CURRENT_VALUATIONS"
+  | "REBUILDING_HISTORICAL_VALUATIONS"
+  | "COMPLETED";
 export type SyncTrigger = "SCHEDULE" | "MANUAL" | "RETRY";
 
 // ─── Error ────────────────────────────────────────────────────────────────────
@@ -118,6 +124,7 @@ export interface SyncRun {
   id: string;
   provider: string;
   status: SyncStatus;
+  stage: SyncStage;
   requestedCount: number;
   successCount: number;
   failureCount: number;
@@ -220,6 +227,7 @@ export interface PerformancePoint {
   totalCostBasis: DecimalString;
   pricedCostBasis: DecimalString;
   unrealizedPnl: DecimalString;
+  returnPct: DecimalString | null;
   pricedPositionCount: number;
   unpricedPositionCount: number;
 }
