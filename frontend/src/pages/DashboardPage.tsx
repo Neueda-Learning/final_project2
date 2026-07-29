@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { api } from "../api/client";
@@ -29,6 +30,36 @@ export function DashboardPage() {
   });
 
   const currency = selectedPortfolio?.baseCurrency ?? "USD";
+  const chartPoints = useMemo(() => {
+    const points = performanceQuery.data?.points ?? [];
+    if (!dashboardQuery.data?.summary.newestPriceDate) return points;
+
+    const latestDate = dashboardQuery.data.summary.newestPriceDate;
+    const next = [...points];
+    const mergedPoint = {
+      valuationDate: latestDate,
+      pricedMarketValue: dashboardQuery.data.summary.pricedMarketValue,
+      totalCostBasis: dashboardQuery.data.summary.totalCostBasis,
+      pricedCostBasis: dashboardQuery.data.summary.pricedCostBasis,
+      unrealizedPnl: dashboardQuery.data.summary.unrealizedPnl,
+      returnPct: dashboardQuery.data.summary.returnPct,
+      pricedPositionCount: dashboardQuery.data.summary.pricedPositionCount,
+      unpricedPositionCount: dashboardQuery.data.summary.unpricedPositionCount,
+    };
+
+    const existingIndex = next.findIndex((p) => p.valuationDate === latestDate);
+    if (existingIndex >= 0) {
+      next[existingIndex] = {
+        ...next[existingIndex],
+        ...mergedPoint,
+      };
+    } else {
+      next.push(mergedPoint);
+    }
+
+    next.sort((a, b) => a.valuationDate.localeCompare(b.valuationDate));
+    return next;
+  }, [dashboardQuery.data, performanceQuery.data]);
 
   return (
     <>
@@ -75,8 +106,8 @@ export function DashboardPage() {
                 <TableSkeleton />
               ) : performanceQuery.isError ? (
                 <ErrorBox error={performanceQuery.error} onRetry={() => performanceQuery.refetch()} />
-              ) : performanceQuery.data && performanceQuery.data.points.length > 0 ? (
-                <PerformanceChart points={performanceQuery.data.points} />
+              ) : chartPoints.length > 0 ? (
+                <PerformanceChart points={chartPoints} />
               ) : (
                 <EmptyState
                   icon="📉"
