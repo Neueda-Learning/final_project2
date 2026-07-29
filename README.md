@@ -51,13 +51,23 @@ Copy the environment file:
 cp .env.example .env
 ```
 
-The default provider is the live Twelve Data REST API. Configure a real key before
-starting:
+The default provider is Alpaca Market Data, using paper-account credentials for
+authentication. Twelve Data remains the automatic fallback:
 
 ```text
-MARKET_DATA_PROVIDER=twelve-data
-TWELVE_DATA_API_KEY=replace_with_your_api_key
+MARKET_DATA_PROVIDER=alpaca
+ALPACA_API_BASE_URL=https://paper-api.alpaca.markets/v2
+ALPACA_DATA_BASE_URL=https://data.alpaca.markets/v2
+ALPACA_API_KEY_ID=replace_with_your_key_id
+ALPACA_API_SECRET_KEY=replace_with_your_secret
+TWELVE_DATA_API_KEY=replace_with_your_fallback_key
 ```
+
+The default worker uses Alpaca multi-symbol batches of 50, four concurrent
+network tasks, the free IEX feed, and a client-side ceiling of 180 requests per
+minute. Alpaca errors and missing symbols fall back to single-symbol Twelve Data
+requests spaced eight seconds apart. Set `MARKET_DATA_PROVIDER=twelve-data` to
+run Twelve Data directly or `MARKET_DATA_PROVIDER=fixture` for offline demos.
 
 Then start the complete environment:
 
@@ -65,8 +75,7 @@ Then start the complete environment:
 docker compose up --build
 ```
 
-The `fixture` provider is intended only for automated tests and offline demos. Run
-the live provider integration test separately after configuring a key:
+Run the live Twelve Data integration test separately after configuring its key:
 
 ```bash
 mvn -pl worker -Dtest=TwelveDataLiveIntegrationTest test
@@ -113,3 +122,6 @@ npm run build
 The canonical API contract is [docs/openapi.yaml](docs/openapi.yaml). The database
 definition is [docs/database/schema.sql](docs/database/schema.sql). The current
 baseline uses Spring Boot 4.1.0 and Java 21.
+
+The real-provider synchronization and endpoint comparison is documented in
+[docs/MARKET_DATA_PROVIDER_BENCHMARK.md](docs/MARKET_DATA_PROVIDER_BENCHMARK.md).

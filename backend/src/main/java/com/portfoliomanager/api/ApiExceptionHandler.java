@@ -9,6 +9,7 @@ import com.portfoliomanager.service.ResourceNotFoundException;
 import com.portfoliomanager.service.ServiceNotReadyException;
 import jakarta.persistence.OptimisticLockException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -50,6 +51,23 @@ public class ApiExceptionHandler {
                 .map(field -> new ErrorDetail(field.getField(), field.getDefaultMessage()))
                 .toList();
         return error("VALIDATION_ERROR", "Request validation failed", details, request);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+    public ErrorResponse constraintViolation(
+            ConstraintViolationException exception,
+            HttpServletRequest request) {
+        var details = exception.getConstraintViolations().stream()
+                .map(violation -> new ErrorDetail(
+                        violation.getPropertyPath().toString(),
+                        violation.getMessage()))
+                .toList();
+        return error(
+                "VALIDATION_ERROR",
+                "Request validation failed",
+                details,
+                request);
     }
 
     @ExceptionHandler(InvalidDateRangeException.class)

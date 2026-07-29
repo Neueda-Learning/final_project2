@@ -11,7 +11,7 @@
 | Primary tables | `market_data_sync_run`, `market_price` |
 | Out of scope | Frontend and valuation charts |
 | Interface contracts | [API Reference](../API.md) / [OpenAPI Specification](../openapi.yaml) |
-| Status | Implemented (real environments require `TWELVE_DATA_API_KEY`) |
+| Status | Implemented (Alpaca primary; Twelve Data fallback) |
 
 ## 2. Module Goal
 
@@ -22,7 +22,7 @@ persist it idempotently in MySQL, and use daily closes for portfolio valuation.
 
 - Portfolio valuation and historical charts use stored daily closes.
 - Trade entry uses the user's actual execution price and does not depend on market data.
-- The first real provider is the Twelve Data REST API.
+- The default real provider is Alpaca Market Data; Twelve Data is the fallback.
 - Isolate providers behind the Java `MarketDataProvider` interface.
 - Use a fixture provider for automated tests and offline demonstrations.
 - Preserve the last successful price when an external request fails.
@@ -67,7 +67,14 @@ A normalized price contains:
 9. Notify Member 5 to generate snapshots for affected portfolios.
 10. Call `RELEASE_LOCK()` in `finally`.
 
-The current Twelve Data implementation requests one instrument at a time (`MARKET_BATCH_SIZE=1`) because multi-symbol historical responses may truncate the requested time range. Synchronization requests approximately one month of history and replays historical transactions to rebuild daily valuation snapshots.
+The Alpaca implementation requests up to 50 instruments per daily-bars batch,
+follows `next_page_token`, and permits four concurrent network tasks while a
+client-side limiter keeps request starts below the Basic-plan ceiling. If Alpaca
+fails or omits a symbol, the failover adapter requests that symbol from Twelve
+Data. Twelve Data stays single-symbol and serial because its historical
+multi-symbol responses can truncate the requested range and its basic quota is
+substantially lower. Synchronization requests approximately one month of history
+and replays historical transactions to rebuild daily valuation snapshots.
 
 ## 7. MySQL Deliverables
 
@@ -99,17 +106,24 @@ Do not determine staleness from calendar-day age alone; account for weekends and
 
 | Variable | Description |
 |---|---|
-| `MARKET_DATA_PROVIDER` | `twelve-data` or `fixture` |
+| `MARKET_DATA_PROVIDER` | `alpaca` (default), `twelve-data`, or `fixture` |
 | `MARKET_SYNC_CRON` | Schedule expression |
 | `MARKET_TIMEZONE` | Market time zone |
-| `MARKET_BATCH_SIZE` | Batch size; defaults to `1` for complete historical responses |
+| `MARKET_BATCH_SIZE` | Alpaca daily-bars batch size; defaults to `50` |
+| `MARKET_REQUEST_CONCURRENCY` | Maximum concurrent provider requests; defaults to `4` |
 | `MARKET_REQUEST_TIMEOUT_SECONDS` | Request timeout |
 | `MARKET_MAX_RETRIES` | Maximum retries |
-| `TWELVE_DATA_API_KEY` | Conditionally required |
-| `MARKET_REQUEST_INTERVAL_MILLIS` | Provider rate-limit spacing |
+| `ALPACA_API_BASE_URL` | Paper trading/assets base URL |
+| `ALPACA_DATA_BASE_URL` | Market Data API base URL |
+| `ALPACA_API_KEY_ID` / `ALPACA_API_SECRET_KEY` | Alpaca credentials |
+| `ALPACA_DATA_FEED` | Alpaca stock feed; defaults to `iex` |
+| `ALPACA_REQUESTS_PER_MINUTE` | Alpaca client ceiling; defaults to `180` |
+| `TWELVE_DATA_API_KEY` | Optional fallback credential |
+| `TWELVE_DATA_REQUEST_INTERVAL_MILLIS` | Twelve Data request spacing; defaults to `8000` |
 
-The defaults use Twelve Data, the `America/New_York` market calendar, and one
-sync after the trading day. Supply credentials and overrides through environment variables.
+The defaults use Alpaca with Twelve Data failover, the `America/New_York` market
+calendar, and one sync after the trading day. Supply credentials and overrides
+through environment variables.
 
 ## 10. Backend Tests
 

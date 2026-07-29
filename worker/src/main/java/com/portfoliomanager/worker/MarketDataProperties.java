@@ -7,15 +7,22 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "market-data")
 public class MarketDataProperties {
 
-    private String provider = "twelve-data";
+    private String provider = "alpaca";
     private String apiKey = "";
+    private String alpacaApiBaseUrl = "https://paper-api.alpaca.markets/v2";
+    private String alpacaDataBaseUrl = "https://data.alpaca.markets/v2";
+    private String alpacaApiKeyId = "";
+    private String alpacaApiSecretKey = "";
+    private String alpacaFeed = "iex";
+    private int alpacaRequestsPerMinute = 180;
     private String syncCron = "0 */5 9-16 * * MON-FRI";
     private String timeZone = "America/New_York";
-    private int batchSize = 1;
+    private int batchSize = 50;
+    private int requestConcurrency = 4;
     private int requestTimeoutSeconds = 10;
     private int maxRetries = 2;
     private long retryBackoffMillis = 250;
-    private long requestIntervalMillis = 8000;
+    private long twelveDataRequestIntervalMillis = 8000;
     private long manualPollIntervalMs = 2000;
     private String intradayInterval = "1min";
     private int intradayLookbackDays = 5;
@@ -34,6 +41,54 @@ public class MarketDataProperties {
 
     public void setApiKey(String apiKey) {
         this.apiKey = apiKey;
+    }
+
+    public String getAlpacaApiBaseUrl() {
+        return alpacaApiBaseUrl;
+    }
+
+    public void setAlpacaApiBaseUrl(String alpacaApiBaseUrl) {
+        this.alpacaApiBaseUrl = alpacaApiBaseUrl;
+    }
+
+    public String getAlpacaDataBaseUrl() {
+        return alpacaDataBaseUrl;
+    }
+
+    public void setAlpacaDataBaseUrl(String alpacaDataBaseUrl) {
+        this.alpacaDataBaseUrl = alpacaDataBaseUrl;
+    }
+
+    public String getAlpacaApiKeyId() {
+        return alpacaApiKeyId;
+    }
+
+    public void setAlpacaApiKeyId(String alpacaApiKeyId) {
+        this.alpacaApiKeyId = alpacaApiKeyId;
+    }
+
+    public String getAlpacaApiSecretKey() {
+        return alpacaApiSecretKey;
+    }
+
+    public void setAlpacaApiSecretKey(String alpacaApiSecretKey) {
+        this.alpacaApiSecretKey = alpacaApiSecretKey;
+    }
+
+    public String getAlpacaFeed() {
+        return alpacaFeed;
+    }
+
+    public void setAlpacaFeed(String alpacaFeed) {
+        this.alpacaFeed = alpacaFeed;
+    }
+
+    public int getAlpacaRequestsPerMinute() {
+        return alpacaRequestsPerMinute;
+    }
+
+    public void setAlpacaRequestsPerMinute(int alpacaRequestsPerMinute) {
+        this.alpacaRequestsPerMinute = alpacaRequestsPerMinute;
     }
 
     public String getSyncCron() {
@@ -60,6 +115,14 @@ public class MarketDataProperties {
         this.batchSize = batchSize;
     }
 
+    public int getRequestConcurrency() {
+        return requestConcurrency;
+    }
+
+    public void setRequestConcurrency(int requestConcurrency) {
+        this.requestConcurrency = requestConcurrency;
+    }
+
     public int getRequestTimeoutSeconds() {
         return requestTimeoutSeconds;
     }
@@ -84,12 +147,12 @@ public class MarketDataProperties {
         this.retryBackoffMillis = retryBackoffMillis;
     }
 
-    public long getRequestIntervalMillis() {
-        return requestIntervalMillis;
+    public long getTwelveDataRequestIntervalMillis() {
+        return twelveDataRequestIntervalMillis;
     }
 
-    public void setRequestIntervalMillis(long requestIntervalMillis) {
-        this.requestIntervalMillis = requestIntervalMillis;
+    public void setTwelveDataRequestIntervalMillis(long twelveDataRequestIntervalMillis) {
+        this.twelveDataRequestIntervalMillis = twelveDataRequestIntervalMillis;
     }
 
     public long getManualPollIntervalMs() {

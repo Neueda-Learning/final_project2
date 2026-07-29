@@ -39,13 +39,13 @@ The course objective is to let users manage portfolios containing stocks and ETF
 | Charts | Chart.js and react-chartjs-2 | Rapid implementation of doughnut charts, line charts, and interactive tooltips |
 | API backend | Java 21, Spring Boot 4.1, Spring MVC, Bean Validation | Java LTS baseline with mature layering, validation, and operational support |
 | ORM/migrations | Spring Data JPA, Hibernate, Flyway | Separates domain entities, repositories, and database migrations |
-| Market-data adapter | Twelve Data REST as the first implementation behind a provider interface | Supports stock/ETF daily OHLCV history |
+| Market-data adapter | Alpaca Market Data with Twelve Data failover behind a provider interface | Supports stock/ETF daily and intraday OHLCV history with provider-specific throttling |
 | Polling process | Separate Spring Boot worker with `@Scheduled` | Prevents duplicate work when the web process scales horizontally |
 | Database | MySQL 8.0, InnoDB | Exact decimals, transactions, constraints, views, and row-level locking |
 | Local runtime | Docker Compose | Consistent frontend, API, worker, and database environment |
 | Testing | Vitest, React Testing Library, JUnit, Spring Boot Test, Playwright | Unit, interface, and critical end-to-end coverage |
 
-External market data must be accessed through `MarketDataProvider`; domain calculations must not depend directly on Twelve Data. A provider change replaces only the adapter and configuration, not portfolio calculation rules.
+External market data must be accessed through `MarketDataProvider`; domain calculations must not depend directly on Alpaca or Twelve Data. A provider change replaces only the adapter and configuration, not portfolio calculation rules.
 
 ## 4. High-Level Component Diagram
 
@@ -59,8 +59,8 @@ flowchart LR
 
     SCH[Scheduler] --> WORKER[Market-data sync worker]
     WORKER --> PROVIDER[Provider adapter layer]
-    PROVIDER --> TD[Twelve Data REST API]
-    PROVIDER -. replaceable .-> ALT[Alternative provider]
+    PROVIDER --> ALPACA[Alpaca Market Data API]
+    PROVIDER -. request failover .-> TD[Twelve Data REST API]
     WORKER --> DB
     WORKER --> SNAP[Valuation snapshot service]
     SNAP --> DB
@@ -279,7 +279,8 @@ Collaboration rules:
 
 ## 17. Team Decisions Still Required
 
-- Confirm Twelve Data demonstration quota and whether the offline fixture provider remains necessary.
+- Confirm the production Alpaca feed subscription; retain Twelve Data fallback
+  quota and the offline fixture provider for degraded/offline operation.
 - Confirm market time zone and trading calendar for end-of-day jobs.
 - Freeze fee treatment in average cost and realized profit/loss.
 - Decide whether MVP includes login and, if not, how to initialize the demonstration user.

@@ -351,7 +351,7 @@ curl -s \
     "closePrice": "214.05000000",
     "adjustedClose": "214.05000000",
     "currency": "USD",
-    "source": "twelve-data",
+    "source": "alpaca",
     "sourceTimestamp": null,
     "fetchedAt": "2026-07-28T01:00:05Z",
     "priceStatus": "FRESH"
@@ -518,7 +518,7 @@ Request:
 ```json
 {
   "id": "66666666-6666-6666-6666-666666666666",
-  "provider": "twelve-data",
+  "provider": "alpaca",
   "status": "RUNNING",
   "requestedCount": 8,
   "successCount": 0,
@@ -545,7 +545,7 @@ curl -s "http://localhost:8000/api/v1/market-data/sync-runs/latest"
 ```json
 {
   "id": "66666666-6666-6666-6666-666666666666",
-  "provider": "twelve-data",
+  "provider": "alpaca",
   "status": "SUCCEEDED",
   "requestedCount": 8,
   "successCount": 8,
@@ -578,7 +578,7 @@ curl -s \
   "closePrice": "214.05000000",
   "adjustedClose": "214.05000000",
   "currency": "USD",
-  "source": "twelve-data",
+  "source": "alpaca",
   "sourceTimestamp": null,
   "fetchedAt": "2026-07-28T01:00:05Z",
   "priceStatus": "FRESH"
@@ -616,7 +616,7 @@ curl -s \
     "close": "214.25000000",
     "volume": 1200,
     "currency": "USD",
-    "source": "twelve-data"
+    "source": "alpaca"
   }],
   "page": 1,
   "pageSize": 200,
@@ -671,7 +671,7 @@ curl -s \
       "costBasis": "79418.00000000",
       "closePrice": "213.55000000",
       "priceDate": "2026-07-27",
-      "priceSource": "twelve-data",
+      "priceSource": "alpaca",
       "priceStatus": "FRESH",
       "marketValue": "85420.00000000",
       "unrealizedPnl": "6002.00000000",
@@ -688,7 +688,7 @@ curl -s \
       "costBasis": "30582.00000030",
       "closePrice": "571.57400000",
       "priceDate": "2026-07-27",
-      "priceSource": "twelve-data",
+      "priceSource": "alpaca",
       "priceStatus": "FRESH",
       "marketValue": "40010.18000000",
       "unrealizedPnl": "9428.17999970",

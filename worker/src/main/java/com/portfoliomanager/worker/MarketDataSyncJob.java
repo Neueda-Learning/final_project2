@@ -21,6 +21,11 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -147,15 +152,20 @@ public class MarketDataSyncJob {
 
             Set<String> validatedInstrumentIds = new HashSet<>();
             List<PriceWrite> priceWrites = new ArrayList<>();
-            int batchSize = Math.max(1, properties.getBatchSize());
-            for (int offset = 0; offset < targets.size(); offset += batchSize) {
-                List<InstrumentTarget> batch =
-                        targets.subList(offset, Math.min(offset + batchSize, targets.size()));
-                List<String> symbols =
-                        batch.stream().map(InstrumentTarget::providerSymbol).toList();
-                try {
-                    List<DailyPrice> prices = fetchWithRetry(symbols, start, end);
-                    for (DailyPrice price : prices) {
+            int batchSize = "twelve-data".equalsIgnoreCase(provider.name())
+                    ? 1
+                    : Math.max(1, properties.getBatchSize());
+            int processedCount = 0;
+            for (DailyBatchFetch fetch :
+                    fetchDailyBatches(targets, batchSize, start, end)) {
+                List<String> symbols = fetch.batch().stream()
+                        .map(InstrumentTarget::providerSymbol)
+                        .toList();
+                if (fetch.error() != null) {
+                    errors.add("Batch " + String.join(",", symbols) + ": "
+                            + fetch.error());
+                } else {
+                    for (DailyPrice price : fetch.prices()) {
                         InstrumentTarget target =
                                 bySymbol.get(normalizeSymbol(price.symbol()));
                         if (target == null) {
@@ -170,23 +180,17 @@ public class MarketDataSyncJob {
                         priceWrites.add(new PriceWrite(target, price));
                         validatedInstrumentIds.add(target.instrumentId());
                     }
-                    for (InstrumentTarget target : batch) {
+                    for (InstrumentTarget target : fetch.batch()) {
                         if (!validatedInstrumentIds.contains(target.instrumentId())) {
                             errors.add("No valid price returned for " + target.providerSymbol());
                         }
                     }
-                } catch (RuntimeException exception) {
-                    errors.add("Batch " + String.join(",", symbols) + ": "
-                            + rootMessage(exception));
                 }
-                int processedCount = Math.min(offset + batch.size(), targets.size());
+                processedCount += fetch.batch().size();
                 updateRunProgress(
                         runId,
                         validatedInstrumentIds.size(),
                         processedCount - validatedInstrumentIds.size());
-                if (offset + batchSize < targets.size()) {
-                    pauseBeforeNextRequest();
-                }
             }
 
             upsertPrices(runId, priceWrites);
@@ -199,12 +203,13 @@ public class MarketDataSyncJob {
             LocalDateTime intradayEnd = LocalDateTime.now(clock.withZone(ZoneOffset.UTC));
             LocalDateTime intradayStart =
                     intradayEnd.minusDays(properties.getIntradayLookbackDays());
-            for (InstrumentTarget target : targets) {
+            for (IntradayFetch fetch :
+                    fetchIntradayBatches(targets, intradayStart, intradayEnd)) {
+                InstrumentTarget target = fetch.target();
                 // Fetch intraday for every active target regardless of whether
                 // its daily price succeeded – the two data types are independent.
-                try {
-                    List<IntradayBar> bars =
-                            fetchIntradayWithRetry(target, intradayStart, intradayEnd);
+                if (fetch.error() == null) {
+                    List<IntradayBar> bars = fetch.bars();
                     List<IntradayBar> validBars = bars.stream()
                             .filter(bar -> validateIntraday(
                                     bar, target, intradayStart, intradayEnd) == null)
@@ -228,17 +233,13 @@ public class MarketDataSyncJob {
                     } else {
                         log.warn("Provider returned 0 intraday bars for {}", target.providerSymbol());
                     }
-                    if (!target.instrumentId().equals(
-                            targets.get(targets.size() - 1).instrumentId())) {
-                        pauseBeforeNextRequest();
-                    }
-                } catch (RuntimeException exception) {
+                } else {
                     log.warn(
                             "Intraday fetch failed for {}: {}",
                             target.providerSymbol(),
-                            rootMessage(exception));
+                            fetch.error());
                     errors.add("Intraday " + target.providerSymbol()
-                            + ": " + rootMessage(exception));
+                            + ": " + fetch.error());
                 }
             }
 
@@ -287,6 +288,93 @@ public class MarketDataSyncJob {
         throw lastFailure == null
                 ? new IllegalStateException("Provider request failed")
                 : lastFailure;
+    }
+
+    private List<DailyBatchFetch> fetchDailyBatches(
+            List<InstrumentTarget> targets,
+            int batchSize,
+            LocalDate start,
+            LocalDate end) {
+        List<Callable<DailyBatchFetch>> tasks = new ArrayList<>();
+        for (int offset = 0; offset < targets.size(); offset += batchSize) {
+            List<InstrumentTarget> batch = List.copyOf(
+                    targets.subList(offset, Math.min(offset + batchSize, targets.size())));
+            tasks.add(() -> {
+                List<String> symbols =
+                        batch.stream().map(InstrumentTarget::providerSymbol).toList();
+                try {
+                    return new DailyBatchFetch(
+                            batch, fetchWithRetry(symbols, start, end), null);
+                } catch (RuntimeException exception) {
+                    return new DailyBatchFetch(
+                            batch, List.of(), rootMessage(exception));
+                }
+            });
+        }
+        return executeProviderTasks(tasks);
+    }
+
+    private List<IntradayFetch> fetchIntradayBatches(
+            List<InstrumentTarget> targets,
+            LocalDateTime start,
+            LocalDateTime end) {
+        List<Callable<IntradayFetch>> tasks = targets.stream()
+                .<Callable<IntradayFetch>>map(target -> () -> {
+                    try {
+                        return new IntradayFetch(
+                                target,
+                                fetchIntradayWithRetry(target, start, end),
+                                null);
+                    } catch (RuntimeException exception) {
+                        return new IntradayFetch(
+                                target, List.of(), rootMessage(exception));
+                    }
+                })
+                .toList();
+        return executeProviderTasks(tasks);
+    }
+
+    private <T> List<T> executeProviderTasks(List<Callable<T>> tasks) {
+        if (tasks.isEmpty()) {
+            return List.of();
+        }
+        int concurrency = "twelve-data".equalsIgnoreCase(provider.name())
+                ? 1
+                : Math.max(1, properties.getRequestConcurrency());
+        if (concurrency == 1 || tasks.size() == 1) {
+            List<T> results = new ArrayList<>(tasks.size());
+            for (Callable<T> task : tasks) {
+                try {
+                    results.add(task.call());
+                } catch (RuntimeException exception) {
+                    throw exception;
+                } catch (Exception exception) {
+                    throw new IllegalStateException(
+                            "Market-data task failed", exception);
+                }
+            }
+            return results;
+        }
+
+        ExecutorService executor =
+                Executors.newFixedThreadPool(Math.min(concurrency, tasks.size()));
+        try {
+            List<Future<T>> futures = executor.invokeAll(tasks);
+            List<T> results = new ArrayList<>(futures.size());
+            for (Future<T> future : futures) {
+                results.add(future.get());
+            }
+            return results;
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(
+                    "Market-data concurrency was interrupted", exception);
+        } catch (ExecutionException exception) {
+            throw new IllegalStateException(
+                    "Market-data concurrent task failed", exception.getCause());
+        } finally {
+            executor.shutdownNow();
+        }
     }
 
     private List<IntradayBar> fetchIntradayWithRetry(
@@ -471,6 +559,19 @@ public class MarketDataSyncJob {
                 FROM market_price mp
                 WHERE mp.price_date >= ?
                   AND mp.price_date < ?
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM market_price newer
+                      WHERE newer.instrument_id = mp.instrument_id
+                        AND newer.price_date = mp.price_date
+                        AND (
+                            newer.fetched_at > mp.fetched_at
+                            OR (
+                                newer.fetched_at = mp.fetched_at
+                                AND newer.id > mp.id
+                            )
+                        )
+                  )
                   AND EXISTS (
                       SELECT 1
                       FROM trade_transaction t
@@ -656,6 +757,7 @@ public class MarketDataSyncJob {
                     adjusted_close = VALUES(adjusted_close),
                     volume = VALUES(volume),
                     currency = VALUES(currency),
+                    source = VALUES(source),
                     source_timestamp = VALUES(source_timestamp),
                     fetched_at = CURRENT_TIMESTAMP(6)
                 """;
@@ -703,6 +805,7 @@ public class MarketDataSyncJob {
                     close_price = VALUES(close_price),
                     volume = VALUES(volume),
                     currency = VALUES(currency),
+                    source = VALUES(source),
                     fetched_at = CURRENT_TIMESTAMP(6)
                 """;
             List<Object> parameters = new ArrayList<>(chunk.size() * 10);
@@ -907,21 +1010,14 @@ public class MarketDataSyncJob {
         return symbol == null ? "" : symbol.trim().toUpperCase(Locale.ROOT);
     }
 
-    private void pauseBeforeNextRequest() {
-        long delayMillis = Math.max(0, properties.getRequestIntervalMillis());
-        if (delayMillis == 0 || !"twelve-data".equalsIgnoreCase(provider.name())) {
-            return;
-        }
-        try {
-            Thread.sleep(delayMillis);
-        } catch (InterruptedException exception) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("Market-data sync was interrupted", exception);
-        }
-    }
-
     private record InstrumentTarget(
             String instrumentId, String providerSymbol, String currency) {}
+
+    private record DailyBatchFetch(
+            List<InstrumentTarget> batch, List<DailyPrice> prices, String error) {}
+
+    private record IntradayFetch(
+            InstrumentTarget target, List<IntradayBar> bars, String error) {}
 
     private record PriceWrite(InstrumentTarget target, DailyPrice price) {}
 
