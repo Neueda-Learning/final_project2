@@ -23,6 +23,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 @ExtendWith(MockitoExtension.class)
 class TradingServiceTest {
@@ -31,6 +32,7 @@ class TradingServiceTest {
     @Mock private PortfolioRepository portfolios;
     @Mock private TradeTransactionRepository transactions;
     @Mock private PortfolioPositionRepository positions;
+    @Mock private JdbcTemplate jdbc;
     @Mock private Portfolio portfolio;
     @Mock private Instrument instrument;
 
@@ -38,7 +40,7 @@ class TradingServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new TradingService(instruments, portfolios, transactions, positions);
+        service = new TradingService(instruments, portfolios, transactions, positions, jdbc);
     }
 
     @Test

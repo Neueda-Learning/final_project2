@@ -16,6 +16,7 @@ import com.portfoliomanager.repository.PortfolioRepository;
 import com.portfoliomanager.repository.TradeTransactionRepository;
 import jakarta.persistence.OptimisticLockException;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -23,6 +24,7 @@ import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,16 +41,19 @@ public class TradingService {
     private final PortfolioRepository portfolios;
     private final TradeTransactionRepository transactions;
     private final PortfolioPositionRepository positions;
+    private final JdbcTemplate jdbc;
 
     public TradingService(
             InstrumentRepository instruments,
             PortfolioRepository portfolios,
             TradeTransactionRepository transactions,
-            PortfolioPositionRepository positions) {
+            PortfolioPositionRepository positions,
+            JdbcTemplate jdbc) {
         this.instruments = instruments;
         this.portfolios = portfolios;
         this.transactions = transactions;
         this.positions = positions;
+        this.jdbc = jdbc;
     }
 
     /** Lists active instruments or searches them by symbol or name fragment. */
@@ -145,11 +150,7 @@ public class TradingService {
         // Ensure a sale does not exceed the current position.
         if (request.side() == TradeSide.SELL) {
             if (request.quantity().compareTo(currentQuantity) > 0) {
-                throw new IllegalStateException(
-                        "Insufficient quantity: current="
-                                + currentQuantity
-                                + ", sell="
-                                + request.quantity());
+                throw new ConflictException("INSUFFICIENT_QUANTITY");
             }
         }
 
@@ -231,6 +232,9 @@ public class TradingService {
             // Remove the projection after a complete liquidation.
             positions.delete(existingPosition.get());
         }
+
+        // Rebuild valuation snapshots from trade date to today to reflect historical performance
+        rebuildValuationSnapshotsAfterTrade(portfolioId, request.tradeDate());
 
         // The surrounding transaction commits or rolls back the complete change.
         return toTransactionResponse(newTransaction);
@@ -326,5 +330,160 @@ public class TradingService {
                 position.getRealizedPnl(),
                 position.getOpenedAt(),
                 position.getUpdatedAt());
+    }
+
+    /**
+     * Updates or creates a valuation snapshot for today with the current portfolio state.
+     * This ensures that the performance chart reflects recent transaction changes.
+     */
+    private void updateValuationSnapshotForToday(String portfolioId) {
+        LocalDate today = LocalDate.now();
+        try {
+            // Insert or update today's valuation snapshot for this portfolio
+            jdbc.update(
+                    """
+                    INSERT INTO portfolio_valuation_snapshot
+                    (portfolio_id, valuation_date, priced_market_value, total_cost_basis,
+                     priced_cost_basis, unrealized_pnl, priced_position_count, unpriced_position_count,
+                     calculated_at)
+                    SELECT
+                        portfolio_id, ?, 
+                        COALESCE(SUM(market_value), 0),
+                        COALESCE(SUM(cost_basis), 0),
+                        COALESCE(SUM(CASE WHEN market_value IS NOT NULL THEN cost_basis ELSE 0 END), 0),
+                        COALESCE(SUM(unrealized_pnl), 0),
+                        COUNT(CASE WHEN market_value IS NOT NULL THEN instrument_id END),
+                        COUNT(*) - COUNT(CASE WHEN market_value IS NOT NULL THEN instrument_id END),
+                        CURRENT_TIMESTAMP(6)
+                    FROM position_metrics
+                    WHERE portfolio_id = ?
+                    GROUP BY portfolio_id
+                    ON DUPLICATE KEY UPDATE
+                        priced_market_value = VALUES(priced_market_value),
+                        total_cost_basis = VALUES(total_cost_basis),
+                        priced_cost_basis = VALUES(priced_cost_basis),
+                        unrealized_pnl = VALUES(unrealized_pnl),
+                        priced_position_count = VALUES(priced_position_count),
+                        unpriced_position_count = VALUES(unpriced_position_count),
+                        calculated_at = CURRENT_TIMESTAMP(6)
+                    """,
+                    today,
+                    portfolioId);
+        } catch (Exception e) {
+            // Snapshot update is best-effort; do not fail the transaction if it fails
+        }
+    }
+
+    /**
+     * Rebuilds valuation snapshots from a trade date to today using market price history.
+     * This reconstructs daily portfolio values to show accurate historical performance.
+     */
+    private void rebuildValuationSnapshotsAfterTrade(String portfolioId, LocalDate tradeDate) {
+        try {
+            LocalDate today = LocalDate.now();
+            
+            // Delete existing snapshots for this portfolio from trade date onward
+            jdbc.update(
+                    """
+                    DELETE FROM portfolio_valuation_snapshot
+                    WHERE portfolio_id = ? AND valuation_date >= ?
+                    """,
+                    portfolioId,
+                    tradeDate);
+            
+            // Generate snapshots for all business days from trade date to today
+            LocalDate current = tradeDate;
+            while (!current.isAfter(today)) {
+                // Check if it's a weekday (Monday-Friday)
+                int dayOfWeek = current.getDayOfWeek().getValue();
+                if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+                    try {
+                        insertHistoricalValuationSnapshot(portfolioId, current);
+                    } catch (Exception e) {
+                        // Skip this date if calculation fails (e.g., duplicate key)
+                    }
+                }
+                current = current.plusDays(1);
+            }
+        } catch (Exception e) {
+            // Valuation rebuild is best-effort; do not fail the transaction
+        }
+    }
+
+    /**
+     * Calculates and inserts a historical valuation snapshot for a specific date.
+     * Reconstructs the portfolio state as of that date from transaction history.
+     * Uses the latest available price (on or before the valuation date) for valuation.
+     */
+    private void insertHistoricalValuationSnapshot(String portfolioId, LocalDate valuationDate) {
+        try {
+            jdbc.update(
+                    """
+                    INSERT INTO portfolio_valuation_snapshot
+                    (portfolio_id, valuation_date, priced_market_value, total_cost_basis,
+                     priced_cost_basis, unrealized_pnl, priced_position_count, unpriced_position_count,
+                     calculated_at)
+                    SELECT
+                        ?,
+                        ?,
+                        COALESCE(SUM(CASE WHEN mp.close_price IS NOT NULL THEN hist.quantity * mp.close_price ELSE hist.quantity * hist.average_cost END), 0),
+                        COALESCE(SUM(hist.quantity * hist.average_cost), 0),
+                        COALESCE(SUM(hist.quantity * hist.average_cost), 0),
+                        COALESCE(SUM(CASE WHEN mp.close_price IS NOT NULL THEN (hist.quantity * mp.close_price) - (hist.quantity * hist.average_cost) ELSE 0 END), 0),
+                        COALESCE(COUNT(CASE WHEN mp.close_price IS NOT NULL THEN 1 END), 0),
+                        COALESCE(COUNT(*) - COUNT(CASE WHEN mp.close_price IS NOT NULL THEN 1 END), 0),
+                        CURRENT_TIMESTAMP(6)
+                    FROM (
+                        SELECT
+                            i.id,
+                            COALESCE(SUM(CASE WHEN t.side = 'BUY' THEN t.quantity WHEN t.side = 'SELL' THEN -t.quantity ELSE 0 END), 0) as quantity,
+                            CASE
+                                WHEN COALESCE(SUM(CASE WHEN t.side = 'BUY' THEN t.quantity ELSE 0 END), 0) = 0 THEN 0
+                                ELSE COALESCE(SUM(CASE WHEN t.side = 'BUY' THEN t.quantity * t.unit_price + COALESCE(t.fee_amount, 0) END), 0) / 
+                                     COALESCE(SUM(CASE WHEN t.side = 'BUY' THEN t.quantity ELSE 0 END), 1)
+                            END as average_cost
+                        FROM instrument i
+                        LEFT JOIN trade_transaction t ON t.instrument_id = i.id
+                            AND t.portfolio_id = ?
+                            AND DATE(t.executed_at) <= ?
+                        WHERE i.is_active = TRUE
+                            AND EXISTS (
+                                SELECT 1 FROM trade_transaction t2
+                                WHERE t2.portfolio_id = ? AND t2.instrument_id = i.id
+                            )
+                        GROUP BY i.id
+                        HAVING quantity > 0
+                    ) hist
+                    LEFT JOIN (
+                        SELECT mp.instrument_id, mp.close_price
+                        FROM market_price mp
+                        INNER JOIN (
+                            SELECT instrument_id, MAX(price_date) as latest_date
+                            FROM market_price
+                            WHERE price_date <= ? AND instrument_id IN (
+                                SELECT DISTINCT instrument_id FROM trade_transaction WHERE portfolio_id = ?
+                            )
+                            GROUP BY instrument_id
+                        ) latest ON mp.instrument_id = latest.instrument_id AND mp.price_date = latest.latest_date
+                    ) mp ON mp.instrument_id = hist.id
+                    ON DUPLICATE KEY UPDATE
+                        priced_market_value = VALUES(priced_market_value),
+                        total_cost_basis = VALUES(total_cost_basis),
+                        priced_cost_basis = VALUES(priced_cost_basis),
+                        unrealized_pnl = VALUES(unrealized_pnl),
+                        priced_position_count = VALUES(priced_position_count),
+                        unpriced_position_count = VALUES(unpriced_position_count),
+                        calculated_at = CURRENT_TIMESTAMP(6)
+                    """,
+                    portfolioId,
+                    valuationDate,
+                    portfolioId,
+                    valuationDate,
+                    portfolioId,
+                    valuationDate,
+                    portfolioId);
+        } catch (Exception e) {
+            // Skip if this date's snapshot cannot be calculated
+        }
     }
 }

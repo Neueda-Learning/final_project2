@@ -150,4 +150,26 @@ class TradingControllerTest {
         assertThat(requestCaptor.getValue().tradeDate()).isEqualTo(tradeDate);
         assertThat(requestCaptor.getValue().unitPrice()).isEqualByComparingTo("214.05");
     }
+
+        @Test
+        void createTransactionMapsIllegalStateToConflictInsteadOf500() throws Exception {
+                given(tradingService.createTransaction(eq(PORTFOLIO_ID), eq("trade-key"), any()))
+                                .willThrow(new IllegalStateException("Insufficient quantity"));
+
+                mockMvc.perform(post("/api/v1/portfolios/{portfolioId}/transactions", PORTFOLIO_ID)
+                                                .header("Idempotency-Key", "trade-key")
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .content("""
+                                                                {
+                                                                  "instrumentId": "33333333-3333-3333-3333-333333333333",
+                                                                  "side": "SELL",
+                                                                  "quantity": "2",
+                                                                  "tradeDate": "2026-07-27",
+                                                                  "unitPrice": "214.05",
+                                                                  "feeAmount": "0"
+                                                                }
+                                                                """))
+                                .andExpect(status().isConflict())
+                                .andExpect(jsonPath("$.code").value("CONFLICT"));
+        }
 }

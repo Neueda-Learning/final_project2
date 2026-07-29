@@ -93,13 +93,133 @@ public class AnalyticsService {
                 allocation);
     }
 
-    @Transactional(readOnly = true)
+    private void rebuildValuationSnapshotsForPortfolio(
+            String portfolioId, LocalDate fromDate, LocalDate toDate) {
+        if (fromDate == null || toDate == null || fromDate.isAfter(toDate)) {
+            return;
+        }
+
+        // Keep this resilient but deterministic: rebuild the full requested window.
+        jdbc.update(
+                """
+                DELETE FROM portfolio_valuation_snapshot
+                WHERE portfolio_id = ? AND valuation_date >= ? AND valuation_date <= ?
+                """,
+                portfolioId,
+                fromDate,
+                toDate);
+
+        LocalDate current = fromDate;
+        while (!current.isAfter(toDate)) {
+            int dayOfWeek = current.getDayOfWeek().getValue();
+            if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+                insertValuationSnapshot(portfolioId, current);
+            }
+            current = current.plusDays(1);
+        }
+    }
+
+    private void insertValuationSnapshot(String portfolioId, LocalDate valuationDate) {
+        try {
+            jdbc.update(
+                    """
+                    INSERT INTO portfolio_valuation_snapshot
+                    (portfolio_id, valuation_date, priced_market_value, total_cost_basis,
+                     priced_cost_basis, unrealized_pnl, priced_position_count, unpriced_position_count,
+                     calculated_at)
+                    SELECT
+                        ?,
+                        ?,
+                        COALESCE(SUM(CASE WHEN p.close_price IS NOT NULL THEN h.quantity * p.close_price ELSE h.quantity * h.avg_cost END), 0),
+                        COALESCE(SUM(h.quantity * h.avg_cost), 0),
+                        COALESCE(SUM(h.quantity * h.avg_cost), 0),
+                        COALESCE(SUM(CASE WHEN p.close_price IS NOT NULL THEN (h.quantity * p.close_price) - (h.quantity * h.avg_cost) ELSE 0 END), 0),
+                        COUNT(CASE WHEN p.close_price IS NOT NULL THEN 1 END),
+                        COUNT(*) - COUNT(CASE WHEN p.close_price IS NOT NULL THEN 1 END),
+                        CURRENT_TIMESTAMP(6)
+                    FROM (
+                        SELECT
+                            t.instrument_id,
+                            SUM(CASE WHEN t.side = 'BUY' THEN t.quantity ELSE -t.quantity END) as quantity,
+                            CASE
+                                WHEN SUM(CASE WHEN t.side = 'BUY' THEN t.quantity ELSE 0 END) = 0 THEN 0
+                                ELSE SUM(CASE WHEN t.side = 'BUY' THEN t.quantity * t.unit_price + COALESCE(t.fee_amount, 0) ELSE 0 END) /
+                                     SUM(CASE WHEN t.side = 'BUY' THEN t.quantity ELSE 0 END)
+                            END as avg_cost
+                        FROM trade_transaction t
+                        WHERE t.portfolio_id = ? AND DATE(t.executed_at) <= ?
+                        GROUP BY t.instrument_id
+                        HAVING quantity > 0
+                    ) h
+                    LEFT JOIN (
+                        SELECT DISTINCT mp.instrument_id, mp.close_price
+                        FROM market_price mp
+                        INNER JOIN (
+                            SELECT instrument_id, MAX(price_date) as max_date
+                            FROM market_price
+                            WHERE price_date <= ? AND instrument_id IN (
+                                SELECT DISTINCT instrument_id FROM trade_transaction WHERE portfolio_id = ?
+                            )
+                            GROUP BY instrument_id
+                        ) latest ON mp.instrument_id = latest.instrument_id AND mp.price_date = latest.max_date
+                    ) p ON h.instrument_id = p.instrument_id
+                    ON DUPLICATE KEY UPDATE
+                        priced_market_value = VALUES(priced_market_value),
+                        total_cost_basis = VALUES(total_cost_basis),
+                        priced_cost_basis = VALUES(priced_cost_basis),
+                        unrealized_pnl = VALUES(unrealized_pnl),
+                        priced_position_count = VALUES(priced_position_count),
+                        unpriced_position_count = VALUES(unpriced_position_count),
+                        calculated_at = CURRENT_TIMESTAMP(6)
+                    """,
+                    portfolioId,
+                    valuationDate,
+                    portfolioId,
+                    valuationDate,
+                    valuationDate,
+                    portfolioId);
+        } catch (Exception e) {
+            // Keep performance endpoint resilient; skip a failed day and continue.
+        }
+    }
+
+    @Transactional
     public PerformanceResponse performance(String portfolioId, LocalDate from, LocalDate to) {
         if (from != null && to != null && from.isAfter(to)) {
             throw new InvalidDateRangeException("from must be on or before to");
         }
 
         Portfolio portfolio = ownedPortfolio(portfolioId);
+
+        LocalDate effectiveTo = to != null ? to : LocalDate.now();
+
+        // If 'from' is not specified: show from earliest buy date, capped to one month window.
+        LocalDate effectiveFrom = from;
+        if (effectiveFrom == null) {
+            LocalDate earliestTransaction = jdbc.queryForObject(
+                    """
+                    SELECT DATE(COALESCE(
+                        MIN(CASE WHEN side = 'BUY' THEN executed_at END),
+                        MIN(executed_at)
+                    ))
+                    FROM trade_transaction
+                    WHERE portfolio_id = ?
+                    """,
+                    LocalDate.class,
+                    portfolioId);
+
+            if (earliestTransaction != null) {
+                // Use the later one so we don't go further back than one month.
+                LocalDate oneMonthAgo = LocalDate.now().minusMonths(1);
+                effectiveFrom = earliestTransaction.isBefore(oneMonthAgo) ? oneMonthAgo : earliestTransaction;
+            }
+        }
+
+        // Rebuild snapshots on the performance path so both new and existing portfolios self-heal.
+        if (effectiveFrom != null) {
+            rebuildValuationSnapshotsForPortfolio(portfolioId, effectiveFrom, effectiveTo);
+        }
+
         StringBuilder sql = new StringBuilder(
                 """
                 SELECT valuation_date, priced_market_value, total_cost_basis,
@@ -115,13 +235,13 @@ public class AnalyticsService {
                 """);
         List<Object> args = new ArrayList<>();
         args.add(portfolioId);
-        if (from != null) {
+        if (effectiveFrom != null) {
             sql.append(" AND valuation_date >= ?");
-            args.add(from);
+            args.add(effectiveFrom);
         }
-        if (to != null) {
+        if (effectiveTo != null) {
             sql.append(" AND valuation_date <= ?");
-            args.add(to);
+            args.add(effectiveTo);
         }
         sql.append(" ORDER BY valuation_date ASC");
 

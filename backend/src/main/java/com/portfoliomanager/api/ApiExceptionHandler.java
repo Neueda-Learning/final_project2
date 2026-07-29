@@ -7,6 +7,7 @@ import com.portfoliomanager.service.InvalidDateRangeException;
 import com.portfoliomanager.service.MarketDataUnavailableException;
 import com.portfoliomanager.service.ResourceNotFoundException;
 import com.portfoliomanager.service.ServiceNotReadyException;
+import jakarta.persistence.OptimisticLockException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.UUID;
@@ -81,6 +82,22 @@ public class ApiExceptionHandler {
             ServiceNotReadyException exception,
             HttpServletRequest request) {
         return error("SERVICE_NOT_READY", exception.getMessage(), List.of(), request);
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorResponse illegalState(
+            IllegalStateException exception,
+            HttpServletRequest request) {
+        return error("CONFLICT", exception.getMessage(), List.of(), request);
+    }
+
+    @ExceptionHandler(OptimisticLockException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorResponse optimisticLock(
+            OptimisticLockException exception,
+            HttpServletRequest request) {
+        return error("CONCURRENT_MODIFICATION", "Concurrent modification detected", List.of(), request);
     }
 
     private ErrorResponse error(
