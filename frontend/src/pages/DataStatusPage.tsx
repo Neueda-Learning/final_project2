@@ -4,6 +4,7 @@ import { api } from "../api/client";
 import { ErrorBox } from "../components/ErrorBox";
 import { PageHeader } from "../components/PageHeader";
 import { SyncStatusBadge } from "../components/StatusBadge";
+import { SyncProgress, SyncStageText } from "../components/SyncProgress";
 import { formatDateTime } from "../lib/format";
 import { useLanguage } from "../i18n/LanguageContext";
 
@@ -28,21 +29,6 @@ export function DataStatusPage() {
   });
   const syncData = latestSyncQuery.data;
   const syncIsRunning = syncData?.status === "RUNNING";
-  const syncProgress = syncData?.status === "RUNNING" && syncData.requestedCount > 0
-    ? Math.round(
-        ((syncData.successCount + syncData.failureCount)
-          / syncData.requestedCount) * 100,
-      )
-    : 0;
-  const syncStageLabel = syncData
-    ? {
-        QUEUED: t("data.stage.queued"),
-        FETCHING_MARKET_DATA: t("data.stage.fetching"),
-        REFRESHING_CURRENT_VALUATIONS: t("data.stage.refreshingValuations"),
-        REBUILDING_HISTORICAL_VALUATIONS: t("data.stage.rebuildingHistory"),
-        COMPLETED: t("data.stage.completed"),
-      }[syncData.stage]
-    : null;
 
   return (
     <>
@@ -56,8 +42,10 @@ export function DataStatusPage() {
             disabled={triggerMutation.isPending || syncIsRunning}
             onClick={() => triggerMutation.mutate(false)}
           >
-            {triggerMutation.isPending || syncIsRunning
+            {triggerMutation.isPending
               ? t("data.syncing")
+              : syncIsRunning
+                ? t("data.syncRunning")
               : t("data.syncNow")}
           </button>
         }
@@ -75,22 +63,14 @@ export function DataStatusPage() {
         ) : latestSyncQuery.data ? (
           <>
           {syncIsRunning ? (
-            <div className="sync-progress" aria-label={t("data.progress")}>
-              <div className="sync-progress__meta">
-                <span>{t("data.progress")}</span>
-                <strong>{syncProgress}%</strong>
-              </div>
-              <div className="sync-progress__track">
-                <span style={{ width: `${syncProgress}%` }} />
-              </div>
-            </div>
+            <SyncProgress sync={syncData} />
           ) : null}
           <dl className="detail-grid">
             <div><dt>{t("data.provider")}</dt><dd>{latestSyncQuery.data.provider}</dd></div>
             <div><dt>{t("table.status")}</dt><dd>
               <SyncStatusBadge status={latestSyncQuery.data.status} />
             </dd></div>
-            <div><dt>{t("data.stage")}</dt><dd>{syncStageLabel}</dd></div>
+            <div><dt>{t("data.stage")}</dt><dd><SyncStageText stage={latestSyncQuery.data.stage} /></dd></div>
             <div><dt>{t("data.requested")}</dt><dd>{latestSyncQuery.data.requestedCount}</dd></div>
             <div><dt>{t("data.successful")}</dt><dd>{latestSyncQuery.data.successCount}</dd></div>
             <div><dt>{t("data.failed")}</dt><dd>{latestSyncQuery.data.failureCount}</dd></div>
