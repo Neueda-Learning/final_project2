@@ -51,7 +51,6 @@ export function InstrumentInsightPanel({
     .filter((v) => !isNaN(v));
   const high60 = allCloses.length > 0 ? Math.max(...allCloses) : null;
   const low60 = allCloses.length > 0 ? Math.min(...allCloses) : null;
-  const currentClose = latestPrice ? parseFloat(latestPrice.closePrice) : null;
 
   // 30-day return (between index 0 and index 29, or last available)
   let return30d: number | null = null;
@@ -79,12 +78,6 @@ export function InstrumentInsightPanel({
         logReturns.reduce((a, r) => a + (r - mean) ** 2, 0) / logReturns.length;
       annualizedVol = Math.sqrt(variance * 252) * 100;
     }
-  }
-
-  // Where current price sits in the 60-day range (0–100)
-  let rangePosition: number | null = null;
-  if (currentClose !== null && high60 !== null && low60 !== null && high60 > low60) {
-    rangePosition = Math.max(0, Math.min(100, ((currentClose - low60) / (high60 - low60)) * 100));
   }
 
   const hasStats = allCloses.length > 0 && latestPrice;
