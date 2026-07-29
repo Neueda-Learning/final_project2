@@ -79,7 +79,7 @@ public class MarketDataService {
     public Optional<SyncRunResponse> latestSyncRun() {
         return querySyncRuns(
                         """
-                        SELECT id, provider, status, requested_count, success_count,
+                        SELECT id, provider, status, stage, requested_count, success_count,
                                failure_count, started_at, completed_at, triggered_by,
                                error_summary
                         FROM market_data_sync_run
@@ -320,7 +320,7 @@ public class MarketDataService {
     private Optional<SyncRunResponse> currentRunningSync() {
         return querySyncRuns(
                         """
-                        SELECT id, provider, status, requested_count, success_count,
+                        SELECT id, provider, status, stage, requested_count, success_count,
                                failure_count, started_at, completed_at, triggered_by,
                                error_summary
                         FROM market_data_sync_run
@@ -335,7 +335,7 @@ public class MarketDataService {
     private Optional<SyncRunResponse> findSyncRun(String id) {
         return jdbc.query(
                         """
-                        SELECT id, provider, status, requested_count, success_count,
+                        SELECT id, provider, status, stage, requested_count, success_count,
                                failure_count, started_at, completed_at, triggered_by,
                                error_summary
                         FROM market_data_sync_run
@@ -356,6 +356,7 @@ public class MarketDataService {
                 rs.getString("id"),
                 rs.getString("provider"),
                 com.portfoliomanager.domain.SyncStatus.valueOf(rs.getString("status")),
+                com.portfoliomanager.domain.SyncStage.valueOf(rs.getString("stage")),
                 rs.getInt("requested_count"),
                 rs.getInt("success_count"),
                 rs.getInt("failure_count"),

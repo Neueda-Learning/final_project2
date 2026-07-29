@@ -180,6 +180,13 @@ CREATE TABLE IF NOT EXISTS market_data_sync_run (
                             'PARTIAL',
                             'FAILED'
                         ) NOT NULL DEFAULT 'RUNNING',
+    stage               enum(
+                            'QUEUED',
+                            'FETCHING_MARKET_DATA',
+                            'REFRESHING_CURRENT_VALUATIONS',
+                            'REBUILDING_HISTORICAL_VALUATIONS',
+                            'COMPLETED'
+                        ) NOT NULL DEFAULT 'QUEUED',
     requested_count     int NOT NULL DEFAULT 0,
     success_count       int NOT NULL DEFAULT 0,
     failure_count       int NOT NULL DEFAULT 0,

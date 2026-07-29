@@ -76,7 +76,7 @@ export function DashboardPage() {
               ) : performanceQuery.isError ? (
                 <ErrorBox error={performanceQuery.error} onRetry={() => performanceQuery.refetch()} />
               ) : performanceQuery.data && performanceQuery.data.points.length > 0 ? (
-                <PerformanceChart points={performanceQuery.data.points} currency={currency} />
+                <PerformanceChart points={performanceQuery.data.points} />
               ) : (
                 <EmptyState
                   icon="📉"

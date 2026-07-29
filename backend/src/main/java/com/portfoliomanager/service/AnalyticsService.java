@@ -103,7 +103,12 @@ public class AnalyticsService {
         StringBuilder sql = new StringBuilder(
                 """
                 SELECT valuation_date, priced_market_value, total_cost_basis,
-                       priced_cost_basis, unrealized_pnl, priced_position_count,
+                       priced_cost_basis, unrealized_pnl,
+                       CASE
+                           WHEN priced_cost_basis = 0 THEN NULL
+                           ELSE ROUND(unrealized_pnl / priced_cost_basis * 100, 8)
+                       END AS return_pct,
+                       priced_position_count,
                        unpriced_position_count
                 FROM portfolio_valuation_snapshot
                 WHERE portfolio_id = ?
@@ -177,6 +182,7 @@ public class AnalyticsService {
                 rs.getBigDecimal("total_cost_basis"),
                 rs.getBigDecimal("priced_cost_basis"),
                 rs.getBigDecimal("unrealized_pnl"),
+                rs.getBigDecimal("return_pct"),
                 rs.getInt("priced_position_count"),
                 rs.getInt("unpriced_position_count"));
     }
