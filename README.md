@@ -1,8 +1,31 @@
 # Portfolio Manager
 
-A portfolio-management MVP for stocks and ETFs. The project combines a React and
-TypeScript client, a Java 21 Spring Boot API, an independent Spring market-data
-worker, and MySQL 8.
+## Basic information
+
+### Short description
+
+Portfolio Manager is a full-stack portfolio-management MVP for stocks and ETFs.
+It enables users to manage portfolios, record trades, track holdings, synchronize
+market data, and review portfolio valuations and analytics.
+
+### Technology
+
+- Frontend: React, TypeScript, and Vite
+- Backend: Java 21 and Spring Boot 4.1.0
+- Database: MySQL 8
+- Market data: Independent Spring-based synchronization worker
+- Infrastructure: Docker and Docker Compose
+- API documentation: OpenAPI and Swagger UI
+
+### Team
+
+| Member | Responsibility |
+| --- | --- |
+| Keristen | All frontend development (PRD 1) |
+| Viko | User and portfolio backend (PRD 2) |
+| Tommy | Instrument, trade, and holding backend (PRD 3) |
+| Jermaine | Market-data synchronization backend (PRD 4) |
+| Leon | Valuation analysis and backend integration (PRD 5) |
 
 ## Project structure
 
