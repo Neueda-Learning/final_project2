@@ -51,7 +51,7 @@ public class TradingController {
             @RequestParam(required = false)
                     @Schema(description = "Search query (symbol or name fragment)")
                     String query,
-            @RequestParam(defaultValue = "10") @Min(1) @Max(50) int limit) {
+            @RequestParam(defaultValue = "10") @Min(1) @Max(250) int limit) {
         return new InstrumentListResponse(service.searchInstruments(query, limit));
     }
 

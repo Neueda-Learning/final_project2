@@ -38,6 +38,8 @@ const initialForm = (): TradeFormState => ({
   note: "",
 });
 
+const CURATED_UNIVERSE_LIMIT = 250;
+
 function fieldError(error: unknown, field: string): string | null {
   if (!(error instanceof ApiError)) return null;
   const msgs = error.fieldErrors[field];
@@ -52,6 +54,14 @@ export function HoldingsPage() {
   const [form, setForm] = useState<TradeFormState>(initialForm);
   const [sectorId, setSectorId] = useState<CuratedSectorId>("core");
   const [idemKey, setIdemKey] = useState<string>(crypto.randomUUID());
+  const [instrumentSearch, setInstrumentSearch] = useState("");
+  const [syncingInstrument, setSyncingInstrument] = useState<{
+    runId: string;
+    instrumentId: string;
+    symbol: string;
+  } | null>(null);
+
+  const normalizedInstrumentSearch = instrumentSearch.trim();
 
   const positionsQuery = useQuery({
     queryKey: ["positions", portfolioId],
@@ -61,8 +71,18 @@ export function HoldingsPage() {
 
   const instrumentsQuery = useQuery({
     queryKey: ["instruments", "curated-universe"],
-    queryFn: () => api.instruments.list(50),
+    queryFn: () => api.instruments.list(CURATED_UNIVERSE_LIMIT),
     staleTime: 10 * 60 * 1000,
+  });
+
+  const curatedUniverseIsTruncated =
+    (instrumentsQuery.data?.items.length ?? 0) >= CURATED_UNIVERSE_LIMIT;
+
+  const instrumentSearchQuery = useQuery({
+    queryKey: ["instruments", "search", normalizedInstrumentSearch],
+    queryFn: () => api.instruments.search(normalizedInstrumentSearch, 20),
+    enabled: normalizedInstrumentSearch.length > 0,
+    staleTime: 60 * 1000,
   });
 
   const pricesQuery = useQuery({
@@ -98,6 +118,18 @@ export function HoldingsPage() {
     refetchInterval: 60 * 1000,
   });
 
+  const instrumentSyncProgressQuery = useQuery({
+    queryKey: ["sync-run", syncingInstrument?.runId],
+    queryFn: () => api.marketData.getSyncRun(syncingInstrument!.runId),
+    enabled: Boolean(syncingInstrument?.runId),
+    refetchInterval: (query) => {
+      if (!syncingInstrument) return false;
+      const run = query.state.data;
+      if (!run) return 2_000;
+      return run.status === "RUNNING" ? 2_000 : false;
+    },
+  });
+
   const submitMutation = useMutation({
     mutationFn: () =>
       api.transactions.create(
@@ -125,9 +157,22 @@ export function HoldingsPage() {
     },
   });
 
+  const syncInstrumentMutation = useMutation({
+    mutationFn: (instrument: Instrument) => api.marketData.syncInstrument(instrument.id, false),
+    onSuccess: (run, instrument) => {
+      setSyncingInstrument({
+        runId: run.id,
+        instrumentId: instrument.id,
+        symbol: instrument.symbol,
+      });
+    },
+  });
+
   useEffect(() => {
     setForm(initialForm());
     setIdemKey(crypto.randomUUID());
+    setInstrumentSearch("");
+    setSyncingInstrument(null);
   }, [portfolioId]);
 
   useEffect(() => {
@@ -141,6 +186,31 @@ export function HoldingsPage() {
           },
     );
   }, [form.instrument, form.tradeDate, pricesQuery.isPending, referencePrice]);
+
+  useEffect(() => {
+    if (!syncingInstrument) return;
+    const run = instrumentSyncProgressQuery.data;
+    if (!run || run.status === "RUNNING") return;
+
+    void Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["tradable-prices", syncingInstrument.instrumentId] }),
+      queryClient.invalidateQueries({ queryKey: ["intraday-bars", syncingInstrument.instrumentId] }),
+      queryClient.invalidateQueries({ queryKey: ["latest-sync"] }),
+    ]);
+    setSyncingInstrument(null);
+  }, [instrumentSyncProgressQuery.data, queryClient, syncingInstrument]);
+
+  const selectInstrument = (instrument: Instrument, syncOnDemand: boolean) => {
+    setForm((state) => ({
+      ...state,
+      instrument,
+      unitPrice: "",
+    }));
+
+    if (syncOnDemand) {
+      syncInstrumentMutation.mutate(instrument);
+    }
+  };
 
   const beijingToday = beijingTodayISODate();
   const tradeDateIsInFuture =
@@ -164,6 +234,7 @@ export function HoldingsPage() {
   const feeAmountError = fieldError(submitMutation.error, "feeAmount");
   const noteError = fieldError(submitMutation.error, "note");
   const instrumentError = fieldError(submitMutation.error, "instrumentId");
+  const instrumentSearchResults = instrumentSearchQuery.data?.items ?? [];
 
   return (
     <>
@@ -211,6 +282,67 @@ export function HoldingsPage() {
             className="trade-form"
           >
             <div className="form-group">
+              <div className="search-wrap">
+                <label className="form-label" htmlFor="instrument-search">
+                  {t("holdings.search")}
+                </label>
+                <input
+                  id="instrument-search"
+                  className="form-input"
+                  placeholder={t("holdings.searchPlaceholder")}
+                  value={instrumentSearch}
+                  onChange={(event) => setInstrumentSearch(event.target.value)}
+                  autoComplete="off"
+                />
+
+                {normalizedInstrumentSearch.length > 0 ? (
+                  <div className="search-results" role="listbox" aria-label={t("holdings.searchResults")}>
+                    {instrumentSearchQuery.isPending ? (
+                      <div className="search-result-item">
+                        <span className="search-result-item__name">{t("common.loading")}</span>
+                      </div>
+                    ) : null}
+
+                    {instrumentSearchQuery.isError ? (
+                      <div className="search-result-item">
+                        <span className="search-result-item__name">{t("common.requestFailed")}</span>
+                      </div>
+                    ) : null}
+
+                    {!instrumentSearchQuery.isPending
+                    && !instrumentSearchQuery.isError
+                    && instrumentSearchResults.length === 0 ? (
+                      <div className="search-result-item">
+                        <span className="search-result-item__name">{t("holdings.searchNoResults")}</span>
+                      </div>
+                    ) : null}
+
+                    {!instrumentSearchQuery.isPending && !instrumentSearchQuery.isError
+                      ? instrumentSearchResults.map((instrument) => (
+                          <button
+                            type="button"
+                            role="option"
+                            key={instrument.id}
+                            className="search-result-item"
+                            onClick={() => {
+                              selectInstrument(instrument, true);
+                              setInstrumentSearch("");
+                            }}
+                          >
+                            <span className="search-result-item__symbol">{instrument.symbol}</span>
+                            <span className="search-result-item__name">{instrument.name}</span>
+                            <span className="search-result-item__type">{instrument.assetType}</span>
+                          </button>
+                        ))
+                      : null}
+                  </div>
+                ) : null}
+              </div>
+
+              {syncingInstrument ? (
+                <div className="form-hint">{t("holdings.searchSyncing", { symbol: syncingInstrument.symbol })}</div>
+              ) : null}
+
               {instrumentsQuery.isLoading ? (
                 <div className="curated-picker-loading" aria-label={t("common.loading")}>
                   <div />
@@ -226,6 +358,7 @@ export function HoldingsPage() {
                   instruments={instrumentsQuery.data.items}
                   selectedInstrument={form.instrument}
                   sectorId={sectorId}
+                  isUniverseTruncated={curatedUniverseIsTruncated}
                   onSectorChange={(nextSectorId) => {
                     setSectorId(nextSectorId);
                     setForm((state) => ({
@@ -234,16 +367,11 @@ export function HoldingsPage() {
                       unitPrice: "",
                     }));
                   }}
-                  onSelect={(instrument) =>
-                    setForm((state) => ({
-                      ...state,
-                      instrument,
-                      unitPrice: "",
-                    }))
-                  }
+                  onSelect={(instrument) => selectInstrument(instrument, false)}
                 />
               ) : null}
               {instrumentError ? <div className="form-error">{instrumentError}</div> : null}
+              {syncInstrumentMutation.isError ? <ErrorBox error={syncInstrumentMutation.error} /> : null}
             </div>
 
             <div className="trade-execution-grid">

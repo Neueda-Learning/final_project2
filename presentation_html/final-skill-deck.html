@@ -493,6 +493,7 @@
 
   /* Four-card story pages: both rows share and fill the remaining height. */
   body.layout-adaptive-v3 .slide[data-title="Our Project"] > .grid-tight,
+  body.layout-adaptive-v3 .slide[data-title="Project Scope"] > .grid-tight,
   body.layout-adaptive-v3 .slide[data-title="Conclusion"] > .grid-tight {
     min-height: 0;
     gap: clamp(18px, 1.5vw, 26px);
@@ -503,11 +504,16 @@
     flex: 1.12 1 0;
   }
 
+  body.layout-adaptive-v3 .slide[data-title="Project Scope"] > .grid-tight:first-of-type {
+    flex: 1 1 0;
+  }
+
   body.layout-adaptive-v3 .slide[data-title="Our Project"] > .grid-tight:nth-of-type(2) {
     flex: 0.88 1 0;
   }
 
   body.layout-adaptive-v3 .slide[data-title="Our Project"] .card,
+  body.layout-adaptive-v3 .slide[data-title="Project Scope"] .card,
   body.layout-adaptive-v3 .slide[data-title="Conclusion"] .card {
     display: flex;
     flex-direction: column;
@@ -516,7 +522,8 @@
     padding: clamp(24px, 2vw, 34px);
   }
 
-  body.layout-adaptive-v3 .slide[data-title="Our Project"] .card {
+  body.layout-adaptive-v3 .slide[data-title="Our Project"] .card,
+  body.layout-adaptive-v3 .slide[data-title="Project Scope"] .card {
     box-shadow: inset 0 4px 0 color-mix(in srgb, var(--accent) 68%, transparent);
   }
 
@@ -969,12 +976,15 @@
   }
 
   body.variant-bold-v5 .slide[data-title="Our Project"] .card h3,
+  body.variant-bold-v5 .slide[data-title="Project Scope"] .card h3,
   body.variant-bold-v5 .slide[data-title="Demo"] .card h3 {
     font-size: clamp(32px, 2.4vw, 40px);
   }
 
   body.variant-bold-v5 .slide[data-title="Our Project"] .card p,
   body.variant-bold-v5 .slide[data-title="Our Project"] .card li,
+  body.variant-bold-v5 .slide[data-title="Project Scope"] .card p,
+  body.variant-bold-v5 .slide[data-title="Project Scope"] .card li,
   body.variant-bold-v5 .slide[data-title="Demo"] .card p {
     font-size: clamp(26px, 1.95vw, 33px);
   }
@@ -988,6 +998,7 @@
   }
 
   body.variant-bold-v5 .slide[data-title="Our Project"] .card,
+  body.variant-bold-v5 .slide[data-title="Project Scope"] .card,
   body.variant-bold-v5 .slide[data-title="Demo"] .card,
   body.variant-bold-v5 .slide[data-title="Demo"] .timeline-box {
     padding: clamp(30px, 2.55vw, 44px);
@@ -1024,9 +1035,85 @@
 
     body.variant-bold-v5 .slide[data-title="Our Project"] .card p,
     body.variant-bold-v5 .slide[data-title="Our Project"] .card li,
+    body.variant-bold-v5 .slide[data-title="Project Scope"] .card p,
+    body.variant-bold-v5 .slide[data-title="Project Scope"] .card li,
     body.variant-bold-v5 .slide[data-title="Demo"] .card p {
       font-size: clamp(23px, 1.65vw, 28px);
     }
+  }
+
+  /* Product evidence focus
+     Crop away navigation and the oversized page heading while preserving the
+     full KPI row, allocation chart, and return history at presentation scale. */
+  body.variant-bold-v5 .slide[data-title="Product Experience"] > .grid-tight {
+    grid-template-columns: minmax(0, 1.7fr) minmax(360px, 0.72fr);
+    align-items: center !important;
+  }
+
+  body.variant-bold-v5 .slide[data-title="Product Experience"] .img-block {
+    height: auto;
+    align-self: center;
+    justify-content: center;
+  }
+
+  body.variant-bold-v5 .slide[data-title="Product Experience"] .dashboard-focus-viewport {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 2.2 / 1;
+    overflow: hidden;
+    background: var(--bg-soft);
+  }
+
+  body.variant-bold-v5 .slide[data-title="Product Experience"] .dashboard-focus-viewport img {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    height: auto !important;
+    max-width: none;
+    min-height: 0;
+    object-fit: initial;
+    object-position: initial;
+    transform: translateY(-29%);
+    transform-origin: top center;
+  }
+
+  body.variant-bold-v5 .slide[data-title="Product Experience"] .img-caption {
+    padding: clamp(14px, 1.7vh, 19px) clamp(18px, 1.4vw, 24px);
+  }
+
+  body.variant-bold-v5 .slide[data-title="Product Experience"] .card {
+    height: 100%;
+    padding-left: clamp(26px, 2.1vw, 38px);
+    padding-right: clamp(26px, 2.1vw, 38px);
+  }
+
+  /* Technology table focus
+     With the rationale cards removed, the table becomes the single visual and
+     uses the full remaining height at a larger presentation-safe type scale. */
+  body.variant-bold-v5 .slide[data-title="Tech Stack"] > .table-wrap {
+    flex: 1 1 0;
+    min-height: 0;
+    margin-top: clamp(22px, 3vh, 34px);
+  }
+
+  body.variant-bold-v5 .slide[data-title="Tech Stack"] table.compact {
+    height: 100%;
+  }
+
+  body.variant-bold-v5 .slide[data-title="Tech Stack"] table.compact th {
+    font-size: clamp(24px, 1.7vw, 30px);
+    line-height: 1.18;
+    padding: clamp(17px, 1.8vh, 25px) clamp(18px, 1.4vw, 27px);
+  }
+
+  body.variant-bold-v5 .slide[data-title="Tech Stack"] table.compact td {
+    font-size: clamp(23px, 1.55vw, 29px);
+    line-height: 1.3;
+    padding: clamp(17px, 1.8vh, 25px) clamp(18px, 1.4vw, 27px);
+  }
+
+  body.variant-bold-v5 .slide[data-title="Tech Stack"] table.compact td:first-child {
+    font-size: clamp(25px, 1.7vw, 31px);
   }
 
   @media print {
@@ -1054,7 +1141,7 @@
       <span class="badge">Demo-ready reliability</span>
     </div>
     <p class="body-copy mt-m" style="font-size:clamp(18px,1.3vw,24px);letter-spacing:0.06em;font-weight:700;color:var(--text-3);">Kristen &nbsp;·&nbsp; Viko &nbsp;·&nbsp; Tommy &nbsp;·&nbsp; Jermaine &nbsp;·&nbsp; Leon</p>
-    <div class="deck-footer"><span class="dim2">acceptors · cover</span><span class="slide-number" data-current="1" data-total="12"></span></div>
+    <div class="deck-footer"><span class="dim2">acceptors · cover</span><span class="slide-number" data-current="1" data-total="13"></span></div>
     <div class="notes">Hi morning everyone. We are Team Acceptors, and today we're excited to present our Portfolio Manager MVP. 
       
       Before I come to our project, we would like to introduce ourselves first. 
@@ -1086,27 +1173,40 @@
       </div>
     </div>
 
-    <div class="grid-tight g2-tight mt-m">
-      <div class="card">
-        <h3>What We Were Asked To Do</h3>
-        <p>Build core record browsing, basic metrics visibility, add/remove flow, and a working end-to-end backend integration.</p>
-      </div>
-      <div class="card">
-        <h3>Expected Product Standard</h3>
-        <p>Provide a coherent user journey with reliable API behavior, observable data freshness, and demo-grade stability for stakeholder review.</p>
-      </div>
-    </div>
-
-    <div class="deck-footer"><span class="dim2">acceptors · project story</span><span class="slide-number" data-current="2" data-total="12"></span></div>
+    <div class="deck-footer"><span class="dim2">acceptors · project story</span><span class="slide-number" data-current="2" data-total="13"></span></div>
     <div class="notes">Before introducing the system, let's first look at the problem we wanted to solve.
 
 Many investors manage their portfolios using multiple spreadsheets, brokerage platforms, or different applications. As a result, portfolio records become fragmented, making it difficult to get a complete picture of their investments.
 
 Another common challenge is that profit and loss tracking is often done manually. This process is not only time-consuming but also prone to errors and delays. Without a unified view of their holdings, users may struggle to make timely investment decisions.
 
-To address these problems, we developed a Portfolio Manager that brings everything together in one platform. Users can manage their portfolios, view the entire trade lifecycle, monitor live portfolio valuations, and analyze asset allocation using up-to-date market data. Every transaction is recorded, making the trading process transparent, traceable, and easy to audit.
+To address these problems, we developed a Portfolio Manager that brings everything together in one platform. Users can manage their portfolios, view the entire trade lifecycle, monitor live portfolio valuations, and analyze asset allocation using up-to-date market data. Every transaction is recorded, making the trading process transparent, traceable, and easy to audit.</div>
+  </section>
 
-For this project, our goal was to build the core features of the application, including portfolio and transaction management, key portfolio metrics, add and remove operations, and complete backend integration.
+  <section class="slide" data-title="Project Scope">
+    <p class="kicker">Our Project</p>
+    <h2 class="h2">Delivery Scope and Product Standard</h2>
+    <div class="grid-tight g2-tight mt-m">
+      <div class="card">
+        <h3>What We Were Asked To Do</h3>
+        <ul class="bullet-list">
+          <li>Build core portfolio and transaction record browsing.</li>
+          <li>Expose basic portfolio metrics with clear visibility.</li>
+          <li>Support add/remove operations with end-to-end backend integration.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Expected Product Standard</h3>
+        <ul class="bullet-list">
+          <li>Provide a coherent user journey from action to result.</li>
+          <li>Ensure reliable API behavior and predictable responses.</li>
+          <li>Keep data freshness observable with demo-grade stability.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="deck-footer"><span class="dim2">acceptors · scope and standard</span><span class="slide-number" data-current="3" data-total="13"></span></div>
+    <div class="notes">For this project, our goal was to build the core features of the application, including portfolio and transaction management, key portfolio metrics, add and remove operations, and complete backend integration.
 
 Ultimately, we aimed to deliver a reliable product with a smooth user experience, stable APIs, and synchronized market data that is robust enough for a live demonstration and stakeholder evaluation.</div>
   </section>
@@ -1140,7 +1240,7 @@ Ultimately, we aimed to deliver a reliable product with a smooth user experience
       </div>
     </div>
 
-    <div class="deck-footer"><span class="dim2">acceptors · live demo</span><span class="slide-number" data-current="3" data-total="12"></span></div>
+    <div class="deck-footer"><span class="dim2">acceptors · live demo</span><span class="slide-number" data-current="4" data-total="13"></span></div>
     <div class="notes">Our demo story is structured around one complete business action, not disconnected clicks. We start from current portfolio state, perform a trading interaction, and then verify the impact in valuation outputs. If the live environment is unstable, we keep the same narrative using prepared states and screenshot evidence. This ensures the audience still sees the architecture and product logic clearly.</div>
   </section>
 
@@ -1192,7 +1292,7 @@ Ultimately, we aimed to deliver a reliable product with a smooth user experience
       </table>
     </div>
     <p class="body-copy mt-m">Execution model: role-based ownership with frequent integration checkpoints and contract alignment.</p>
-    <div class="deck-footer"><span class="dim2">acceptors · team</span><span class="slide-number" data-current="4" data-total="12"></span></div>
+    <div class="deck-footer"><span class="dim2">acceptors · team</span><span class="slide-number" data-current="5" data-total="13"></span></div>
     <div class="notes">This slide shows our ownership model. Each member owned a core business module, which gave us clear accountability and faster decision-making. We combined independent ownership with shared integration checkpoints, so we could move quickly without fragmenting the system. This setup helped us keep both delivery speed and integration quality under control.</div>
   </section>
 
@@ -1225,7 +1325,7 @@ Ultimately, we aimed to deliver a reliable product with a smooth user experience
       </div>
     </div>
 
-    <div class="deck-footer"><span class="dim2">acceptors · approach</span><span class="slide-number" data-current="5" data-total="12"></span></div>
+    <div class="deck-footer"><span class="dim2">acceptors · approach</span><span class="slide-number" data-current="6" data-total="13"></span></div>
     <div class="notes">Our delivery strategy was to make the core journey work first, then progressively increase robustness. We learned that integration quality depends on contract clarity between frontend, API, and worker boundaries. Teamwork quality came from visible ownership plus fast feedback, not from everyone touching everything. This approach reduced rework and helped us keep the product presentation-ready throughout development.</div>
   </section>
 
@@ -1260,7 +1360,7 @@ Ultimately, we aimed to deliver a reliable product with a smooth user experience
       </div>
     </div>
 
-    <div class="deck-footer"><span class="dim2">acceptors · flow</span><span class="slide-number" data-current="6" data-total="12"></span></div>
+    <div class="deck-footer"><span class="dim2">acceptors · flow</span><span class="slide-number" data-current="7" data-total="13"></span></div>
     <div class="notes">This is the business-critical sequence in one view. A user action enters through trade input, passes rule validation, updates durable records, and then triggers valuation updates through the market sync pipeline. The final dashboard output is therefore not cosmetic; it reflects a complete data lifecycle. This flow is what gives the product trust and operational value.</div>
   </section>
 
@@ -1269,21 +1369,37 @@ Ultimately, we aimed to deliver a reliable product with a smooth user experience
     <h2 class="h2">Interface Evidence and Business Readability</h2>
     <div class="grid-tight g2-tight mt-m" style="align-items: stretch;">
       <div class="img-block">
-        <img src="../assets/dashboard.png" alt="Portfolio dashboard screenshot">
-        <div class="img-caption">Dashboard view: market value, cost basis, unrealized P&amp;L, and allocation summary.</div>
+        <div class="dashboard-focus-viewport">
+          <img src="../assets/dashboard.png" alt="Focused portfolio dashboard showing KPIs, allocation, and return history">
+        </div>
+        <div class="img-caption">Focused dashboard view: market value, cost basis, unrealized P&amp;L, allocation, and return trend.</div>
       </div>
       <div class="card">
         <h3>Key Readouts</h3>
         <ul class="bullet-list">
-          <li>KPI cards for fast decision-making.</li>
-          <li>Position details with sync and price status.</li>
-          <li>Trade entry aligned with real portfolio workflow.</li>
-          <li>Data freshness tied to market sync pipeline.</li>
+          <li>Portfolio KPIs and allocation at a glance.</li>
+          <li>Position-level price and sync status.</li>
+          <li>Trade entry stays in the same workflow.</li>
+          <li>Market data keeps portfolio valuation current.</li>
         </ul>
       </div>
     </div>
-    <div class="deck-footer"><span class="dim2">acceptors · product evidence</span><span class="slide-number" data-current="7" data-total="12"></span></div>
-    <div class="notes">Now, let's look at our product interface. This is the main portfolio dashboard. Users can quickly see the total market value, total cost, unrealized profit or loss, and asset allocation. They can also check each position and its latest price status. The trade entry function is part of the same workflow. This makes it easier for users to manage their portfolios. The key point is that this is not a static dashboard. It is connected to our backend and market data system. When the market price changes, the portfolio value can also be updated. This helps users understand their portfolios more quickly and make better decisions.</div>
+    <div class="deck-footer"><span class="dim2">acceptors · product evidence</span><span class="slide-number" data-current="8" data-total="13"></span></div>
+    <div class="notes">Now, let’s look at our product interface.
+
+This is the main portfolio dashboard.
+
+Users can quickly see the total market value, total cost, unrealized profit or loss, and asset allocation.
+
+They can also check each position and its latest price status.
+
+The trade entry function is part of the same workflow. This makes it easier for users to manage their portfolios.
+
+The key point is that this is not a static dashboard. It is connected to our backend and market data system.
+
+When the market price changes, the portfolio value can also be updated.
+
+This helps users understand their portfolios more quickly and make better decisions.</div>
   </section>
 
   <section class="slide" data-title="Architectural Diagram">
@@ -1390,7 +1506,7 @@ Ultimately, we aimed to deliver a reliable product with a smooth user experience
       <span><i class="dot" style="background:#b45309"></i>External integration</span>
       <span><i class="dot" style="background:#334155"></i>Quality assurance</span>
     </div>
-    <div class="deck-footer"><span class="dim2">acceptors · architecture</span><span class="slide-number" data-current="8" data-total="12"></span></div>
+    <div class="deck-footer"><span class="dim2">acceptors · architecture</span><span class="slide-number" data-current="9" data-total="13"></span></div>
     <div class="notes">This diagram shows the architecture of our system. At the top, we have the main user request path. The React frontend sends an HTTP request to the Spring Boot backend. The backend checks the request and then reads or updates data in MySQL. After that, the result is sent back to the frontend. At the bottom, we have a separate background worker. The worker regularly gets the latest prices from an external market data API. It then saves the new prices to the database. We separated these two paths because external APIs can sometimes be slow. Users do not need to wait for a market data request every time they use the system. We also use a CI pipeline to test our changes. This architecture makes the system easier to test, maintain, and extend.</div>
   </section>
 
@@ -1436,18 +1552,7 @@ Ultimately, we aimed to deliver a reliable product with a smooth user experience
       </table>
     </div>
 
-    <div class="stack-rationale mt-m">
-      <div class="rationale-block">
-        <h3>Design Logic</h3>
-        <p><strong>Application Focus:</strong> Typed UI + structured APIs reduce ambiguity across layers. <strong>Data Discipline:</strong> Persistent records and migrations make the system explainable. <strong>Operational Confidence:</strong> Documentation and CI checks support repeatable delivery.</p>
-      </div>
-      <div class="rationale-block">
-        <h3>Takeaway</h3>
-        <p>Our stack choices were driven by maintainability, observability, and stable product behavior rather than novelty. We prioritized reliable delivery over technical variety.</p>
-      </div>
-    </div>
-
-    <div class="deck-footer"><span class="dim2">acceptors · technology</span><span class="slide-number" data-current="9" data-total="12"></span></div>
+    <div class="deck-footer"><span class="dim2">acceptors · technology</span><span class="slide-number" data-current="10" data-total="13"></span></div>
     <div class="notes">Finally, this slide shows our main technology choices. For the frontend, we use React, TypeScript, and Vite. They help us build the interface quickly and keep the code clear. For the backend, we use Java 21 and Spring Boot. They provide stable REST APIs and support our business logic. We use MySQL 8 to store portfolio data, trades, holdings, and market prices. We also use scheduled worker jobs to update market data in the background. For quality control, we use CI tests and API documentation. These tools help us find problems earlier. They also help different team members follow the same API rules. Overall, we chose this technology stack because it is reliable and easy to maintain.</div>
   </section>
 

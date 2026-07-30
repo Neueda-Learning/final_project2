@@ -3,6 +3,7 @@ package com.portfoliomanager.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -32,6 +33,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 @ExtendWith(MockitoExtension.class)
 class TradingServiceTest {
@@ -41,6 +43,7 @@ class TradingServiceTest {
     @Mock private TradeTransactionRepository transactions;
     @Mock private PortfolioPositionRepository positions;
     @Mock private JdbcTemplate jdbc;
+    @Mock private UsMarketInstrumentSearchService marketSearch;
     @Mock private Portfolio portfolio;
     @Mock private Instrument instrument;
     @Mock private PortfolioPosition position;
@@ -50,7 +53,13 @@ class TradingServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new TradingService(instruments, portfolios, transactions, positions, jdbc);
+        service = new TradingService(
+                instruments,
+                portfolios,
+                transactions,
+                positions,
+                jdbc,
+                marketSearch);
     }
 
     @Test
@@ -60,6 +69,47 @@ class TradingServiceTest {
         assertThat(service.searchInstruments(null, 50)).isEmpty();
 
         verify(instruments).findByActiveTrueOrderBySymbol();
+        verify(marketSearch, never()).search(any(), anyInt());
+        }
+
+        @Test
+        void searchInstrumentsBackfillsFromExternalUsMarketWhenLocalMatchesAreInsufficient() {
+        String query = "AAPL";
+        Pageable pageable = PageRequest.of(0, 10);
+        given(instruments.searchActive(query, pageable))
+            .willReturn(List.of())
+            .willReturn(List.of(instrument));
+        given(marketSearch.search(query, 20)).willReturn(List.of(
+            new UsMarketInstrumentSearchService.DiscoveredInstrument(
+                "AAPL",
+                "Apple Inc.",
+                "NASDAQ",
+                "USD",
+                "STOCK",
+                "AAPL")));
+        given(instrument.getId()).willReturn("instrument-aapl");
+        given(instrument.getSymbol()).willReturn("AAPL");
+        given(instrument.getName()).willReturn("Apple Inc.");
+        given(instrument.getAssetType()).willReturn(AssetType.STOCK);
+        given(instrument.getExchangeCode()).willReturn("NASDAQ");
+        given(instrument.getCurrency()).willReturn("USD");
+        given(instrument.isActive()).willReturn(true);
+
+        var results = service.searchInstruments(query, 10);
+
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).symbol()).isEqualTo("AAPL");
+        verify(marketSearch).search(query, 20);
+        verify(jdbc).update(
+            org.mockito.ArgumentMatchers.argThat(sql ->
+                sql.contains("INSERT INTO instrument")),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any());
     }
 
     @Test

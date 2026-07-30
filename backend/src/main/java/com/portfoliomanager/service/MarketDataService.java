@@ -25,6 +25,7 @@ public class MarketDataService {
 
     private static final ZoneId BEIJING_ZONE = ZoneId.of("Asia/Shanghai");
     private static final String LOCK_NAME = "portfolio_manager_market_sync";
+    private static final String INSTRUMENT_LOCK_PREFIX = "pmms_instrument_";
     private static final Set<String> INTRADAY_INTERVALS =
             Set.of("1min", "5min", "15min", "30min");
 
@@ -101,6 +102,89 @@ public class MarketDataService {
         }
     }
 
+    @Transactional
+    public SyncRunResponse requestInstrumentSync(String instrumentId, boolean force) {
+        requireActiveInstrument(instrumentId);
+
+        Optional<SyncRunResponse> existingInstrumentRun =
+            currentManualInstrumentRun(instrumentId);
+        if (existingInstrumentRun.isPresent() && !force) {
+            return existingInstrumentRun.get();
+        }
+
+        if (!force) {
+            // Use an instrument-scoped lock so requests can still be queued
+            // while another global sync is processing.
+            String instrumentLock = instrumentLockName(instrumentId);
+            Integer acquired = jdbc.queryForObject(
+                    "SELECT GET_LOCK(?, 0)", Integer.class, instrumentLock);
+            if (acquired == null || acquired != 1) {
+                return currentManualInstrumentRun(instrumentId).orElseThrow(
+                        () -> new MarketDataUnavailableException(
+                                "Market-data synchronization is unavailable. Please try again later."));
+            }
+
+            try {
+                existingInstrumentRun = currentManualInstrumentRun(instrumentId);
+                if (existingInstrumentRun.isPresent()) {
+                    return existingInstrumentRun.get();
+                }
+                return createInstrumentSyncRun(instrumentId);
+            } finally {
+                jdbc.queryForObject("SELECT RELEASE_LOCK(?)", Integer.class, instrumentLock);
+            }
+        }
+
+        Integer acquired =
+                jdbc.queryForObject("SELECT GET_LOCK(?, 0)", Integer.class, LOCK_NAME);
+        if (acquired == null || acquired != 1) {
+            return currentManualInstrumentRun(instrumentId).orElseThrow(
+                    () -> new MarketDataUnavailableException(
+                            "Market-data synchronization is unavailable. Please try again later."));
+        }
+
+        try {
+            if (force) {
+                // Abandon any stuck running sync so a fresh one can start
+                jdbc.update("""
+                        UPDATE market_data_sync_run
+                        SET status = 'FAILED', stage = 'COMPLETED',
+                            completed_at = CURRENT_TIMESTAMP(6),
+                            error_summary = 'Abandoned: force-resync requested'
+                        WHERE status = 'RUNNING'
+                        """);
+            } else {
+                existingInstrumentRun = currentManualInstrumentRun(instrumentId);
+                if (existingInstrumentRun.isPresent()) {
+                    return existingInstrumentRun.get();
+                }
+            }
+
+            return createInstrumentSyncRun(instrumentId);
+        } finally {
+            jdbc.queryForObject("SELECT RELEASE_LOCK(?)", Integer.class, LOCK_NAME);
+        }
+    }
+
+    private String instrumentLockName(String instrumentId) {
+        return INSTRUMENT_LOCK_PREFIX + instrumentId.replace("-", "");
+    }
+
+    private SyncRunResponse createInstrumentSyncRun(String instrumentId) {
+        String id = UUID.randomUUID().toString();
+        jdbc.update(
+                """
+                INSERT INTO market_data_sync_run (
+                    id, provider, status, requested_count, success_count,
+                    failure_count, started_at, triggered_by, target_instrument_id
+                ) VALUES (?, ?, 'RUNNING', 0, 0, 0, CURRENT_TIMESTAMP(6), 'MANUAL', ?)
+                """,
+                id,
+                provider,
+                instrumentId);
+        return findSyncRun(id).orElseThrow();
+    }
+
     public Optional<SyncRunResponse> latestSyncRun() {
         abandonStaleQueuedManualRuns();
         return querySyncRuns(
@@ -114,6 +198,11 @@ public class MarketDataService {
                         """)
                 .stream()
                 .findFirst();
+    }
+
+    public Optional<SyncRunResponse> syncRunById(String runId) {
+        abandonStaleQueuedManualRuns();
+        return findSyncRun(runId);
     }
 
     public MarketPriceResponse latestPrice(String instrumentId) {
@@ -356,6 +445,17 @@ public class MarketDataService {
         }
     }
 
+    private void requireActiveInstrument(String instrumentId) {
+        Integer instrumentCount = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM instrument WHERE id = ? AND is_active = TRUE",
+                Integer.class,
+                instrumentId);
+        if (instrumentCount == null || instrumentCount == 0) {
+            throw new ResourceNotFoundException(
+                    "Instrument not found or inactive: " + instrumentId);
+        }
+    }
+
     private MarketPriceResponse mapMarketPrice(ResultSet rs, int rowNum) throws SQLException {
         LocalDate priceDate = rs.getDate("price_date").toLocalDate();
         return new MarketPriceResponse(
@@ -386,6 +486,25 @@ public class MarketDataService {
                 .stream()
                 .findFirst();
     }
+
+        private Optional<SyncRunResponse> currentManualInstrumentRun(String instrumentId) {
+                abandonStaleQueuedManualRuns();
+                return querySyncRuns(
+                                                """
+                                                SELECT id, provider, status, stage, requested_count, success_count,
+                                                             failure_count, started_at, completed_at, triggered_by,
+                                                             error_summary
+                                                FROM market_data_sync_run
+                                                WHERE status = 'RUNNING'
+                                                    AND triggered_by = 'MANUAL'
+                                                    AND target_instrument_id = ?
+                                                ORDER BY started_at DESC
+                                                LIMIT 1
+                                                """,
+                                                instrumentId)
+                                .stream()
+                                .findFirst();
+        }
 
         private void abandonStaleQueuedManualRuns() {
                 jdbc.update(
@@ -420,8 +539,8 @@ public class MarketDataService {
                 .findFirst();
     }
 
-    private java.util.List<SyncRunResponse> querySyncRuns(String sql) {
-        return jdbc.query(sql, this::mapSyncRun);
+    private java.util.List<SyncRunResponse> querySyncRuns(String sql, Object... args) {
+        return jdbc.query(sql, this::mapSyncRun, args);
     }
 
     private SyncRunResponse mapSyncRun(ResultSet rs, int rowNum) throws SQLException {

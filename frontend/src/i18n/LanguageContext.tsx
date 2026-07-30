@@ -97,6 +97,8 @@ const en = {
   "holdings.change": "Change",
   "holdings.searchPlaceholder": "Search by symbol or name, for example AAPL",
   "holdings.searchResults": "Instrument search results",
+  "holdings.searchNoResults": "No instruments found. Try another symbol or company name.",
+  "holdings.searchSyncing": "Syncing live prices for {symbol}...",
   "holdings.curatedEyebrow": "Curated universe",
   "holdings.curatedTitle": "Choose what to trade",
   "holdings.curatedDescription": "Start with a strategy, then select one of its 10 market-data-ready stocks or ETFs.",
@@ -194,7 +196,10 @@ const en = {
   "insight.noData": "No price history available",
 } as const;
 
-type TranslationKey = keyof typeof en;
+type TranslationKey =
+  | keyof typeof en
+  | "holdings.searchNoResults"
+  | "holdings.searchSyncing";
 
 const zh: Record<TranslationKey, string> = {
   "app.name": "Clearfolio",
@@ -291,6 +296,8 @@ const zh: Record<TranslationKey, string> = {
   "holdings.change": "更换",
   "holdings.searchPlaceholder": "输入股票代码或名称，例如 AAPL",
   "holdings.searchResults": "标的搜索结果",
+  "holdings.searchNoResults": "没有找到匹配标的，请换个代码或名称试试。",
+  "holdings.searchSyncing": "正在同步 {symbol} 的实时价格...",
   "holdings.curatedEyebrow": "精选标的池",
   "holdings.curatedTitle": "选择交易标的",
   "holdings.curatedDescription": "先选择投资板块，再从 10 个已配置真实行情的股票或 ETF 中挑选。",

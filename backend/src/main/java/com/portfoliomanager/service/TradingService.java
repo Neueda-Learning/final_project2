@@ -22,9 +22,13 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -55,18 +59,31 @@ public class TradingService {
     private final TradeTransactionRepository transactions;
     private final PortfolioPositionRepository positions;
     private final JdbcTemplate jdbc;
+    private final UsMarketInstrumentSearchService marketSearch;
 
+    @Autowired
     public TradingService(
             InstrumentRepository instruments,
             PortfolioRepository portfolios,
             TradeTransactionRepository transactions,
             PortfolioPositionRepository positions,
-            JdbcTemplate jdbc) {
+            JdbcTemplate jdbc,
+            UsMarketInstrumentSearchService marketSearch) {
         this.instruments = instruments;
         this.portfolios = portfolios;
         this.transactions = transactions;
         this.positions = positions;
         this.jdbc = jdbc;
+        this.marketSearch = marketSearch;
+    }
+
+    TradingService(
+            InstrumentRepository instruments,
+            PortfolioRepository portfolios,
+            TradeTransactionRepository transactions,
+            PortfolioPositionRepository positions,
+            JdbcTemplate jdbc) {
+        this(instruments, portfolios, transactions, positions, jdbc, null);
     }
 
     /** Lists active instruments or searches them by symbol or name fragment. */
@@ -78,9 +95,97 @@ public class TradingService {
                     .toList();
         }
 
-        return instruments.searchActive(query.trim(), PageRequest.of(0, limit)).stream()
+        String normalizedQuery = query.trim();
+        List<InstrumentResponse> localResults = instruments.searchActive(
+                        normalizedQuery, PageRequest.of(0, limit))
+                .stream()
                 .map(TradingService::toInstrumentResponse)
                 .toList();
+
+        if (localResults.size() >= limit || marketSearch == null) {
+            return localResults;
+        }
+
+        List<UsMarketInstrumentSearchService.DiscoveredInstrument> discovered =
+                marketSearch.search(normalizedQuery, Math.max(limit * 2, 20));
+        if (!discovered.isEmpty()) {
+            upsertDiscoveredInstruments(discovered);
+            localResults = instruments.searchActive(normalizedQuery, PageRequest.of(0, limit)).stream()
+                    .map(TradingService::toInstrumentResponse)
+                    .toList();
+        }
+
+        return localResults;
+    }
+
+    private void upsertDiscoveredInstruments(
+            List<UsMarketInstrumentSearchService.DiscoveredInstrument> discovered) {
+        String sql =
+                """
+                INSERT INTO instrument (
+                    id, symbol, name, asset_type, exchange_code,
+                    currency, provider_symbol, is_active
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, TRUE)
+                ON DUPLICATE KEY UPDATE
+                    name = VALUES(name),
+                    asset_type = VALUES(asset_type),
+                    currency = VALUES(currency),
+                    provider_symbol = VALUES(provider_symbol),
+                    is_active = TRUE,
+                    updated_at = CURRENT_TIMESTAMP(6)
+                """;
+
+        Set<String> seen = new HashSet<>();
+        for (UsMarketInstrumentSearchService.DiscoveredInstrument instrument : discovered) {
+            String symbol = clampUpper(instrument.symbol(), 32);
+            String exchangeCode = clampUpper(instrument.exchangeCode(), 32);
+            String key = exchangeCode + "|" + symbol;
+            if (symbol.isBlank() || exchangeCode.isBlank() || !seen.add(key)) {
+                continue;
+            }
+
+            String name = clamp(instrument.name(), 200);
+            String currency = clampUpper(instrument.currency(), 3);
+            String providerSymbol = clamp(
+                    instrument.providerSymbol() == null || instrument.providerSymbol().isBlank()
+                            ? symbol
+                            : instrument.providerSymbol().trim(),
+                    64);
+            String assetType = "ETF".equalsIgnoreCase(instrument.assetType())
+                    ? "ETF"
+                    : "STOCK";
+
+            jdbc.update(
+                    sql,
+                    UUID.randomUUID().toString(),
+                    symbol,
+                    name,
+                    assetType,
+                    exchangeCode,
+                    currency,
+                    providerSymbol);
+        }
+    }
+
+    private String clamp(String value, int maxLength) {
+        if (value == null) {
+            return "";
+        }
+        String trimmed = value.trim();
+        if (trimmed.isEmpty()) {
+            return "";
+        }
+        return trimmed.length() <= maxLength
+                ? trimmed
+                : trimmed.substring(0, maxLength);
+    }
+
+    private String clampUpper(String value, int maxLength) {
+        String clamped = clamp(value, maxLength);
+        if (clamped.isEmpty()) {
+            return "";
+        }
+        return clamped.toUpperCase(Locale.ROOT);
     }
 
     /**

@@ -8,6 +8,7 @@ interface CuratedInstrumentPickerProps {
   instruments: Instrument[];
   selectedInstrument: Instrument | null;
   sectorId: CuratedSectorId;
+  isUniverseTruncated?: boolean;
   onSectorChange: (sectorId: CuratedSectorId) => void;
   onSelect: (instrument: Instrument) => void;
 }
@@ -16,6 +17,7 @@ export function CuratedInstrumentPicker({
   instruments,
   selectedInstrument,
   sectorId,
+  isUniverseTruncated = false,
   onSectorChange,
   onSelect,
 }: CuratedInstrumentPickerProps) {
@@ -25,6 +27,8 @@ export function CuratedInstrumentPicker({
   const sectorInstruments = activeSector.symbols
     .map((symbol) => instrumentsBySymbol.get(symbol))
     .filter((instrument): instrument is Instrument => Boolean(instrument));
+  const hasMissingSectorInstruments =
+    sectorInstruments.length < activeSector.symbols.length;
   const longestSymbolLength = sectorInstruments.reduce(
     (maxLength, instrument) => Math.max(maxLength, instrument.symbol.length),
     0,
@@ -94,7 +98,7 @@ export function CuratedInstrumentPicker({
         })}
       </div>
 
-      {sectorInstruments.length < 10 ? (
+      {hasMissingSectorInstruments && !isUniverseTruncated ? (
         <p className="curated-picker__notice">{t("holdings.curatedUnavailable")}</p>
       ) : null}
     </div>

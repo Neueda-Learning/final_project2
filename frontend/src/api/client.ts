@@ -151,8 +151,17 @@ export const api = {
         body: JSON.stringify({ force }),
       }),
 
+    syncInstrument: (instrumentId: string, force = false) =>
+      request<SyncRun>(`${V1}/market-data/sync/instruments/${instrumentId}`, {
+        method: "POST",
+        body: JSON.stringify({ force }),
+      }),
+
     getLatestSync: () =>
       request<SyncRun | null>(`${V1}/market-data/sync-runs/latest`),
+
+    getSyncRun: (runId: string) =>
+      request<SyncRun | null>(`${V1}/market-data/sync-runs/${runId}`),
 
     getLatestPrice: (instrumentId: string) =>
       request<MarketPrice>(`${V1}/instruments/${instrumentId}/latest-price`),

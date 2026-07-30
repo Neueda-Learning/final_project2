@@ -128,7 +128,7 @@ public class MarketDataSyncJob {
     private void processRun(String runId) {
         List<String> errors = new ArrayList<>();
         try {
-            List<InstrumentTarget> targets = loadActiveTargets();
+            List<InstrumentTarget> targets = loadTargetsForRun(runId);
             jdbc.update(
                     """
                     UPDATE market_data_sync_run
@@ -424,6 +424,35 @@ public class MarketDataSyncJob {
                         rs.getString("id"),
                         rs.getString("provider_symbol"),
                         rs.getString("currency")));
+    }
+
+    private List<InstrumentTarget> loadTargetsForRun(String runId) {
+        String targetInstrumentId = jdbc.queryForObject(
+                "SELECT target_instrument_id FROM market_data_sync_run WHERE id = ?",
+                String.class,
+                runId);
+        if (targetInstrumentId == null || targetInstrumentId.isBlank()) {
+            return loadActiveTargets();
+        }
+
+        List<InstrumentTarget> target = jdbc.query(
+                """
+                SELECT i.id, COALESCE(i.provider_symbol, i.symbol) provider_symbol,
+                       i.currency
+                FROM instrument i
+                WHERE i.id = ?
+                  AND i.is_active = TRUE
+                """,
+                (rs, rowNum) -> new InstrumentTarget(
+                        rs.getString("id"),
+                        rs.getString("provider_symbol"),
+                        rs.getString("currency")),
+                targetInstrumentId);
+        if (target.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Instrument sync target is unavailable: " + targetInstrumentId);
+        }
+        return target;
     }
 
     private void refreshValuationSnapshots(
