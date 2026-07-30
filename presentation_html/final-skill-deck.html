@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="corporate-clean" data-theme-base="../html-ppt-skill-main/html-ppt-skill-main/assets/themes/">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Acceptors · Portfolio Manager · Final Presentation</title>
+<link rel="stylesheet" href="../html-ppt-skill-main/html-ppt-skill-main/assets/fonts.css">
+<link rel="stylesheet" href="../html-ppt-skill-main/html-ppt-skill-main/assets/base.css">
+<link rel="stylesheet" id="theme-link" href="../html-ppt-skill-main/html-ppt-skill-main/assets/themes/corporate-clean.css">
+<link rel="stylesheet" href="../html-ppt-skill-main/html-ppt-skill-main/assets/animations/animations.css">
+<style>
+  :root {
+    --safe-w: min(1760px, 100vw - 120px);
+    --safe-h: min(990px, 100vh - 120px);
+  }
+
+  .deck {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .slide {
+    padding: 60px 84px 52px;
+    overflow: hidden;
+    justify-content: flex-start;
+  }
+
+  .slide h1.h1 {
+    font-size: clamp(56px, 5.5vw, 86px);
+    line-height: 1.03;
+    margin-bottom: 14px;
+    letter-spacing: -0.028em;
+  }
+
+  .slide h2.h2 {
+    font-size: clamp(40px, 3.8vw, 62px);
+    line-height: 1.08;
+    margin-bottom: 10px;
+    letter-spacing: -0.022em;
+  }
+
+  .kicker {
+    font-size: clamp(16px, 1.4vw, 20px);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .lede {
+    font-size: clamp(28px, 2.25vw, 38px);
+    line-height: 1.45;
+    max-width: 62ch;
+    color: var(--text-2);
+  }
+
+  .deck-footer {
+    left: 56px;
+    right: 56px;
+    bottom: 16px;
+    font-size: clamp(15px, 1.05vw, 18px);
+    font-weight: 600;
+  }
+
+  .grid-tight {
+    display: grid;
+    gap: 16px;
+  }
+
+  .g2-tight {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .g3-tight {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .card {
+    border-radius: 16px;
+    padding: 18px 20px;
+    box-shadow: none;
+    border: 1px solid var(--border);
+  }
+
+  .card h4,
+  .card h3 {
+    font-size: clamp(24px, 1.8vw, 30px);
+    line-height: 1.2;
+    margin: 0 0 10px;
+    font-weight: 750;
+    color: var(--text-1);
+  }
+
+  .card p,
+  .card li,
+  .dim,
+  .body-copy {
+    font-size: clamp(21px, 1.45vw, 27px);
+    line-height: 1.46;
+    color: var(--text-2);
+    font-weight: 520;
+  }
+
+  .bullet-list {
+    margin: 0;
+    padding-left: 28px;
+    display: grid;
+    gap: 8px;
+  }
+
+  .metric-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+
+  .metric {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    background: var(--surface);
+  }
+
+  .metric .v {
+    font-size: clamp(42px, 3.1vw, 56px);
+    line-height: 1;
+    font-weight: 850;
+    color: var(--accent);
+    margin-bottom: 5px;
+  }
+
+  .metric .k {
+    font-size: clamp(16px, 1.1vw, 20px);
+    line-height: 1.2;
+    color: var(--text-3);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .flow-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .flow-node {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    padding: 14px 12px;
+    text-align: center;
+    font-size: clamp(18px, 1.25vw, 24px);
+    line-height: 1.35;
+    font-weight: 680;
+    color: var(--text-1);
+    min-height: 94px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .flow-arrow {
+    font-size: clamp(30px, 2vw, 38px);
+    color: var(--accent);
+    font-weight: 800;
+  }
+
+  .timeline-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+
+  .timeline-box {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface);
+    padding: 15px;
+  }
+
+  .timeline-box .tag {
+    font-size: clamp(15px, 1.05vw, 19px);
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+
+  .timeline-box .txt {
+    font-size: clamp(22px, 1.45vw, 27px);
+    line-height: 1.4;
+    font-weight: 690;
+  }
+
+  .table-wrap {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    background: var(--surface);
+  }
+
+  table.compact {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+
+  table.compact th,
+  table.compact td {
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    padding: 10px 11px;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  table.compact th:last-child,
+  table.compact td:last-child {
+    border-right: none;
+  }
+
+  table.compact tr:last-child td {
+    border-bottom: none;
+  }
+
+  table.compact th {
+    background: var(--bg-soft);
+    font-size: clamp(17px, 1.12vw, 21px);
+    line-height: 1.2;
+    font-weight: 800;
+    color: var(--text-1);
+  }
+
+  table.compact td {
+    font-size: clamp(17px, 1.08vw, 21px);
+    line-height: 1.34;
+    color: var(--text-2);
+    font-weight: 560;
+  }
+
+  .bar-item {
+    display: grid;
+    grid-template-columns: 170px 1fr 62px;
+    align-items: center;
+    gap: 10px;
+    margin: 9px 0;
+    font-size: clamp(17px, 1.1vw, 21px);
+    font-weight: 700;
+    color: var(--text-1);
+  }
+
+  .bar-track {
+    width: 100%;
+    height: 12px;
+    background: color-mix(in srgb, var(--accent) 14%, #fff);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    background: var(--grad);
+  }
+
+  .img-block {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .img-block img {
+    width: 100%;
+    height: 410px;
+    object-fit: cover;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .img-caption {
+    font-size: clamp(18px, 1.12vw, 21px);
+    line-height: 1.4;
+    color: var(--text-2);
+    padding: 10px 12px;
+    font-weight: 560;
+  }
+
+  .arch-shell {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface);
+    padding: 10px;
+  }
+
+  .legend {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+    font-size: clamp(16px, 1vw, 19px);
+    color: var(--text-2);
+    font-weight: 700;
+  }
+
+  .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 999px;
+    display: inline-block;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+
+  .badge-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .badge {
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: clamp(15px, 0.98vw, 18px);
+    font-weight: 730;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-2);
+  }
+
+  .tech-grid {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 14px;
+    align-items: start;
+  }
+
+  .tech-grid .table-wrap {
+    margin-top: 0;
+  }
+
+  .tech-grid table.compact th,
+  .tech-grid table.compact td {
+    padding: 8px 9px;
+  }
+
+  .mini-stack {
+    display: grid;
+    gap: 12px;
+  }
+
+  .signal-list {
+    display: grid;
+    gap: 10px;
+  }
+
+  .signal-item {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    background: var(--surface);
+  }
+
+  .signal-item .signal-k {
+    font-size: clamp(15px, 0.98vw, 18px);
+    line-height: 1.2;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 800;
+    margin-bottom: 5px;
+  }
+
+  .signal-item .signal-v {
+    font-size: clamp(21px, 1.35vw, 26px);
+    line-height: 1.35;
+    color: var(--text-1);
+    font-weight: 700;
+  }
+
+  .arch-note {
+    font-size: clamp(17px, 1.02vw, 19px);
+    line-height: 1.4;
+    color: var(--text-2);
+    margin-top: 8px;
+    font-weight: 600;
+  }
+
+  .stack-rationale {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-top: 12px;
+  }
+
+  .rationale-block {
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+
+  .rationale-block h3 {
+    font-size: clamp(20px, 1.4vw, 26px);
+    line-height: 1.2;
+    margin: 0 0 10px 0;
+    font-weight: 750;
+    color: var(--text-1);
+  }
+
+  .rationale-block p {
+    font-size: clamp(18px, 1.1vw, 22px);
+    line-height: 1.45;
+    margin: 0;
+    color: var(--text-2);
+    font-weight: 550;
+  }
+
+  .notes {
+    display: none;
+  }
+
+  @media (max-width: 1400px) {
+    .slide {
+      padding: 50px 64px 44px;
+    }
+
+    .flow-node {
+      min-height: 78px;
+      font-size: 16px;
+    }
+
+    .img-block img {
+      height: 320px;
+    }
+  }
+
+  @media print {
+    .slide {
+      page-break-after: always;
+      height: 100vh;
+      opacity: 1 !important;
+      transform: none !important;
+      position: relative;
+    }
+  }
+</style>
+</head>
+<body data-themes="corporate-clean,academic-paper,minimal-white,editorial-serif,news-broadcast,engineering-whiteprint,solarized-light,arctic-cool,swiss-grid,bauhaus,soft-pastel,sunset-warm,xiaohongshu-white" data-theme-base="../html-ppt-skill-main/html-ppt-skill-main/assets/themes/">
+<div class="deck">
+
+  <section class="slide" data-title="Team Name">
+    <p class="kicker">Project Presentation</p>
+    <h1 class="h1 anim-fade-up" data-anim="fade-up">Team Acceptors:<br><span class="gradient-text">Portfolio Manager MVP</span></h1>
+    <p class="lede">A production-oriented portfolio management platform with trading flow, market data synchronization, and valuation analytics.</p>
+    <div class="badge-row mt-l anim-stagger-list" data-anim-target>
+      <span class="badge">Frontend + API + Worker</span>
+      <span class="badge">MySQL-backed domain model</span>
+      <span class="badge">CI-tested delivery</span>
+      <span class="badge">Demo-ready reliability</span>
+    </div>
+    <p class="body-copy mt-m" style="font-size:clamp(18px,1.3vw,24px);letter-spacing:0.06em;font-weight:700;color:var(--text-3);">Kristen &nbsp;·&nbsp; Viko &nbsp;·&nbsp; Tommy &nbsp;·&nbsp; Jermaine &nbsp;·&nbsp; Leon</p>
+    <div class="deck-footer"><span class="dim2">acceptors · cover</span><span class="slide-number" data-current="1" data-total="12"></span></div>
+    <div class="notes">Hello everyone, we are Team Acceptors. Our project is Portfolio Manager MVP, a system that connects user trading actions to portfolio analytics through a reliable backend workflow. In this presentation, we will walk through what problem we addressed, how we approached delivery as a team, what the product looks like in practice, and what we will optimize next. Our goal is to show a complete, practical solution rather than isolated features.</div>
+  </section>
+
+  <section class="slide" data-title="Our Project">
+    <p class="kicker">Our Project</p>
+    <h2 class="h2">Problem Statement and Target Outcome</h2>
+    <div class="grid-tight g2-tight mt-m">
+      <div class="card">
+        <h3>Business Problem</h3>
+        <ul class="bullet-list">
+          <li>Portfolio records are fragmented across tools.</li>
+          <li>Manual P&amp;L tracking is error-prone and delayed.</li>
+          <li>No single view for fast decisions.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Solution Value</h3>
+        <ul class="bullet-list">
+          <li>Unified portfolio + trade lifecycle view.</li>
+          <li>Live-priced valuation and allocation.</li>
+          <li>Traceable and auditable transaction flow.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="grid-tight g2-tight mt-m">
+      <div class="card">
+        <h3>What We Were Asked To Do</h3>
+        <p>Build core record browsing, basic metrics visibility, add/remove flow, and a working end-to-end backend integration.</p>
+      </div>
+      <div class="card">
+        <h3>Expected Product Standard</h3>
+        <p>Provide a coherent user journey with reliable API behavior, observable data freshness, and demo-grade stability for stakeholder review.</p>
+      </div>
+    </div>
+
+    <div class="deck-footer"><span class="dim2">acceptors · project story</span><span class="slide-number" data-current="2" data-total="12"></span></div>
+    <div class="notes">We started from a clear business gap: portfolio information was fragmented and difficult to trust quickly. Our objective was to unify records, expose meaningful metrics, and preserve traceability from action to analytics. The key point is that we were not building a static dashboard; we were building a workflow system where data state remains explainable end-to-end. This became the anchor for all technical and product decisions.</div>
+  </section>
+
+  <section class="slide" data-title="Demo">
+    <p class="kicker">Demo</p>
+    <h2 class="h2">Live Demonstration Plan</h2>
+    <div class="timeline-row mt-m">
+      <div class="timeline-box">
+        <div class="tag">Step 1</div>
+        <div class="txt">Open dashboard and establish baseline KPIs.</div>
+      </div>
+      <div class="timeline-box">
+        <div class="tag">Step 2</div>
+        <div class="txt">Inspect holdings and priced/unpriced coverage.</div>
+      </div>
+      <div class="timeline-box">
+        <div class="tag">Step 3</div>
+        <div class="txt">Create or inspect a trade and show valuation impact.</div>
+      </div>
+    </div>
+
+    <div class="grid-tight g2-tight mt-m">
+      <div class="card">
+        <h3>Fallback Strategy</h3>
+        <p>If API is unstable, move to screenshot-backed storytelling and focus on business logic continuity.</p>
+      </div>
+      <div class="card">
+        <h3>Demo Success Signal</h3>
+        <p>Stakeholder can track one user action from UI through API/storage to analytics output.</p>
+      </div>
+    </div>
+
+    <div class="deck-footer"><span class="dim2">acceptors · live demo</span><span class="slide-number" data-current="3" data-total="12"></span></div>
+    <div class="notes">Our demo story is structured around one complete business action, not disconnected clicks. We start from current portfolio state, perform a trading interaction, and then verify the impact in valuation outputs. If the live environment is unstable, we keep the same narrative using prepared states and screenshot evidence. This ensures the audience still sees the architecture and product logic clearly.</div>
+  </section>
+
+  <section class="slide" data-title="Team Members">
+    <p class="kicker">Team Members</p>
+    <h2 class="h2">Ownership Map</h2>
+    <div class="table-wrap mt-m">
+      <table class="compact">
+        <thead>
+          <tr>
+            <th style="width: 16%">Member</th>
+            <th style="width: 29%">Primary Ownership</th>
+            <th style="width: 35%">Delivery Focus</th>
+            <th style="width: 20%">PRD Module</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Kristen</strong></td>
+            <td>Frontend application</td>
+            <td>Dashboard UX, interaction flow, API wiring</td>
+            <td>PRD 1</td>
+          </tr>
+          <tr>
+            <td><strong>Viko</strong></td>
+            <td>Portfolio backend</td>
+            <td>Portfolio APIs and data behavior</td>
+            <td>PRD 2</td>
+          </tr>
+          <tr>
+            <td><strong>Tommy</strong></td>
+            <td>Trading and positions</td>
+            <td>Transaction consistency and positions</td>
+            <td>PRD 3</td>
+          </tr>
+          <tr>
+            <td><strong>Jermaine</strong></td>
+            <td>Market data sync</td>
+            <td>Price ingestion and sync status</td>
+            <td>PRD 4</td>
+          </tr>
+          <tr>
+            <td><strong>Leon</strong></td>
+            <td>Valuation and integration</td>
+            <td>Analytics output and integration closure</td>
+            <td>PRD 5</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="body-copy mt-m">Execution model: role-based ownership with frequent integration checkpoints and contract alignment.</p>
+    <div class="deck-footer"><span class="dim2">acceptors · team</span><span class="slide-number" data-current="4" data-total="12"></span></div>
+    <div class="notes">This slide shows our ownership model. Each member owned a core business module, which gave us clear accountability and faster decision-making. We combined independent ownership with shared integration checkpoints, so we could move quickly without fragmenting the system. This setup helped us keep both delivery speed and integration quality under control.</div>
+  </section>
+
+  <section class="slide" data-title="Delivery Approach">
+    <p class="kicker">How We Approached the Work</p>
+    <h2 class="h2">Build Method, Learning, and Collaboration</h2>
+    <div class="timeline-row mt-m">
+      <div class="timeline-box">
+        <div class="tag">Approach</div>
+        <div class="txt">Prioritize minimum complete flow first, then harden integration and visibility.</div>
+      </div>
+      <div class="timeline-box">
+        <div class="tag">What We Learned</div>
+        <div class="txt">Cross-layer contracts matter more than isolated local correctness.</div>
+      </div>
+      <div class="timeline-box">
+        <div class="tag">Team Practice</div>
+        <div class="txt">Ownership boundaries with shared checkpoints and active feedback loops.</div>
+      </div>
+    </div>
+
+    <div class="grid-tight g2-tight mt-m">
+      <div class="card">
+        <h3>Execution Principle</h3>
+        <p>Keep the product demonstrable at every integration stage, not only at the final merge.</p>
+      </div>
+      <div class="card">
+        <h3>Quality Principle</h3>
+        <p>Treat sync status, errors, and valuation outputs as first-class product signals, not hidden technical details.</p>
+      </div>
+    </div>
+
+    <div class="deck-footer"><span class="dim2">acceptors · approach</span><span class="slide-number" data-current="5" data-total="12"></span></div>
+    <div class="notes">Our delivery strategy was to make the core journey work first, then progressively increase robustness. We learned that integration quality depends on contract clarity between frontend, API, and worker boundaries. Teamwork quality came from visible ownership plus fast feedback, not from everyone touching everything. This approach reduced rework and helped us keep the product presentation-ready throughout development.</div>
+  </section>
+
+  <section class="slide" data-title="System Flow">
+    <p class="kicker">System Flow</p>
+    <h2 class="h2">From Trade Input to Analytics Output</h2>
+    <div class="flow-row mt-m">
+      <div class="flow-node">User Trade Input</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">API Validation<br>and Rules</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">DB Transaction<br>Position Update</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">Market Sync Worker</div>
+    </div>
+    <div class="flow-row mt-s" style="grid-template-columns: 1fr auto 1fr auto 1fr;">
+      <div class="flow-node">Latest Market Price</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">Valuation Snapshot</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">Dashboard Analytics Output</div>
+    </div>
+
+    <div class="grid-tight g2-tight mt-m">
+      <div class="card">
+        <h3>Reliability Controls</h3>
+        <p>Idempotent updates, explicit sync state, and bounded trade-domain validation.</p>
+      </div>
+      <div class="card">
+        <h3>User Outcome</h3>
+        <p>Faster understanding of market value, allocation, and unrealized return context.</p>
+      </div>
+    </div>
+
+    <div class="deck-footer"><span class="dim2">acceptors · flow</span><span class="slide-number" data-current="6" data-total="12"></span></div>
+    <div class="notes">This is the business-critical sequence in one view. A user action enters through trade input, passes rule validation, updates durable records, and then triggers valuation updates through the market sync pipeline. The final dashboard output is therefore not cosmetic; it reflects a complete data lifecycle. This flow is what gives the product trust and operational value.</div>
+  </section>
+
+  <section class="slide" data-title="Product Experience">
+    <p class="kicker">Product Experience</p>
+    <h2 class="h2">Interface Evidence and Business Readability</h2>
+    <div class="grid-tight g2-tight mt-m" style="align-items: stretch;">
+      <div class="img-block">
+        <img src="../assets/dashboard.png" alt="Portfolio dashboard screenshot">
+        <div class="img-caption">Dashboard view: market value, cost basis, unrealized P&amp;L, and allocation summary.</div>
+      </div>
+      <div class="card">
+        <h3>Key Readouts</h3>
+        <ul class="bullet-list">
+          <li>KPI cards for fast decision-making.</li>
+          <li>Position details with sync and price status.</li>
+          <li>Trade entry aligned with real portfolio workflow.</li>
+          <li>Data freshness tied to market sync pipeline.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="deck-footer"><span class="dim2">acceptors · product evidence</span><span class="slide-number" data-current="7" data-total="12"></span></div>
+    <div class="notes">Instead of listing interface elements, we use this screenshot as evidence of product capability. A stakeholder can immediately read portfolio value, unrealized profit and loss, and allocation distribution from one screen. This supports faster decisions and clearer operational context. The important point is not visual style alone, but that the UI reflects backend state coherently.</div>
+  </section>
+
+  <section class="slide" data-title="Architectural Diagram">
+    <p class="kicker">Architectural Diagram</p>
+    <h2 class="h2">Production-Oriented Architecture</h2>
+    <div class="arch-shell mt-m">
+      <svg viewBox="0 0 1680 360" width="100%" height="320" role="img" aria-label="Architecture diagram">
+        <defs>
+          <marker id="arr" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+            <polygon points="0,0 10,5 0,10" fill="#1d4ed8"></polygon>
+          </marker>
+          <marker id="arr-teal" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+            <polygon points="0,0 10,5 0,10" fill="#0f766e"></polygon>
+          </marker>
+          <marker id="arr-green" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+            <polygon points="0,0 10,5 0,10" fill="#15803d"></polygon>
+          </marker>
+          <marker id="arr-orange" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+            <polygon points="0,0 10,5 0,10" fill="#b45309"></polygon>
+          </marker>
+          <filter id="cardShadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#94a3b8" flood-opacity="0.16"></feDropShadow>
+          </filter>
+        </defs>
+
+        <!-- PRIMARY REQUEST PATH (Top row) -->
+        <!-- Frontend -->
+        <rect x="50" y="30" width="150" height="95" rx="14" fill="#eff6ff" stroke="#1d4ed8" stroke-width="2.5" filter="url(#cardShadow)"></rect>
+        <text x="125" y="63" text-anchor="middle" font-size="14" fill="#1d4ed8" font-weight="800">FRONTEND</text>
+        <text x="125" y="85" text-anchor="middle" font-size="25" fill="#0f172a" font-weight="750">React</text>
+        <text x="125" y="103" text-anchor="middle" font-size="15" fill="#334155" font-weight="600">TypeScript</text>
+
+        <!-- Arrow 1: Frontend -> API -->
+        <line x1="200" y1="77" x2="340" y2="77" stroke="#1d4ed8" stroke-width="3" marker-end="url(#arr)"></line>
+        <text x="270" y="61" text-anchor="middle" font-size="15" fill="#1d4ed8" font-weight="700">HTTP</text>
+
+        <!-- Backend API -->
+        <rect x="340" y="30" width="180" height="95" rx="14" fill="#ecfeff" stroke="#0f766e" stroke-width="2.5" filter="url(#cardShadow)"></rect>
+        <text x="430" y="63" text-anchor="middle" font-size="14" fill="#0f766e" font-weight="800">APPLICATION</text>
+        <text x="430" y="85" text-anchor="middle" font-size="25" fill="#0f172a" font-weight="750">Backend</text>
+        <text x="430" y="103" text-anchor="middle" font-size="15" fill="#334155" font-weight="600">Spring Boot</text>
+
+        <!-- Arrow 2: API -> Database -->
+        <line x1="520" y1="77" x2="660" y2="77" stroke="#1d4ed8" stroke-width="3" marker-end="url(#arr)"></line>
+        <text x="590" y="61" text-anchor="middle" font-size="15" fill="#1d4ed8" font-weight="700">Query</text>
+
+        <!-- Database -->
+        <rect x="660" y="30" width="150" height="95" rx="14" fill="#f8fafc" stroke="#334155" stroke-width="2.5" filter="url(#cardShadow)"></rect>
+        <text x="735" y="63" text-anchor="middle" font-size="14" fill="#475569" font-weight="800">DATA</text>
+        <text x="735" y="85" text-anchor="middle" font-size="25" fill="#0f172a" font-weight="750">MySQL</text>
+        <text x="735" y="103" text-anchor="middle" font-size="15" fill="#334155" font-weight="600">Holdings</text>
+
+        <!-- Arrow 3: DB back to API (read) -->
+        <line x1="660" y1="105" x2="520" y2="105" stroke="#0f766e" stroke-width="3" marker-end="url(#arr-teal)"></line>
+        <text x="590" y="124" text-anchor="middle" font-size="15" fill="#0f766e" font-weight="700">Read</text>
+
+        <!-- Arrow 4: API back to Frontend (response) -->
+        <line x1="340" y1="105" x2="200" y2="105" stroke="#0f766e" stroke-width="3" marker-end="url(#arr-teal)"></line>
+        <text x="270" y="124" text-anchor="middle" font-size="15" fill="#0f766e" font-weight="700">Response</text>
+
+        <!-- CI Pipeline (right side) -->
+        <rect x="1420" y="30" width="180" height="95" rx="14" fill="#f8fafc" stroke="#334155" stroke-width="2.5" filter="url(#cardShadow)"></rect>
+        <text x="1510" y="63" text-anchor="middle" font-size="14" fill="#475569" font-weight="800">QUALITY</text>
+        <text x="1510" y="85" text-anchor="middle" font-size="25" fill="#0f172a" font-weight="750">CI</text>
+        <text x="1510" y="103" text-anchor="middle" font-size="15" fill="#334155" font-weight="600">Pipeline</text>
+
+        <!-- Arrow: API validates through releases -->
+        <line x1="810" y1="77" x2="1420" y2="77" stroke="#334155" stroke-width="2.5" stroke-dasharray="6,4" marker-end="url(#arr)"></line>
+        <text x="1115" y="61" text-anchor="middle" font-size="15" fill="#334155" font-weight="700">Release checks</text>
+
+        <!-- BACKGROUND ASYNC PATH (Bottom row) -->
+        <!-- Worker -->
+        <rect x="340" y="210" width="180" height="95" rx="14" fill="#f0fdf4" stroke="#15803d" stroke-width="2.5" filter="url(#cardShadow)"></rect>
+        <text x="430" y="243" text-anchor="middle" font-size="14" fill="#15803d" font-weight="800">INTEGRATION</text>
+        <text x="430" y="265" text-anchor="middle" font-size="25" fill="#0f172a" font-weight="750">Worker</text>
+        <text x="430" y="283" text-anchor="middle" font-size="15" fill="#334155" font-weight="600">Scheduler</text>
+
+        <!-- Arrow: DB triggers Worker -->
+        <line x1="430" y1="125" x2="430" y2="210" stroke="#15803d" stroke-width="3" marker-end="url(#arr-green)"></line>
+        <text x="365" y="170" text-anchor="middle" font-size="15" fill="#15803d" font-weight="700">Trigger</text>
+
+        <!-- Arrow: Worker -> Market Data -->
+        <line x1="520" y1="257" x2="660" y2="257" stroke="#b45309" stroke-width="3" marker-end="url(#arr-orange)"></line>
+        <text x="590" y="241" text-anchor="middle" font-size="15" fill="#b45309" font-weight="700">Request</text>
+
+        <!-- Market Data Provider -->
+        <rect x="660" y="210" width="150" height="95" rx="14" fill="#fff7ed" stroke="#b45309" stroke-width="2.5" filter="url(#cardShadow)"></rect>
+        <text x="735" y="243" text-anchor="middle" font-size="14" fill="#b45309" font-weight="800">EXTERNAL</text>
+        <text x="735" y="265" text-anchor="middle" font-size="25" fill="#0f172a" font-weight="750">Market</text>
+        <text x="735" y="283" text-anchor="middle" font-size="15" fill="#334155" font-weight="600">Data API</text>
+
+        <!-- Arrow: Market Data -> Worker -->
+        <line x1="660" y1="285" x2="520" y2="285" stroke="#15803d" stroke-width="3" marker-end="url(#arr-green)"></line>
+        <text x="590" y="304" text-anchor="middle" font-size="15" fill="#15803d" font-weight="700">Return</text>
+
+        <!-- Arrow: Worker -> Database (persist) - changed to start from top of Worker -->
+        <line x1="430" y1="210" x2="735" y2="125" stroke="#15803d" stroke-width="3" marker-end="url(#arr-green)"></line>
+        <text x="570" y="151" text-anchor="middle" font-size="15" fill="#15803d" font-weight="700">Persist</text>
+      </svg>
+    </div>
+    <p class="arch-note">Two parallel data paths: synchronous user requests (blue/teal) flow through Frontend → API → Database and back; asynchronous market refresh (green) runs independently via Worker → Market Data → Database. CI validates all releases continuously.</p>
+    <div class="legend">
+      <span><i class="dot" style="background:#1d4ed8"></i>User request path</span>
+      <span><i class="dot" style="background:#15803d"></i>Async refresh path</span>
+      <span><i class="dot" style="background:#b45309"></i>External integration</span>
+      <span><i class="dot" style="background:#334155"></i>Quality assurance</span>
+    </div>
+    <div class="deck-footer"><span class="dim2">acceptors · architecture</span><span class="slide-number" data-current="8" data-total="12"></span></div>
+    <div class="notes">Our architecture has two distinct data paths. The primary path handles user requests: trades and portfolio queries flow from the React frontend through the Spring Boot backend to MySQL, with responses flowing back. This path is synchronous and optimized for responsiveness. The secondary path handles market data refresh: a background worker scheduler periodically requests the latest quotes from external market data providers and persists them to the database. The separation means user-facing operations never block on external API latency, and market data updates are decoupled from trading actions. CI continuously validates that both paths work together correctly. Each layer has clear responsibilities, making the system easier to debug, extend, and operate.</div>
+  </section>
+
+  <section class="slide" data-title="Tech Stack">
+    <p class="kicker">Tech Stack</p>
+    <h2 class="h2">Technology Choices and Why They Matter</h2>
+    <div class="table-wrap mt-m">
+      <table class="compact">
+        <thead>
+          <tr>
+            <th style="width: 18%">Layer</th>
+            <th style="width: 31%">Selected Technologies</th>
+            <th style="width: 51%">Why It Matters</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Frontend</strong></td>
+            <td>React · TypeScript · Vite</td>
+            <td>Fast delivery, maintainable state handling, and clean API integration.</td>
+          </tr>
+          <tr>
+            <td><strong>Backend</strong></td>
+            <td>Java 21 · Spring Boot</td>
+            <td>Reliable domain logic and stable REST behavior for portfolio workflows.</td>
+          </tr>
+          <tr>
+            <td><strong>Data</strong></td>
+            <td>MySQL 8 · migrations</td>
+            <td>Strong transactional consistency and explicit schema evolution.</td>
+          </tr>
+          <tr>
+            <td><strong>Worker</strong></td>
+            <td>Scheduled sync jobs</td>
+            <td>Separates quote refresh from user request latency and dashboard rendering.</td>
+          </tr>
+          <tr>
+            <td><strong>Quality</strong></td>
+            <td>CI tests · API docs</td>
+            <td>Improves delivery confidence and cross-team communication quality.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="stack-rationale mt-m">
+      <div class="rationale-block">
+        <h3>Design Logic</h3>
+        <p><strong>Application Focus:</strong> Typed UI + structured APIs reduce ambiguity across layers. <strong>Data Discipline:</strong> Persistent records and migrations make the system explainable. <strong>Operational Confidence:</strong> Documentation and CI checks support repeatable delivery.</p>
+      </div>
+      <div class="rationale-block">
+        <h3>Takeaway</h3>
+        <p>Our stack choices were driven by maintainability, observability, and stable product behavior rather than novelty. We prioritized reliable delivery over technical variety.</p>
+      </div>
+    </div>
+
+    <div class="deck-footer"><span class="dim2">acceptors · technology</span><span class="slide-number" data-current="9" data-total="12"></span></div>
+    <div class="notes">We selected technologies for delivery reliability and maintainability, not for novelty. React and TypeScript support clear UI-state management, while Spring Boot and MySQL provide dependable domain behavior and data integrity. Scheduled worker jobs isolate market refresh concerns from user request latency. Quality tooling and documentation ensure this system remains operable by more than its original authors.</div>
+  </section>
+
+  <section class="slide" data-title="Conclusion">
+    <p class="kicker">Conclusion</p>
+    <h2 class="h2">What We Achieved and What We Learned</h2>
+    <div class="grid-tight g2-tight mt-m">
+      <div class="card">
+        <h3>Delivered Outcomes</h3>
+        <ul class="bullet-list">
+          <li>Portfolio lifecycle workflow implemented end-to-end.</li>
+          <li>Market synchronization and valuation integrated.</li>
+          <li>Demonstrable user-facing analytics dashboard.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Challenges We Faced</h3>
+        <ul class="bullet-list">
+          <li>Cross-layer integration timing and contract drift risk.</li>
+          <li>Environment consistency in non-container startup paths.</li>
+          <li>Balancing rapid iteration with reliability safeguards.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="grid-tight g2-tight mt-m">
+      <div class="card">
+        <h3>Team Reflection</h3>
+        <p>We collaborated effectively through ownership clarity, shared checkpoints, and disciplined integration feedback loops.</p>
+      </div>
+      <div class="card">
+        <h3>What We Would Do Differently</h3>
+        <p>Introduce stricter contract tests earlier and establish environment templates at the very beginning of development.</p>
+      </div>
+    </div>
+
+    <div class="deck-footer"><span class="dim2">acceptors · conclusion</span><span class="slide-number" data-current="10" data-total="12"></span></div>
+    <div class="notes">This project delivered a complete portfolio workflow with traceable analytics output. We also faced meaningful challenges, especially around integration boundaries and environment consistency. As a team, we worked effectively because responsibilities were clear and feedback loops were active. If we repeated this project, we would enforce contract testing and environment baselines even earlier to reduce integration friction.</div>
+  </section>
+
+  <section class="slide" data-title="The Road Ahead">
+    <p class="kicker">The Road Ahead</p>
+    <h2 class="h2">Optimization Priorities and Next Work</h2>
+    <div class="timeline-row mt-m">
+      <div class="timeline-box">
+        <div class="tag">Reliability</div>
+        <div class="txt">Strengthen startup consistency, operational runbooks, and failure recovery guidance.</div>
+      </div>
+      <div class="timeline-box">
+        <div class="tag">Quality Depth</div>
+        <div class="txt">Expand regression coverage, add stronger contract checks, and improve observability signals.</div>
+      </div>
+      <div class="timeline-box">
+        <div class="tag">Product Hardening</div>
+        <div class="txt">Refine release checklist discipline and improve production-readiness confidence.</div>
+      </div>
+    </div>
+
+    <div class="metric-grid mt-m">
+      <div class="metric"><div class="v">5/5</div><div class="k">Core Modules Landed</div></div>
+      <div class="metric"><div class="v">API</div><div class="k">Contract Clarity</div></div>
+      <div class="metric"><div class="v">Ops</div><div class="k">Runbook Quality</div></div>
+      <div class="metric"><div class="v">CI</div><div class="k">Validation Depth</div></div>
+    </div>
+
+    <div class="deck-footer"><span class="dim2">acceptors · next phase</span><span class="slide-number" data-current="11" data-total="12"></span></div>
+    <div class="notes">Our forward work focuses on optimization rather than feature inflation. We will improve reliability guardrails, deepen quality automation, and harden production readiness practices. The direction is to make the system easier to operate, easier to validate, and safer to evolve.</div>
+  </section>
+
+  <section class="slide center tc" data-title="Thank You">
+    <div style="max-width: 1160px; margin: auto 0;">
+      <p class="kicker">Thank You</p>
+      <h1 class="h1 anim-rise-in" data-anim="rise-in" style="font-size: clamp(84px, 8vw, 138px);">Questions<br><span class="gradient-text">and Discussion</span></h1>
+      <p class="lede" style="margin: 18px auto 26px; font-size: clamp(24px, 1.9vw, 34px);">We welcome feedback on product direction, architectural choices, and quality priorities.</p>
+      <div class="badge-row" style="justify-content: center;">
+        <span class="badge">Portfolio workflow</span>
+        <span class="badge">System reliability</span>
+        <span class="badge">Integration design</span>
+        <span class="badge">Next optimizations</span>
+      </div>
+    </div>
+    <div class="deck-footer"><span class="dim2">acceptors · closing</span><span class="slide-number" data-current="12" data-total="12"></span></div>
+    <div class="notes">Thank you for listening. We hope this presentation showed not only what the product does, but also why the system is structured the way it is. We are happy to discuss product decisions, architecture tradeoffs, and the optimization priorities we identified for the next phase.</div>
+  </section>
+</div>
+<script src="../html-ppt-skill-main/html-ppt-skill-main/assets/runtime.js"></script>
+</body>
+</html>

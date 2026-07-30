@@ -131,11 +131,13 @@ export function IntradayChart({
   currency: string;
 }) {
   const { locale, t } = useLanguage();
+  // API returns bars newest-first (DESC); reverse so the chart reads left=old → right=new
+  const ordered = bars.slice().reverse();
   return (
     <div className="chart-wrap chart-wrap--intraday">
       <Line
         data={{
-          labels: bars.map((bar) => {
+          labels: ordered.map((bar) => {
             const parsed = parseApiDateTime(bar.timestamp);
             if (!parsed) return bar.timestamp;
             return parsed.toLocaleString(locale, {
@@ -148,7 +150,7 @@ export function IntradayChart({
           }),
           datasets: [{
             label: t("intraday.close"),
-            data: bars.map((bar) => Number(bar.close)),
+            data: ordered.map((bar) => Number(bar.close)),
             borderColor: "#3158d4",
             backgroundColor: "rgba(49,88,212,0.08)",
             borderWidth: 2,
@@ -164,7 +166,21 @@ export function IntradayChart({
           interaction: { intersect: false, mode: "index" },
           scales: {
             x: {
-              ticks: { maxTicksLimit: 8, maxRotation: 0 },
+              ticks: {
+                maxTicksLimit: 10,
+                maxRotation: 0,
+                callback: (_val, index) => {
+                  const bar = ordered[index];
+                  if (!bar) return "";
+                  const parsed = parseApiDateTime(bar.timestamp);
+                  if (!parsed) return "";
+                  return parsed.toLocaleTimeString(locale, {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    timeZone: BEIJING_TIME_ZONE,
+                  });
+                },
+              },
               grid: { display: false },
             },
             y: {

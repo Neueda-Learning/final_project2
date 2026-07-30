@@ -7,10 +7,10 @@ import { usePortfolio } from "../app/PortfolioContext";
 import { CuratedInstrumentPicker } from "../components/CuratedInstrumentPicker";
 import { EmptyState } from "../components/EmptyState";
 import { ErrorBox } from "../components/ErrorBox";
+import { InstrumentInsightPanel } from "../components/InstrumentInsightPanel";
 import { PageHeader } from "../components/PageHeader";
-import { IntradayChart } from "../components/charts";
 import type { CuratedSectorId } from "../data/curatedInstruments";
-import { beijingTodayISODate, formatCurrency, formatQuantity, formatTime } from "../lib/format";
+import { beijingTodayISODate, formatCurrency, formatQuantity } from "../lib/format";
 import { useLanguage } from "../i18n/LanguageContext";
 
 interface TradeFormState {
@@ -164,7 +164,8 @@ export function HoldingsPage() {
       {positionsQuery.isError ? <ErrorBox error={positionsQuery.error} onRetry={() => positionsQuery.refetch()} /> : null}
 
       {portfolioId ? (
-        <section className="card trade-card trade-ticket">
+        <div className="holdings-workspace">
+          <section className="card trade-card trade-ticket">
           <div className="trade-ticket__header">
             <div>
               <span className="trade-ticket__eyebrow">{t("holdings.ticketEyebrow")}</span>
@@ -354,65 +355,19 @@ export function HoldingsPage() {
             </div>
           </form>
         </section>
-      ) : null}
+          <InstrumentInsightPanel
+            instrument={form.instrument}
+            priceData={pricesQuery.data ?? null}
+            pricesLoading={pricesQuery.isPending}
+            barsData={barsQuery.data?.items ?? null}
+            barsLoading={barsQuery.isPending || barsQuery.isFetching}
+            barsError={barsQuery.isError ? barsQuery.error : null}
+            barsUpdatedAt={barsQuery.dataUpdatedAt ?? null}
+            onRefreshBars={() => barsQuery.refetch()}
+            currency={currency}
+          />
+        </div>
 
-      {form.instrument ? (
-        <section className="card intraday-card" aria-label={t("intraday.title")}>
-          <div className="intraday-card__header">
-            <div>
-              <p className="intraday-card__eyebrow">{t("intraday.eyebrow")}</p>
-              <h2 className="section-title">
-                {form.instrument.symbol} &mdash; {t("intraday.title")}
-              </h2>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                disabled={barsQuery.isFetching}
-                onClick={() => {
-                  console.log("[IntradayChart] Manual refresh triggered");
-                  barsQuery.refetch();
-                }}
-              >
-                {barsQuery.isFetching ? t("common.loading") : t("intraday.refresh")}
-              </button>
-              {barsQuery.dataUpdatedAt ? (
-                <span style={{ fontSize: "0.75rem", color: "#667085" }}>
-                  {t("intraday.updated", { time: formatTime(barsQuery.dataUpdatedAt, locale) })}
-                </span>
-              ) : null}
-              {barsQuery.isError ? (
-                <span style={{ fontSize: "0.75rem", color: "#d92d20" }}>
-                  ⚠ 请求失败，请检查后端服务
-                </span>
-              ) : null}
-            </div>
-          </div>
-          {barsQuery.isPending ? (
-            <div style={{ height: 360, display: "flex", alignItems: "center", justifyContent: "center", color: "#667085" }}>
-              {t("common.loading")}
-            </div>
-          ) : barsQuery.isError ? (
-            <ErrorBox error={barsQuery.error} onRetry={() => barsQuery.refetch()} />
-          ) : barsQuery.data && barsQuery.data.items.length > 0 ? (
-            <>
-              <IntradayChart bars={barsQuery.data.items} currency={form.instrument.currency} />
-              <p className="intraday-card__footer">
-                {t("intraday.points", { count: String(barsQuery.data.items.length) })}
-                {barsQuery.dataUpdatedAt
-                  ? ` · ${t("intraday.updated", { time: formatTime(barsQuery.dataUpdatedAt, locale) })}`
-                  : null}
-              </p>
-            </>
-          ) : (
-            <EmptyState
-              icon="📉"
-              title={t("intraday.emptyTitle")}
-              description={t("intraday.emptyDescription")}
-            />
-          )}
-        </section>
       ) : null}
 
       {portfolioId && positionsQuery.data && positionsQuery.data.items.length === 0 ? (
