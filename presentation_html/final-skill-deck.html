@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Acceptors · Portfolio Manager · Final Presentation</title>
+<title>Acceptors · Portfolio Manager · Final Presentation · Bold Layout</title>
 <link rel="stylesheet" href="../html-ppt-skill-main/html-ppt-skill-main/assets/fonts.css">
 <link rel="stylesheet" href="../html-ppt-skill-main/html-ppt-skill-main/assets/base.css">
 <link rel="stylesheet" id="theme-link" href="../html-ppt-skill-main/html-ppt-skill-main/assets/themes/corporate-clean.css">
@@ -421,6 +421,381 @@
     font-weight: 550;
   }
 
+  /* Version 3 — slide-specific adaptive height allocation.
+     Each slide family uses the full 16:9 canvas according to its narrative job. */
+  body.layout-adaptive-v3 .slide {
+    padding: clamp(42px, 5.5vh, 64px) clamp(58px, 4.5vw, 86px) clamp(50px, 6vh, 70px);
+  }
+
+  body.layout-adaptive-v3 .slide > .kicker {
+    flex: 0 0 auto;
+    margin-bottom: clamp(9px, 1.2vh, 14px);
+  }
+
+  body.layout-adaptive-v3 .slide > h2.h2 {
+    flex: 0 0 auto;
+    margin-bottom: 0;
+  }
+
+  body.layout-adaptive-v3 .slide > .mt-m {
+    margin-top: clamp(15px, 2.15vh, 24px);
+  }
+
+  /* Cover and closing: vertically centered, with deliberate breathing room. */
+  body.layout-adaptive-v3 .slide[data-title="Team Name"] {
+    justify-content: center;
+    padding-top: clamp(72px, 9vh, 104px);
+    padding-bottom: clamp(74px, 9vh, 108px);
+    background:
+      radial-gradient(circle at 84% 20%, color-mix(in srgb, var(--accent) 10%, transparent) 0, transparent 28%),
+      radial-gradient(circle at 74% 78%, color-mix(in srgb, var(--accent-2) 8%, transparent) 0, transparent 32%),
+      var(--bg);
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="Team Name"] .lede {
+    max-width: 54ch;
+    margin-top: clamp(8px, 1.5vh, 18px);
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="Team Name"] .badge-row {
+    margin-top: clamp(32px, 5vh, 54px);
+    gap: 12px;
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="Team Name"] .badge {
+    padding: 9px 14px;
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="Team Name"] > .body-copy {
+    margin-top: clamp(24px, 3.4vh, 38px);
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="Thank You"] {
+    justify-content: center;
+    padding-top: clamp(66px, 8vh, 92px);
+    padding-bottom: clamp(70px, 8.5vh, 98px);
+    background:
+      radial-gradient(circle at 50% 46%, color-mix(in srgb, var(--accent) 9%, transparent) 0, transparent 40%),
+      var(--bg);
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="Thank You"] > div:first-child {
+    margin: 0;
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="Thank You"] .badge-row {
+    gap: 12px;
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="Thank You"] .badge {
+    padding: 9px 14px;
+  }
+
+  /* Four-card story pages: both rows share and fill the remaining height. */
+  body.layout-adaptive-v3 .slide[data-title="Our Project"] > .grid-tight,
+  body.layout-adaptive-v3 .slide[data-title="Conclusion"] > .grid-tight {
+    min-height: 0;
+    gap: clamp(18px, 1.5vw, 26px);
+    grid-auto-rows: minmax(0, 1fr);
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="Our Project"] > .grid-tight:first-of-type {
+    flex: 1.12 1 0;
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="Our Project"] > .grid-tight:nth-of-type(2) {
+    flex: 0.88 1 0;
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="Our Project"] .card,
+  body.layout-adaptive-v3 .slide[data-title="Conclusion"] .card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 0;
+    padding: clamp(24px, 2vw, 34px);
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="Our Project"] .card {
+    box-shadow: inset 0 4px 0 color-mix(in srgb, var(--accent) 68%, transparent);
+  }
+
+  /* Demo and delivery: primary three-step row is taller than the supporting row. */
+  body.layout-adaptive-v3 .slide[data-title="Demo"] > .timeline-row,
+  body.layout-adaptive-v3 .slide[data-title="Delivery Approach"] > .timeline-row {
+    flex: 1.12 1 0;
+    min-height: 0;
+    align-items: stretch;
+    gap: clamp(18px, 1.5vw, 26px);
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="Demo"] > .grid-tight,
+  body.layout-adaptive-v3 .slide[data-title="Delivery Approach"] > .grid-tight {
+    flex: 0.78 1 0;
+    min-height: 0;
+    grid-auto-rows: minmax(0, 1fr);
+    gap: clamp(18px, 1.5vw, 26px);
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="Demo"] .timeline-box,
+  body.layout-adaptive-v3 .slide[data-title="Delivery Approach"] .timeline-box {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 0;
+    padding: clamp(24px, 2.1vw, 36px);
+    border-top: 5px solid color-mix(in srgb, var(--accent) 78%, transparent);
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="Demo"] .card,
+  body.layout-adaptive-v3 .slide[data-title="Delivery Approach"] .card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 0;
+    padding: clamp(24px, 2vw, 34px);
+  }
+
+  /* Team table: the ownership matrix becomes the main visual and fills the page. */
+  body.layout-adaptive-v3 .slide[data-title="Team Members"] > .table-wrap {
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    margin-top: clamp(16px, 2vh, 22px);
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="Team Members"] table.compact {
+    height: 100%;
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="Team Members"] table.compact th,
+  body.layout-adaptive-v3 .slide[data-title="Team Members"] table.compact td {
+    padding: clamp(12px, 1.35vh, 17px) clamp(14px, 1.2vw, 20px);
+    vertical-align: middle;
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="Team Members"] > .body-copy {
+    flex: 0 0 auto;
+    margin: clamp(15px, 2.2vh, 24px) 0 0;
+    padding: 12px 18px;
+    border-left: 4px solid var(--accent);
+    background: color-mix(in srgb, var(--accent) 5%, var(--surface));
+    border-radius: 0 12px 12px 0;
+  }
+
+  /* System flow: nodes expand vertically and supporting outcomes anchor the bottom. */
+  body.layout-adaptive-v3 .slide[data-title="System Flow"] > .flow-row {
+    flex: 0.84 1 0;
+    min-height: 0;
+    align-items: stretch;
+    gap: clamp(12px, 1.15vw, 20px);
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="System Flow"] > .flow-row.mt-s {
+    margin-top: clamp(13px, 1.7vh, 19px);
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="System Flow"] .flow-node {
+    min-height: 0;
+    height: 100%;
+    padding: clamp(19px, 2vh, 28px) clamp(13px, 1.2vw, 20px);
+    font-size: clamp(20px, 1.45vw, 28px);
+    border-width: 2px;
+    box-shadow: 0 10px 24px color-mix(in srgb, var(--accent) 8%, transparent);
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="System Flow"] .flow-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(34px, 2.4vw, 46px);
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="System Flow"] > .grid-tight {
+    flex: 0.72 1 0;
+    min-height: 0;
+    grid-auto-rows: minmax(0, 1fr);
+    gap: clamp(18px, 1.5vw, 26px);
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="System Flow"] .card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 0;
+    padding: clamp(22px, 1.8vw, 30px);
+  }
+
+  /* Product evidence: let the screenshot and readout card occupy the whole content well. */
+  body.layout-adaptive-v3 .slide[data-title="Product Experience"] > .grid-tight {
+    flex: 1 1 0;
+    min-height: 0;
+    gap: clamp(22px, 2vw, 34px);
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="Product Experience"] .img-block {
+    min-height: 0;
+    box-shadow: 0 16px 36px color-mix(in srgb, var(--accent) 10%, transparent);
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="Product Experience"] .img-block img {
+    flex: 1 1 0;
+    height: auto;
+    min-height: 0;
+    object-position: top center;
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="Product Experience"] .img-caption {
+    flex: 0 0 auto;
+    padding: clamp(12px, 1.5vh, 17px) clamp(14px, 1.2vw, 20px);
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="Product Experience"] .card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 0;
+    padding: clamp(30px, 2.8vw, 48px);
+    border-left: 6px solid var(--accent);
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="Product Experience"] .bullet-list {
+    gap: clamp(12px, 1.8vh, 20px);
+  }
+
+  /* Architecture: the core diagram owns the height; explanation stays compact below. */
+  body.layout-adaptive-v3 .slide[data-title="Architectural Diagram"] {
+    padding-top: clamp(34px, 4.5vh, 52px);
+    padding-bottom: clamp(48px, 5.5vh, 64px);
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="Architectural Diagram"] > .arch-shell {
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    align-items: stretch;
+    padding: clamp(10px, 1.25vh, 16px) clamp(14px, 1.2vw, 22px);
+    box-shadow: 0 14px 34px color-mix(in srgb, #334155 10%, transparent);
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="Architectural Diagram"] .arch-shell svg {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="Architectural Diagram"] .arch-note {
+    flex: 0 0 auto;
+    margin-top: clamp(9px, 1.2vh, 14px);
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="Architectural Diagram"] .legend {
+    flex: 0 0 auto;
+    margin-top: clamp(8px, 1vh, 12px);
+    gap: clamp(16px, 1.7vw, 28px);
+  }
+
+  /* Tech stack: table and rationale occupy separate visual bands. */
+  body.layout-adaptive-v3 .slide[data-title="Tech Stack"] > .table-wrap {
+    flex: 1.2 1 0;
+    min-height: 0;
+    display: flex;
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="Tech Stack"] > .table-wrap table.compact {
+    height: 100%;
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="Tech Stack"] > .table-wrap th,
+  body.layout-adaptive-v3 .slide[data-title="Tech Stack"] > .table-wrap td {
+    vertical-align: middle;
+    padding: clamp(9px, 1.05vh, 13px) clamp(12px, 1vw, 17px);
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="Tech Stack"] > .stack-rationale {
+    flex: 0.82 1 0;
+    min-height: 0;
+    gap: clamp(18px, 1.5vw, 26px);
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="Tech Stack"] .rationale-block {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 0;
+    padding: clamp(18px, 1.65vw, 28px);
+  }
+
+  /* Conclusion: delivered outcomes dominate; reflections form a quieter lower band. */
+  body.layout-adaptive-v3 .slide[data-title="Conclusion"] {
+    background:
+      linear-gradient(180deg, transparent 0 61%, color-mix(in srgb, var(--accent) 3.5%, transparent) 61% 100%),
+      var(--bg);
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="Conclusion"] > .grid-tight:first-of-type {
+    flex: 1.22 1 0;
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="Conclusion"] > .grid-tight:nth-of-type(2) {
+    flex: 0.78 1 0;
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="Conclusion"] > .grid-tight:first-of-type .card {
+    border-top: 5px solid var(--accent);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 5%, var(--surface)), var(--surface) 38%);
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="Conclusion"] > .grid-tight:nth-of-type(2) .card {
+    background: var(--bg-soft);
+  }
+
+  /* Roadmap: future priorities are the hero; metrics form a substantial closing rail. */
+  body.layout-adaptive-v3 .slide[data-title="The Road Ahead"] > .timeline-row {
+    flex: 1.14 1 0;
+    min-height: 0;
+    align-items: stretch;
+    gap: clamp(18px, 1.5vw, 26px);
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="The Road Ahead"] .timeline-box {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 0;
+    padding: clamp(26px, 2.3vw, 40px);
+    position: relative;
+    overflow: hidden;
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="The Road Ahead"] .timeline-box::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 6px;
+    background: var(--grad);
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="The Road Ahead"] > .metric-grid {
+    flex: 0.72 1 0;
+    min-height: 0;
+    align-items: stretch;
+    gap: clamp(14px, 1.25vw, 22px);
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="The Road Ahead"] .metric {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 0;
+    padding: clamp(18px, 1.8vw, 30px);
+    border-top: 4px solid color-mix(in srgb, var(--accent) 68%, transparent);
+  }
+
+  body.layout-adaptive-v3 .slide[data-title="The Road Ahead"] .metric .v {
+    margin-bottom: clamp(10px, 1.2vh, 16px);
+  }
+
   .notes {
     display: none;
   }
@@ -440,6 +815,294 @@
     }
   }
 
+  @media (max-height: 760px) {
+    body.layout-adaptive-v3 .slide {
+      padding-top: 30px;
+      padding-bottom: 42px;
+    }
+
+    body.layout-adaptive-v3 .slide h2.h2 {
+      font-size: clamp(34px, 3.4vw, 48px);
+    }
+
+    body.layout-adaptive-v3 .slide > .mt-m {
+      margin-top: 12px;
+    }
+
+    body.layout-adaptive-v3 .slide[data-title="Team Name"],
+    body.layout-adaptive-v3 .slide[data-title="Thank You"] {
+      padding-top: 52px;
+      padding-bottom: 58px;
+    }
+
+    body.layout-adaptive-v3 .slide[data-title="Product Experience"] .img-block img {
+      height: auto;
+    }
+
+    body.layout-adaptive-v3 .slide[data-title="Architectural Diagram"] .arch-note {
+      font-size: 15px;
+      line-height: 1.3;
+    }
+  }
+
+  /* Version 5 — bold stage.
+     Larger typography and flat tinted panels create a stronger presentation rhythm. */
+  body.variant-bold-v5 .slide {
+    padding-left: clamp(62px, 4.8vw, 92px);
+    padding-right: clamp(62px, 4.8vw, 92px);
+  }
+
+  body.variant-bold-v5 .slide h2.h2 {
+    font-size: clamp(47px, 4.25vw, 70px);
+    line-height: 1.02;
+  }
+
+  body.variant-bold-v5 .kicker {
+    font-size: clamp(19px, 1.55vw, 24px);
+  }
+
+  body.variant-bold-v5 .lede {
+    font-size: clamp(31px, 2.55vw, 42px);
+  }
+
+  body.variant-bold-v5 .card h3,
+  body.variant-bold-v5 .card h4 {
+    font-size: clamp(29px, 2.2vw, 37px);
+  }
+
+  body.variant-bold-v5 .card p,
+  body.variant-bold-v5 .card li,
+  body.variant-bold-v5 .body-copy,
+  body.variant-bold-v5 .dim {
+    font-size: clamp(24px, 1.78vw, 31px);
+    line-height: 1.38;
+  }
+
+  body.variant-bold-v5 .timeline-box .tag {
+    font-size: clamp(18px, 1.3vw, 23px);
+  }
+
+  body.variant-bold-v5 .timeline-box .txt {
+    font-size: clamp(26px, 1.9vw, 32px);
+    line-height: 1.3;
+  }
+
+  body.variant-bold-v5 table.compact th {
+    font-size: clamp(20px, 1.35vw, 25px);
+  }
+
+  body.variant-bold-v5 table.compact td {
+    font-size: clamp(20px, 1.3vw, 25px);
+    line-height: 1.27;
+  }
+
+  body.variant-bold-v5 .flow-node {
+    font-size: clamp(23px, 1.7vw, 31px);
+    font-weight: 760;
+  }
+
+  body.variant-bold-v5 .img-caption,
+  body.variant-bold-v5 .rationale-block p {
+    font-size: clamp(22px, 1.5vw, 27px);
+  }
+
+  body.variant-bold-v5 .rationale-block h3 {
+    font-size: clamp(27px, 1.85vw, 33px);
+  }
+
+  body.variant-bold-v5 .metric .k {
+    font-size: clamp(19px, 1.3vw, 23px);
+  }
+
+  body.variant-bold-v5 .badge {
+    font-size: clamp(18px, 1.25vw, 22px);
+  }
+
+  body.variant-bold-v5 .card,
+  body.variant-bold-v5 .timeline-box,
+  body.variant-bold-v5 .metric,
+  body.variant-bold-v5 .table-wrap,
+  body.variant-bold-v5 .img-block,
+  body.variant-bold-v5 .arch-shell,
+  body.variant-bold-v5 .flow-node,
+  body.variant-bold-v5 .rationale-block,
+  body.variant-bold-v5 .signal-item,
+  body.variant-bold-v5 .badge,
+  body.variant-bold-v5 table.compact th,
+  body.variant-bold-v5 table.compact td {
+    border: 0 !important;
+    outline: 0;
+    box-shadow: none;
+  }
+
+  body.variant-bold-v5 .img-block img {
+    border-bottom: 0 !important;
+  }
+
+  body.variant-bold-v5 .arch-shell svg rect {
+    stroke: none !important;
+  }
+
+  body.variant-bold-v5 .card,
+  body.variant-bold-v5 .timeline-box,
+  body.variant-bold-v5 .metric,
+  body.variant-bold-v5 .rationale-block {
+    background: color-mix(in srgb, var(--accent) 6.5%, var(--surface));
+  }
+
+  body.variant-bold-v5 .grid-tight > :nth-child(even),
+  body.variant-bold-v5 .timeline-row > :nth-child(even),
+  body.variant-bold-v5 .metric-grid > :nth-child(even) {
+    background: color-mix(in srgb, var(--accent-2) 7%, var(--surface));
+  }
+
+  body.variant-bold-v5 table.compact thead th {
+    background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  }
+
+  body.variant-bold-v5 table.compact tbody tr:nth-child(even) td {
+    background: color-mix(in srgb, var(--accent-2) 5%, var(--surface));
+  }
+
+  body.variant-bold-v5 .slide[data-title="Team Members"] > .body-copy {
+    border-left: 0;
+  }
+
+  body.variant-bold-v5 .slide[data-title="Our Project"] .card h3,
+  body.variant-bold-v5 .slide[data-title="Demo"] .card h3 {
+    font-size: clamp(32px, 2.4vw, 40px);
+  }
+
+  body.variant-bold-v5 .slide[data-title="Our Project"] .card p,
+  body.variant-bold-v5 .slide[data-title="Our Project"] .card li,
+  body.variant-bold-v5 .slide[data-title="Demo"] .card p {
+    font-size: clamp(26px, 1.95vw, 33px);
+  }
+
+  body.variant-bold-v5 .slide[data-title="Demo"] .timeline-box .tag {
+    font-size: clamp(20px, 1.45vw, 25px);
+  }
+
+  body.variant-bold-v5 .slide[data-title="Demo"] .timeline-box .txt {
+    font-size: clamp(29px, 2.15vw, 36px);
+  }
+
+  body.variant-bold-v5 .slide[data-title="Our Project"] .card,
+  body.variant-bold-v5 .slide[data-title="Demo"] .card,
+  body.variant-bold-v5 .slide[data-title="Demo"] .timeline-box {
+    padding: clamp(30px, 2.55vw, 44px);
+  }
+
+  body.variant-bold-v5 .slide[data-title="Architectural Diagram"] > .arch-shell {
+    flex-grow: 1.25;
+    background: color-mix(in srgb, var(--accent) 3%, var(--surface));
+  }
+
+  body.variant-bold-v5 .slide[data-title="Architectural Diagram"] .legend {
+    margin-top: clamp(18px, 2.2vh, 28px);
+    gap: clamp(28px, 2.5vw, 44px);
+    font-size: clamp(23px, 1.7vw, 30px);
+    font-weight: 850;
+  }
+
+  body.variant-bold-v5 .slide[data-title="Architectural Diagram"] .dot {
+    width: 18px;
+    height: 18px;
+    margin-right: 9px;
+  }
+
+  @media (max-height: 760px) {
+    body.variant-bold-v5 .slide h2.h2 {
+      font-size: clamp(40px, 3.7vw, 55px);
+    }
+
+    body.variant-bold-v5 .card p,
+    body.variant-bold-v5 .card li,
+    body.variant-bold-v5 .body-copy {
+      font-size: clamp(21px, 1.52vw, 26px);
+    }
+
+    body.variant-bold-v5 .slide[data-title="Our Project"] .card p,
+    body.variant-bold-v5 .slide[data-title="Our Project"] .card li,
+    body.variant-bold-v5 .slide[data-title="Demo"] .card p {
+      font-size: clamp(23px, 1.65vw, 28px);
+    }
+  }
+
+  /* Product evidence focus
+     Crop away navigation and the oversized page heading while preserving the
+     full KPI row, allocation chart, and return history at presentation scale. */
+  body.variant-bold-v5 .slide[data-title="Product Experience"] > .grid-tight {
+    grid-template-columns: minmax(0, 1.7fr) minmax(360px, 0.72fr);
+    align-items: center !important;
+  }
+
+  body.variant-bold-v5 .slide[data-title="Product Experience"] .img-block {
+    height: auto;
+    align-self: center;
+    justify-content: center;
+  }
+
+  body.variant-bold-v5 .slide[data-title="Product Experience"] .dashboard-focus-viewport {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 2.2 / 1;
+    overflow: hidden;
+    background: var(--bg-soft);
+  }
+
+  body.variant-bold-v5 .slide[data-title="Product Experience"] .dashboard-focus-viewport img {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    height: auto !important;
+    max-width: none;
+    min-height: 0;
+    object-fit: initial;
+    object-position: initial;
+    transform: translateY(-29%);
+    transform-origin: top center;
+  }
+
+  body.variant-bold-v5 .slide[data-title="Product Experience"] .img-caption {
+    padding: clamp(14px, 1.7vh, 19px) clamp(18px, 1.4vw, 24px);
+  }
+
+  body.variant-bold-v5 .slide[data-title="Product Experience"] .card {
+    height: 100%;
+    padding-left: clamp(26px, 2.1vw, 38px);
+    padding-right: clamp(26px, 2.1vw, 38px);
+  }
+
+  /* Technology table focus
+     With the rationale cards removed, the table becomes the single visual and
+     uses the full remaining height at a larger presentation-safe type scale. */
+  body.variant-bold-v5 .slide[data-title="Tech Stack"] > .table-wrap {
+    flex: 1 1 0;
+    min-height: 0;
+    margin-top: clamp(22px, 3vh, 34px);
+  }
+
+  body.variant-bold-v5 .slide[data-title="Tech Stack"] table.compact {
+    height: 100%;
+  }
+
+  body.variant-bold-v5 .slide[data-title="Tech Stack"] table.compact th {
+    font-size: clamp(24px, 1.7vw, 30px);
+    line-height: 1.18;
+    padding: clamp(17px, 1.8vh, 25px) clamp(18px, 1.4vw, 27px);
+  }
+
+  body.variant-bold-v5 .slide[data-title="Tech Stack"] table.compact td {
+    font-size: clamp(23px, 1.55vw, 29px);
+    line-height: 1.3;
+    padding: clamp(17px, 1.8vh, 25px) clamp(18px, 1.4vw, 27px);
+  }
+
+  body.variant-bold-v5 .slide[data-title="Tech Stack"] table.compact td:first-child {
+    font-size: clamp(25px, 1.7vw, 31px);
+  }
+
   @media print {
     .slide {
       page-break-after: always;
@@ -451,7 +1114,7 @@
   }
 </style>
 </head>
-<body data-themes="corporate-clean,academic-paper,minimal-white,editorial-serif,news-broadcast,engineering-whiteprint,solarized-light,arctic-cool,swiss-grid,bauhaus,soft-pastel,sunset-warm,xiaohongshu-white" data-theme-base="../html-ppt-skill-main/html-ppt-skill-main/assets/themes/">
+<body class="layout-adaptive-v3 variant-bold-v5" data-themes="corporate-clean,academic-paper,minimal-white,editorial-serif,news-broadcast,engineering-whiteprint,solarized-light,arctic-cool,swiss-grid,bauhaus,soft-pastel,sunset-warm,xiaohongshu-white" data-theme-base="../html-ppt-skill-main/html-ppt-skill-main/assets/themes/">
 <div class="deck">
 
   <section class="slide" data-title="Team Name">
@@ -680,28 +1343,44 @@ Ultimately, we aimed to deliver a reliable product with a smooth user experience
     <h2 class="h2">Interface Evidence and Business Readability</h2>
     <div class="grid-tight g2-tight mt-m" style="align-items: stretch;">
       <div class="img-block">
-        <img src="../assets/dashboard.png" alt="Portfolio dashboard screenshot">
-        <div class="img-caption">Dashboard view: market value, cost basis, unrealized P&amp;L, and allocation summary.</div>
+        <div class="dashboard-focus-viewport">
+          <img src="../assets/dashboard.png" alt="Focused portfolio dashboard showing KPIs, allocation, and return history">
+        </div>
+        <div class="img-caption">Focused dashboard view: market value, cost basis, unrealized P&amp;L, allocation, and return trend.</div>
       </div>
       <div class="card">
         <h3>Key Readouts</h3>
         <ul class="bullet-list">
-          <li>KPI cards for fast decision-making.</li>
-          <li>Position details with sync and price status.</li>
-          <li>Trade entry aligned with real portfolio workflow.</li>
-          <li>Data freshness tied to market sync pipeline.</li>
+          <li>Portfolio KPIs and allocation at a glance.</li>
+          <li>Position-level price and sync status.</li>
+          <li>Trade entry stays in the same workflow.</li>
+          <li>Market data keeps portfolio valuation current.</li>
         </ul>
       </div>
     </div>
     <div class="deck-footer"><span class="dim2">acceptors · product evidence</span><span class="slide-number" data-current="7" data-total="12"></span></div>
-    <div class="notes">Now, let's look at our product interface. This is the main portfolio dashboard. Users can quickly see the total market value, total cost, unrealized profit or loss, and asset allocation. They can also check each position and its latest price status. The trade entry function is part of the same workflow. This makes it easier for users to manage their portfolios. The key point is that this is not a static dashboard. It is connected to our backend and market data system. When the market price changes, the portfolio value can also be updated. This helps users understand their portfolios more quickly and make better decisions.</div>
+    <div class="notes">Now, let’s look at our product interface.
+
+This is the main portfolio dashboard.
+
+Users can quickly see the total market value, total cost, unrealized profit or loss, and asset allocation.
+
+They can also check each position and its latest price status.
+
+The trade entry function is part of the same workflow. This makes it easier for users to manage their portfolios.
+
+The key point is that this is not a static dashboard. It is connected to our backend and market data system.
+
+When the market price changes, the portfolio value can also be updated.
+
+This helps users understand their portfolios more quickly and make better decisions.</div>
   </section>
 
   <section class="slide" data-title="Architectural Diagram">
     <p class="kicker">Architectural Diagram</p>
     <h2 class="h2">Production-Oriented Architecture</h2>
     <div class="arch-shell mt-m">
-      <svg viewBox="0 0 1680 360" width="100%" height="320" role="img" aria-label="Architecture diagram">
+      <svg viewBox="0 0 1280 340" width="100%" height="100%" role="img" aria-label="Architecture diagram">
         <defs>
           <marker id="arr" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
             <polygon points="0,0 10,5 0,10" fill="#1d4ed8"></polygon>
@@ -756,14 +1435,14 @@ Ultimately, we aimed to deliver a reliable product with a smooth user experience
         <text x="270" y="124" text-anchor="middle" font-size="15" fill="#0f766e" font-weight="700">Response</text>
 
         <!-- CI Pipeline (right side) -->
-        <rect x="1420" y="30" width="180" height="95" rx="14" fill="#f8fafc" stroke="#334155" stroke-width="2.5" filter="url(#cardShadow)"></rect>
-        <text x="1510" y="63" text-anchor="middle" font-size="14" fill="#475569" font-weight="800">QUALITY</text>
-        <text x="1510" y="85" text-anchor="middle" font-size="25" fill="#0f172a" font-weight="750">CI</text>
-        <text x="1510" y="103" text-anchor="middle" font-size="15" fill="#334155" font-weight="600">Pipeline</text>
+        <rect x="1040" y="30" width="180" height="95" rx="14" fill="#f8fafc" stroke="#334155" stroke-width="2.5" filter="url(#cardShadow)"></rect>
+        <text x="1130" y="63" text-anchor="middle" font-size="14" fill="#475569" font-weight="800">QUALITY</text>
+        <text x="1130" y="85" text-anchor="middle" font-size="25" fill="#0f172a" font-weight="750">CI</text>
+        <text x="1130" y="103" text-anchor="middle" font-size="15" fill="#334155" font-weight="600">Pipeline</text>
 
         <!-- Arrow: API validates through releases -->
-        <line x1="810" y1="77" x2="1420" y2="77" stroke="#334155" stroke-width="2.5" stroke-dasharray="6,4" marker-end="url(#arr)"></line>
-        <text x="1115" y="61" text-anchor="middle" font-size="15" fill="#334155" font-weight="700">Release checks</text>
+        <line x1="810" y1="77" x2="1040" y2="77" stroke="#334155" stroke-width="2.5" stroke-dasharray="6,4" marker-end="url(#arr)"></line>
+        <text x="925" y="61" text-anchor="middle" font-size="15" fill="#334155" font-weight="700">Release checks</text>
 
         <!-- BACKGROUND ASYNC PATH (Bottom row) -->
         <!-- Worker -->
@@ -795,7 +1474,6 @@ Ultimately, we aimed to deliver a reliable product with a smooth user experience
         <text x="570" y="151" text-anchor="middle" font-size="15" fill="#15803d" font-weight="700">Persist</text>
       </svg>
     </div>
-    <p class="arch-note">Two parallel data paths: synchronous user requests (blue/teal) flow through Frontend → API → Database and back; asynchronous market refresh (green) runs independently via Worker → Market Data → Database. CI validates all releases continuously.</p>
     <div class="legend">
       <span><i class="dot" style="background:#1d4ed8"></i>User request path</span>
       <span><i class="dot" style="background:#15803d"></i>Async refresh path</span>
@@ -846,17 +1524,6 @@ Ultimately, we aimed to deliver a reliable product with a smooth user experience
           </tr>
         </tbody>
       </table>
-    </div>
-
-    <div class="stack-rationale mt-m">
-      <div class="rationale-block">
-        <h3>Design Logic</h3>
-        <p><strong>Application Focus:</strong> Typed UI + structured APIs reduce ambiguity across layers. <strong>Data Discipline:</strong> Persistent records and migrations make the system explainable. <strong>Operational Confidence:</strong> Documentation and CI checks support repeatable delivery.</p>
-      </div>
-      <div class="rationale-block">
-        <h3>Takeaway</h3>
-        <p>Our stack choices were driven by maintainability, observability, and stable product behavior rather than novelty. We prioritized reliable delivery over technical variety.</p>
-      </div>
     </div>
 
     <div class="deck-footer"><span class="dim2">acceptors · technology</span><span class="slide-number" data-current="9" data-total="12"></span></div>
