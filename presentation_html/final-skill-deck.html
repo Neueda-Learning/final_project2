@@ -464,8 +464,79 @@
       <span class="badge">CI-tested delivery</span>
       <span class="badge">Demo-ready reliability</span>
     </div>
+    <p class="body-copy mt-m" style="font-size:clamp(18px,1.3vw,24px);letter-spacing:0.06em;font-weight:700;color:var(--text-3);">Kristen &nbsp;·&nbsp; Viko &nbsp;·&nbsp; Tommy &nbsp;·&nbsp; Jermaine &nbsp;·&nbsp; Leon</p>
     <div class="deck-footer"><span class="dim2">acceptors · cover</span><span class="slide-number" data-current="1" data-total="12"></span></div>
     <div class="notes">Hello everyone, we are Team Acceptors. Our project is Portfolio Manager MVP, a system that connects user trading actions to portfolio analytics through a reliable backend workflow. In this presentation, we will walk through what problem we addressed, how we approached delivery as a team, what the product looks like in practice, and what we will optimize next. Our goal is to show a complete, practical solution rather than isolated features.</div>
+  </section>
+
+  <section class="slide" data-title="Our Project">
+    <p class="kicker">Our Project</p>
+    <h2 class="h2">Problem Statement and Target Outcome</h2>
+    <div class="grid-tight g2-tight mt-m">
+      <div class="card">
+        <h3>Business Problem</h3>
+        <ul class="bullet-list">
+          <li>Portfolio records are fragmented across tools.</li>
+          <li>Manual P&amp;L tracking is error-prone and delayed.</li>
+          <li>No single view for fast decisions.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Solution Value</h3>
+        <ul class="bullet-list">
+          <li>Unified portfolio + trade lifecycle view.</li>
+          <li>Live-priced valuation and allocation.</li>
+          <li>Traceable and auditable transaction flow.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="grid-tight g2-tight mt-m">
+      <div class="card">
+        <h3>What We Were Asked To Do</h3>
+        <p>Build core record browsing, basic metrics visibility, add/remove flow, and a working end-to-end backend integration.</p>
+      </div>
+      <div class="card">
+        <h3>Expected Product Standard</h3>
+        <p>Provide a coherent user journey with reliable API behavior, observable data freshness, and demo-grade stability for stakeholder review.</p>
+      </div>
+    </div>
+
+    <div class="deck-footer"><span class="dim2">acceptors · project story</span><span class="slide-number" data-current="2" data-total="12"></span></div>
+    <div class="notes">We started from a clear business gap: portfolio information was fragmented and difficult to trust quickly. Our objective was to unify records, expose meaningful metrics, and preserve traceability from action to analytics. The key point is that we were not building a static dashboard; we were building a workflow system where data state remains explainable end-to-end. This became the anchor for all technical and product decisions.</div>
+  </section>
+
+  <section class="slide" data-title="Demo">
+    <p class="kicker">Demo</p>
+    <h2 class="h2">Live Demonstration Plan</h2>
+    <div class="timeline-row mt-m">
+      <div class="timeline-box">
+        <div class="tag">Step 1</div>
+        <div class="txt">Open dashboard and establish baseline KPIs.</div>
+      </div>
+      <div class="timeline-box">
+        <div class="tag">Step 2</div>
+        <div class="txt">Inspect holdings and priced/unpriced coverage.</div>
+      </div>
+      <div class="timeline-box">
+        <div class="tag">Step 3</div>
+        <div class="txt">Create or inspect a trade and show valuation impact.</div>
+      </div>
+    </div>
+
+    <div class="grid-tight g2-tight mt-m">
+      <div class="card">
+        <h3>Fallback Strategy</h3>
+        <p>If API is unstable, move to screenshot-backed storytelling and focus on business logic continuity.</p>
+      </div>
+      <div class="card">
+        <h3>Demo Success Signal</h3>
+        <p>Stakeholder can track one user action from UI through API/storage to analytics output.</p>
+      </div>
+    </div>
+
+    <div class="deck-footer"><span class="dim2">acceptors · live demo</span><span class="slide-number" data-current="3" data-total="12"></span></div>
+    <div class="notes">Our demo story is structured around one complete business action, not disconnected clicks. We start from current portfolio state, perform a trading interaction, and then verify the impact in valuation outputs. If the live environment is unstable, we keep the same narrative using prepared states and screenshot evidence. This ensures the audience still sees the architecture and product logic clearly.</div>
   </section>
 
   <section class="slide" data-title="Team Members">
@@ -516,45 +587,8 @@
       </table>
     </div>
     <p class="body-copy mt-m">Execution model: role-based ownership with frequent integration checkpoints and contract alignment.</p>
-    <div class="deck-footer"><span class="dim2">acceptors · team</span><span class="slide-number" data-current="2" data-total="12"></span></div>
+    <div class="deck-footer"><span class="dim2">acceptors · team</span><span class="slide-number" data-current="4" data-total="12"></span></div>
     <div class="notes">This slide shows our ownership model. Each member owned a core business module, which gave us clear accountability and faster decision-making. We combined independent ownership with shared integration checkpoints, so we could move quickly without fragmenting the system. This setup helped us keep both delivery speed and integration quality under control.</div>
-  </section>
-
-  <section class="slide" data-title="Our Project">
-    <p class="kicker">Our Project</p>
-    <h2 class="h2">Problem Statement and Target Outcome</h2>
-    <div class="grid-tight g2-tight mt-m">
-      <div class="card">
-        <h3>Business Problem</h3>
-        <ul class="bullet-list">
-          <li>Portfolio records are fragmented across tools.</li>
-          <li>Manual P&amp;L tracking is error-prone and delayed.</li>
-          <li>No single view for fast decisions.</li>
-        </ul>
-      </div>
-      <div class="card">
-        <h3>Solution Value</h3>
-        <ul class="bullet-list">
-          <li>Unified portfolio + trade lifecycle view.</li>
-          <li>Live-priced valuation and allocation.</li>
-          <li>Traceable and auditable transaction flow.</li>
-        </ul>
-      </div>
-    </div>
-
-    <div class="grid-tight g2-tight mt-m">
-      <div class="card">
-        <h3>What We Were Asked To Do</h3>
-        <p>Build core record browsing, basic metrics visibility, add/remove flow, and a working end-to-end backend integration.</p>
-      </div>
-      <div class="card">
-        <h3>Expected Product Standard</h3>
-        <p>Provide a coherent user journey with reliable API behavior, observable data freshness, and demo-grade stability for stakeholder review.</p>
-      </div>
-    </div>
-
-    <div class="deck-footer"><span class="dim2">acceptors · project story</span><span class="slide-number" data-current="3" data-total="12"></span></div>
-    <div class="notes">We started from a clear business gap: portfolio information was fragmented and difficult to trust quickly. Our objective was to unify records, expose meaningful metrics, and preserve traceability from action to analytics. The key point is that we were not building a static dashboard; we were building a workflow system where data state remains explainable end-to-end. This became the anchor for all technical and product decisions.</div>
   </section>
 
   <section class="slide" data-title="Delivery Approach">
@@ -586,7 +620,7 @@
       </div>
     </div>
 
-    <div class="deck-footer"><span class="dim2">acceptors · approach</span><span class="slide-number" data-current="4" data-total="12"></span></div>
+    <div class="deck-footer"><span class="dim2">acceptors · approach</span><span class="slide-number" data-current="5" data-total="12"></span></div>
     <div class="notes">Our delivery strategy was to make the core journey work first, then progressively increase robustness. We learned that integration quality depends on contract clarity between frontend, API, and worker boundaries. Teamwork quality came from visible ownership plus fast feedback, not from everyone touching everything. This approach reduced rework and helped us keep the product presentation-ready throughout development.</div>
   </section>
 
@@ -621,7 +655,7 @@
       </div>
     </div>
 
-    <div class="deck-footer"><span class="dim2">acceptors · flow</span><span class="slide-number" data-current="5" data-total="12"></span></div>
+    <div class="deck-footer"><span class="dim2">acceptors · flow</span><span class="slide-number" data-current="6" data-total="12"></span></div>
     <div class="notes">This is the business-critical sequence in one view. A user action enters through trade input, passes rule validation, updates durable records, and then triggers valuation updates through the market sync pipeline. The final dashboard output is therefore not cosmetic; it reflects a complete data lifecycle. This flow is what gives the product trust and operational value.</div>
   </section>
 
@@ -643,41 +677,8 @@
         </ul>
       </div>
     </div>
-    <div class="deck-footer"><span class="dim2">acceptors · product evidence</span><span class="slide-number" data-current="6" data-total="12"></span></div>
+    <div class="deck-footer"><span class="dim2">acceptors · product evidence</span><span class="slide-number" data-current="7" data-total="12"></span></div>
     <div class="notes">Instead of listing interface elements, we use this screenshot as evidence of product capability. A stakeholder can immediately read portfolio value, unrealized profit and loss, and allocation distribution from one screen. This supports faster decisions and clearer operational context. The important point is not visual style alone, but that the UI reflects backend state coherently.</div>
-  </section>
-
-  <section class="slide" data-title="Demo">
-    <p class="kicker">Demo</p>
-    <h2 class="h2">Live Demonstration Plan</h2>
-    <div class="timeline-row mt-m">
-      <div class="timeline-box">
-        <div class="tag">Step 1</div>
-        <div class="txt">Open dashboard and establish baseline KPIs.</div>
-      </div>
-      <div class="timeline-box">
-        <div class="tag">Step 2</div>
-        <div class="txt">Inspect holdings and priced/unpriced coverage.</div>
-      </div>
-      <div class="timeline-box">
-        <div class="tag">Step 3</div>
-        <div class="txt">Create or inspect a trade and show valuation impact.</div>
-      </div>
-    </div>
-
-    <div class="grid-tight g2-tight mt-m">
-      <div class="card">
-        <h3>Fallback Strategy</h3>
-        <p>If API is unstable, move to screenshot-backed storytelling and focus on business logic continuity.</p>
-      </div>
-      <div class="card">
-        <h3>Demo Success Signal</h3>
-        <p>Stakeholder can track one user action from UI through API/storage to analytics output.</p>
-      </div>
-    </div>
-
-    <div class="deck-footer"><span class="dim2">acceptors · live demo</span><span class="slide-number" data-current="7" data-total="12"></span></div>
-    <div class="notes">Our demo story is structured around one complete business action, not disconnected clicks. We start from current portfolio state, perform a trading interaction, and then verify the impact in valuation outputs. If the live environment is unstable, we keep the same narrative using prepared states and screenshot evidence. This ensures the audience still sees the architecture and product logic clearly.</div>
   </section>
 
   <section class="slide" data-title="Architectural Diagram">
