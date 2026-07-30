@@ -881,7 +881,15 @@
     </div>
 
     <div class="deck-footer"><span class="dim2">acceptors · conclusion</span><span class="slide-number" data-current="10" data-total="12"></span></div>
-    <div class="notes">This project delivered a complete portfolio workflow with traceable analytics output. We also faced meaningful challenges, especially around integration boundaries and environment consistency. As a team, we worked effectively because responsibilities were clear and feedback loops were active. If we repeated this project, we would enforce contract testing and environment baselines even earlier to reduce integration friction.</div>
+    <div class="notes">Now let's take a moment to reflect on what we actually delivered, and what this project taught us.
+
+On the delivery side, we implemented the complete portfolio lifecycle from end to end — users can create portfolios, record trades, and immediately see how those actions flow through to their analytics dashboard. Market data synchronization is fully integrated, meaning valuation figures reflect real pricing rather than static placeholders. And the entire experience is demonstrable in a live environment, which was always our goal from day one.
+
+That said, we did face real challenges along the way. The most significant one was cross-layer integration — keeping the frontend, the API, and the worker in sync as each module evolved independently. We also ran into environment consistency issues: getting everyone's local setup to behave identically required more coordination than we initially anticipated. And throughout the project, we were constantly balancing the speed of iteration against the need for reliability safeguards.
+
+As a team, what made us effective was ownership clarity. Each member had a well-defined module, which meant decisions could be made quickly and accountability was always clear. Our shared checkpoints kept integration on track without slowing individual progress.
+
+If we did this again, we would introduce stricter contract tests between layers much earlier — and we would establish shared environment templates from the very first day, rather than letting those gaps surface mid-project.</div>
   </section>
 
   <section class="slide" data-title="The Road Ahead">
@@ -910,7 +918,15 @@
     </div>
 
     <div class="deck-footer"><span class="dim2">acceptors · next phase</span><span class="slide-number" data-current="11" data-total="12"></span></div>
-    <div class="notes">Our forward work focuses on optimization rather than feature inflation. We will improve reliability guardrails, deepen quality automation, and harden production readiness practices. The direction is to make the system easier to operate, easier to validate, and safer to evolve.</div>
+    <div class="notes">Looking forward, our priorities are focused on optimization — not adding features, but making what we have more reliable, more observable, and more production-ready.
+
+First, on reliability: we want to strengthen startup consistency and build proper operational runbooks, so the system is easier to hand off and recover from failure without depending on tribal knowledge.
+
+Second, on quality depth: we plan to expand our regression coverage, introduce stronger contract-level checks between our layers, and improve the observability signals that help us detect issues earlier.
+
+Third, on product hardening: we want to establish a disciplined release checklist that brings the system closer to genuine production readiness — not just demo readiness.
+
+We landed all five core modules. The architecture is clean, the contracts are clear. What comes next is about making this system easier to operate, easier to validate, and safer to evolve over time.</div>
   </section>
 
   <section class="slide center tc" data-title="Thank You">
