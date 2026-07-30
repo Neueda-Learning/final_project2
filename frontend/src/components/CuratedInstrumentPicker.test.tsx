@@ -808,4 +808,227 @@ describe("CuratedInstrumentPicker", () => {
     expect(screen.queryByText(/Some instruments are temporarily unavailable/i)).toBeNull();
     expect(screen.getByRole("option", { name: /QQQ/i })).toHaveAttribute("title", "QQQ Latest Fund · NASDAQ");
   });
+
+  it("marks exactly one active tab for the current sector", () => {
+    render(
+      <LanguageProvider>
+        <CuratedInstrumentPicker
+          instruments={instruments}
+          selectedInstrument={null}
+          sectorId="technology"
+          onSectorChange={vi.fn()}
+          onSelect={vi.fn()}
+        />
+      </LanguageProvider>,
+    );
+
+    expect(screen.getAllByRole("tab", { selected: true })).toHaveLength(1);
+    expect(screen.getByRole("tab", { name: /Technology & AI/i })).toHaveClass("is-active");
+  });
+
+  it("keeps all tabs inactive when the runtime sector id is unexpected", () => {
+    render(
+      <LanguageProvider>
+        <CuratedInstrumentPicker
+          instruments={instruments}
+          selectedInstrument={null}
+          sectorId={"unexpected" as never}
+          onSectorChange={vi.fn()}
+          onSelect={vi.fn()}
+        />
+      </LanguageProvider>,
+    );
+
+    expect(screen.queryAllByRole("tab", { selected: true })).toHaveLength(0);
+    expect(screen.getAllByRole("tab").every((tab) => !tab.className.includes("is-active"))).toBe(true);
+  });
+
+  it("updates the selected option when selectedInstrument changes on rerender", () => {
+    const view = render(
+      <LanguageProvider>
+        <CuratedInstrumentPicker
+          instruments={instruments}
+          selectedInstrument={instruments.find((instrument) => instrument.symbol === "VOO") ?? null}
+          sectorId="core"
+          onSectorChange={vi.fn()}
+          onSelect={vi.fn()}
+        />
+      </LanguageProvider>,
+    );
+
+    expect(screen.getByRole("option", { name: /VOO/i })).toHaveAttribute("aria-selected", "true");
+
+    view.rerender(
+      <LanguageProvider>
+        <CuratedInstrumentPicker
+          instruments={instruments}
+          selectedInstrument={instruments.find((instrument) => instrument.symbol === "VTI") ?? null}
+          sectorId="core"
+          onSectorChange={vi.fn()}
+          onSelect={vi.fn()}
+        />
+      </LanguageProvider>,
+    );
+
+    expect(screen.getByRole("option", { name: /VOO/i })).toHaveAttribute("aria-selected", "false");
+    expect(screen.getByRole("option", { name: /VTI/i })).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("clears the selected option when selectedInstrument becomes null on rerender", () => {
+    const view = render(
+      <LanguageProvider>
+        <CuratedInstrumentPicker
+          instruments={instruments}
+          selectedInstrument={instruments.find((instrument) => instrument.symbol === "VOO") ?? null}
+          sectorId="core"
+          onSectorChange={vi.fn()}
+          onSelect={vi.fn()}
+        />
+      </LanguageProvider>,
+    );
+
+    view.rerender(
+      <LanguageProvider>
+        <CuratedInstrumentPicker
+          instruments={instruments}
+          selectedInstrument={null}
+          sectorId="core"
+          onSectorChange={vi.fn()}
+          onSelect={vi.fn()}
+        />
+      </LanguageProvider>,
+    );
+
+    expect(screen.queryAllByRole("option", { selected: true })).toHaveLength(0);
+  });
+
+  it("hides the selected checkmark when the chosen instrument moves outside the active sector", () => {
+    render(
+      <LanguageProvider>
+        <CuratedInstrumentPicker
+          instruments={instruments}
+          selectedInstrument={instruments.find((instrument) => instrument.symbol === "AAPL") ?? null}
+          sectorId="core"
+          onSectorChange={vi.fn()}
+          onSelect={vi.fn()}
+        />
+      </LanguageProvider>,
+    );
+
+    expect(screen.getAllByRole("option").every((option) => !option.textContent?.includes("✓"))).toBe(true);
+  });
+
+  it("renders the first three theme symbols in curated order", () => {
+    render(
+      <LanguageProvider>
+        <CuratedInstrumentPicker
+          instruments={instruments}
+          selectedInstrument={null}
+          sectorId="themes"
+          onSectorChange={vi.fn()}
+          onSelect={vi.fn()}
+        />
+      </LanguageProvider>,
+    );
+
+    const options = screen.getAllByRole("option");
+    expect(options[0]).toHaveTextContent("IBIT");
+    expect(options[1]).toHaveTextContent("COIN");
+    expect(options[2]).toHaveTextContent("ICLN");
+  });
+
+  it("excludes income-only symbols from the technology sector", () => {
+    render(
+      <LanguageProvider>
+        <CuratedInstrumentPicker
+          instruments={instruments}
+          selectedInstrument={null}
+          sectorId="technology"
+          onSectorChange={vi.fn()}
+          onSelect={vi.fn()}
+        />
+      </LanguageProvider>,
+    );
+
+    expect(screen.queryByRole("option", { name: /JNJ/i })).toBeNull();
+    expect(screen.queryByRole("option", { name: /PG/i })).toBeNull();
+  });
+
+  it("calls onSelect for each repeated click on the same option", () => {
+    const onSelect = vi.fn();
+    render(
+      <LanguageProvider>
+        <CuratedInstrumentPicker
+          instruments={instruments}
+          selectedInstrument={null}
+          sectorId="core"
+          onSectorChange={vi.fn()}
+          onSelect={onSelect}
+        />
+      </LanguageProvider>,
+    );
+
+    const option = screen.getByRole("option", { name: /VOO/i });
+    fireEvent.click(option);
+    fireEvent.click(option);
+
+    expect(onSelect).toHaveBeenCalledTimes(2);
+    expect(onSelect.mock.calls[0][0]).toEqual(expect.objectContaining({ symbol: "VOO" }));
+    expect(onSelect.mock.calls[1][0]).toEqual(expect.objectContaining({ symbol: "VOO" }));
+  });
+
+  it("updates the unavailable notice when the active sector regains its missing symbol on rerender", () => {
+    const incompleteCore = instruments.filter((instrument) => instrument.symbol !== "BND");
+    const view = render(
+      <LanguageProvider>
+        <CuratedInstrumentPicker
+          instruments={incompleteCore}
+          selectedInstrument={null}
+          sectorId="core"
+          onSectorChange={vi.fn()}
+          onSelect={vi.fn()}
+        />
+      </LanguageProvider>,
+    );
+
+    expect(screen.getByText(/Some instruments are temporarily unavailable/i)).toBeInTheDocument();
+
+    view.rerender(
+      <LanguageProvider>
+        <CuratedInstrumentPicker
+          instruments={instruments}
+          selectedInstrument={null}
+          sectorId="core"
+          onSectorChange={vi.fn()}
+          onSelect={vi.fn()}
+        />
+      </LanguageProvider>,
+    );
+
+    expect(screen.queryByText(/Some instruments are temporarily unavailable/i)).toBeNull();
+    expect(screen.getAllByRole("option")).toHaveLength(10);
+  });
+
+  it("keeps duplicated shared symbols rendered only once in the themes sector", () => {
+    const duplicateCoin = {
+      ...instruments.find((instrument) => instrument.symbol === "COIN")!,
+      id: "instrument-COIN-duplicate",
+      name: "COIN Duplicate Fund",
+    };
+
+    render(
+      <LanguageProvider>
+        <CuratedInstrumentPicker
+          instruments={[...instruments, duplicateCoin]}
+          selectedInstrument={null}
+          sectorId="themes"
+          onSectorChange={vi.fn()}
+          onSelect={vi.fn()}
+        />
+      </LanguageProvider>,
+    );
+
+    expect(screen.getAllByRole("option", { name: /COIN/i })).toHaveLength(1);
+    expect(screen.getAllByRole("option")).toHaveLength(10);
+  });
 });
