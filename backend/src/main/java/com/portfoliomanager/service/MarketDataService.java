@@ -8,7 +8,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class MarketDataService {
 
+    private static final ZoneId BEIJING_ZONE = ZoneId.of("Asia/Shanghai");
     private static final String LOCK_NAME = "portfolio_manager_market_sync";
     private static final Set<String> INTRADAY_INTERVALS =
             Set.of("1min", "5min", "15min", "30min");
@@ -175,7 +176,7 @@ public class MarketDataService {
                     "interval must be one of 1min, 5min, 15min, or 30min");
         }
         LocalDateTime effectiveTo =
-                to == null ? LocalDateTime.now(ZoneOffset.UTC) : to;
+            to == null ? LocalDateTime.now(BEIJING_ZONE) : to;
         LocalDateTime effectiveFrom =
                 from == null ? effectiveTo.minusDays(1) : from;
         if (!effectiveFrom.isBefore(effectiveTo)) {

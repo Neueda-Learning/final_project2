@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  beijingTodayISODate,
   formatCurrency,
   formatDate,
   formatDateTime,
@@ -8,6 +9,7 @@ import {
   formatQuantity,
   pnlArrow,
   pnlSign,
+  toEpochMs,
 } from "./format";
 
 describe("format helpers", () => {
@@ -30,6 +32,16 @@ describe("format helpers", () => {
   it("formats date and datetime", () => {
     expect(formatDate("2026-07-27")).toContain("2026");
     expect(formatDateTime("2026-07-27T08:30:00Z")).toContain("2026");
+  });
+
+  it("parses timezone-free API timestamps as Beijing time", () => {
+    expect(toEpochMs("2026-07-27T16:00:00"))
+      .toBe(new Date("2026-07-27T08:00:00Z").getTime());
+  });
+
+  it("generates today date in Beijing timezone", () => {
+    expect(beijingTodayISODate(new Date("2026-07-27T17:30:00Z")))
+      .toBe("2026-07-28");
   });
 
   it("returns pnl sign and arrow", () => {

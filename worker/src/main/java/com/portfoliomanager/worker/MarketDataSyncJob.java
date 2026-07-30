@@ -12,7 +12,6 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -38,6 +37,7 @@ import org.springframework.stereotype.Component;
 public class MarketDataSyncJob {
 
     private static final Logger log = LoggerFactory.getLogger(MarketDataSyncJob.class);
+    private static final ZoneId BEIJING_ZONE = ZoneId.of("Asia/Shanghai");
     private static final String LOCK_NAME = "portfolio_manager_market_sync";
 
     private final MarketDataProvider provider;
@@ -50,7 +50,7 @@ public class MarketDataSyncJob {
             MarketDataProvider provider,
             JdbcTemplate jdbc,
             MarketDataProperties properties) {
-        this(provider, jdbc, properties, Clock.systemUTC());
+        this(provider, jdbc, properties, Clock.system(BEIJING_ZONE));
     }
 
     MarketDataSyncJob(
@@ -80,7 +80,7 @@ public class MarketDataSyncJob {
 
     @Scheduled(
             cron = "${market-data.sync-cron}",
-            zone = "${market-data.time-zone:America/New_York}")
+            zone = "${market-data.time-zone:Asia/Shanghai}")
     public void scheduledSync() {
         withGlobalLock(() -> {
             if (hasRunningSync()) {
@@ -196,11 +196,11 @@ public class MarketDataSyncJob {
             upsertPrices(runId, priceWrites);
             Set<String> successfulInstrumentIds = Set.copyOf(validatedInstrumentIds);
 
-            // ── Intraday bars ────────────────────────────────────────────
-            // Use UTC for both the request window and validation so that the
-            // timestamps returned by the provider (which uses timezone=UTC) are
-            // compared on the same axis.
-            LocalDateTime intradayEnd = LocalDateTime.now(clock.withZone(ZoneOffset.UTC));
+                // ── Intraday bars ────────────────────────────────────────────
+                // Use one business timezone for request windows and validation so
+                // timestamp comparisons remain deterministic across API and UI.
+                LocalDateTime intradayEnd = LocalDateTime.now(
+                    clock.withZone(ZoneId.of(properties.getTimeZone())));
             LocalDateTime intradayStart =
                     intradayEnd.minusDays(properties.getIntradayLookbackDays());
             for (IntradayFetch fetch :

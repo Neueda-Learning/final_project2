@@ -16,19 +16,39 @@ import org.springframework.stereotype.Service;
 @Service
 public class MarketCalendarService {
 
-    private final ZoneId marketZone;
+    private static final ZoneId BEIJING_ZONE = ZoneId.of("Asia/Shanghai");
+    private static final ZoneId DEFAULT_CLOSE_REFERENCE_ZONE =
+            ZoneId.of("America/New_York");
+
+    private final ZoneId businessZone;
+    private final ZoneId closeReferenceZone;
     private final LocalTime closeTime;
     private final Clock clock;
 
     @Autowired
     public MarketCalendarService(
-            @Value("${market-data.time-zone:America/New_York}") String marketZone,
-            @Value("${market-data.close-time:16:15}") String closeTime) {
-        this(ZoneId.of(marketZone), LocalTime.parse(closeTime), Clock.systemUTC());
+            @Value("${market-data.time-zone:Asia/Shanghai}") String businessZone,
+            @Value("${market-data.close-time:16:15}") String closeTime,
+            @Value("${market-data.close-time-zone:America/New_York}")
+                    String closeTimeZone) {
+        this(
+                ZoneId.of(businessZone),
+                ZoneId.of(closeTimeZone),
+                LocalTime.parse(closeTime),
+                Clock.system(BEIJING_ZONE));
     }
 
-    MarketCalendarService(ZoneId marketZone, LocalTime closeTime, Clock clock) {
-        this.marketZone = marketZone;
+    MarketCalendarService(ZoneId businessZone, LocalTime closeTime, Clock clock) {
+        this(businessZone, DEFAULT_CLOSE_REFERENCE_ZONE, closeTime, clock);
+    }
+
+    MarketCalendarService(
+            ZoneId businessZone,
+            ZoneId closeReferenceZone,
+            LocalTime closeTime,
+            Clock clock) {
+        this.businessZone = businessZone;
+        this.closeReferenceZone = closeReferenceZone;
         this.closeTime = closeTime;
         this.clock = clock;
     }
@@ -43,10 +63,13 @@ public class MarketCalendarService {
     }
 
     LocalDate latestExpectedTradingDay() {
-        ZonedDateTime marketNow = ZonedDateTime.now(clock).withZoneSameInstant(marketZone);
-        LocalDate candidate = marketNow.toLocalDate();
+        ZonedDateTime businessNow = ZonedDateTime.now(clock).withZoneSameInstant(businessZone);
+        ZonedDateTime closeReferenceNow =
+            businessNow.withZoneSameInstant(closeReferenceZone);
+        LocalDate candidate = closeReferenceNow.toLocalDate();
         if (!isTradingDay(candidate)
-                || (isTradingDay(candidate) && marketNow.toLocalTime().isBefore(closeTime))) {
+            || (isTradingDay(candidate)
+                && closeReferenceNow.toLocalTime().isBefore(closeTime))) {
             candidate = candidate.minusDays(1);
         }
         while (!isTradingDay(candidate)) {

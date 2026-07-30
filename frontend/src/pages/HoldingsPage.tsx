@@ -10,7 +10,7 @@ import { ErrorBox } from "../components/ErrorBox";
 import { PageHeader } from "../components/PageHeader";
 import { IntradayChart } from "../components/charts";
 import type { CuratedSectorId } from "../data/curatedInstruments";
-import { formatCurrency, formatQuantity } from "../lib/format";
+import { beijingTodayISODate, formatCurrency, formatQuantity, formatTime } from "../lib/format";
 import { useLanguage } from "../i18n/LanguageContext";
 
 interface TradeFormState {
@@ -23,17 +23,11 @@ interface TradeFormState {
   note: string;
 }
 
-function localTodayISODate(): string {
-  const now = new Date();
-  const tzOffsetMs = now.getTimezoneOffset() * 60_000;
-  return new Date(now.getTime() - tzOffsetMs).toISOString().slice(0, 10);
-}
-
 const initialForm = (): TradeFormState => ({
   side: "BUY",
   instrument: null,
   quantity: "",
-  tradeDate: localTodayISODate(),
+  tradeDate: beijingTodayISODate(),
   unitPrice: "",
   feeAmount: "0",
   note: "",
@@ -385,7 +379,7 @@ export function HoldingsPage() {
               </button>
               {barsQuery.dataUpdatedAt ? (
                 <span style={{ fontSize: "0.75rem", color: "#667085" }}>
-                  {t("intraday.updated", { time: new Date(barsQuery.dataUpdatedAt).toLocaleTimeString(locale) })}
+                  {t("intraday.updated", { time: formatTime(barsQuery.dataUpdatedAt, locale) })}
                 </span>
               ) : null}
               {barsQuery.isError ? (
@@ -407,7 +401,7 @@ export function HoldingsPage() {
               <p className="intraday-card__footer">
                 {t("intraday.points", { count: String(barsQuery.data.items.length) })}
                 {barsQuery.dataUpdatedAt
-                  ? ` · ${t("intraday.updated", { time: new Date(barsQuery.dataUpdatedAt).toLocaleTimeString(locale) })}`
+                  ? ` · ${t("intraday.updated", { time: formatTime(barsQuery.dataUpdatedAt, locale) })}`
                   : null}
               </p>
             </>

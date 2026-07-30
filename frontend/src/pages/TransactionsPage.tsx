@@ -6,7 +6,7 @@ import { usePortfolio } from "../app/PortfolioContext";
 import { EmptyState } from "../components/EmptyState";
 import { ErrorBox } from "../components/ErrorBox";
 import { PageHeader } from "../components/PageHeader";
-import { formatCurrency, formatDateTime, formatQuantity } from "../lib/format";
+import { formatCurrency, formatDateTime, formatQuantity, toEpochMs } from "../lib/format";
 import { useLanguage } from "../i18n/LanguageContext";
 
 const PAGE_SIZE = 20;
@@ -27,7 +27,10 @@ export function TransactionsPage() {
   const maxPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const sorted = useMemo(
-    () => [...items].sort((a, b) => new Date(b.executedAt).getTime() - new Date(a.executedAt).getTime()),
+    () =>
+      [...items].sort(
+        (a, b) => (toEpochMs(b.executedAt) ?? 0) - (toEpochMs(a.executedAt) ?? 0),
+      ),
     [items],
   );
 

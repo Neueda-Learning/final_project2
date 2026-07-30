@@ -11,7 +11,12 @@ import {
 import { Doughnut, Line } from "react-chartjs-2";
 
 import type { AllocationItem, MarketBar, PerformancePoint } from "../api/types";
-import { formatCurrency, formatPercent } from "../lib/format";
+import {
+  BEIJING_TIME_ZONE,
+  formatCurrency,
+  formatPercent,
+  parseApiDateTime,
+} from "../lib/format";
 import { useLanguage } from "../i18n/LanguageContext";
 
 ChartJS.register(
@@ -130,14 +135,17 @@ export function IntradayChart({
     <div className="chart-wrap chart-wrap--intraday">
       <Line
         data={{
-          labels: bars.map((bar) =>
-            new Date(`${bar.timestamp}Z`).toLocaleTimeString(locale, {
+          labels: bars.map((bar) => {
+            const parsed = parseApiDateTime(bar.timestamp);
+            if (!parsed) return bar.timestamp;
+            return parsed.toLocaleString(locale, {
               month: "short",
               day: "numeric",
               hour: "2-digit",
               minute: "2-digit",
-            }),
-          ),
+              timeZone: BEIJING_TIME_ZONE,
+            });
+          }),
           datasets: [{
             label: t("intraday.close"),
             data: bars.map((bar) => Number(bar.close)),

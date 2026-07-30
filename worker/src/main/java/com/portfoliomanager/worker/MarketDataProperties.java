@@ -16,7 +16,7 @@ public class MarketDataProperties {
     private String alpacaFeed = "iex";
     private int alpacaRequestsPerMinute = 180;
     private String syncCron = "0 */5 9-16 * * MON-FRI";
-    private String timeZone = "America/New_York";
+    private String timeZone = "Asia/Shanghai";
     private int batchSize = 50;
     private int requestConcurrency = 4;
     private int requestTimeoutSeconds = 10;

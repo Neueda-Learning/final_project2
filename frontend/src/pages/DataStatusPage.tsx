@@ -5,7 +5,7 @@ import { ErrorBox } from "../components/ErrorBox";
 import { PageHeader } from "../components/PageHeader";
 import { SyncStatusBadge } from "../components/StatusBadge";
 import { SyncProgress, SyncStageText } from "../components/SyncProgress";
-import { formatDateTime } from "../lib/format";
+import { formatDateTime, toEpochMs } from "../lib/format";
 import { useLanguage } from "../i18n/LanguageContext";
 
 export function DataStatusPage() {
@@ -30,9 +30,10 @@ export function DataStatusPage() {
   });
   const syncData = latestSyncQuery.data;
   const syncIsRunning = syncData?.status === "RUNNING";
+  const startedAtMs = toEpochMs(syncData?.startedAt);
   const syncIsStuck = syncIsRunning
-    && syncData != null
-    && new Date().getTime() - new Date(syncData.startedAt).getTime() > 10 * 60 * 1000;
+    && startedAtMs !== null
+    && Date.now() - startedAtMs > 10 * 60 * 1000;
 
   return (
     <>

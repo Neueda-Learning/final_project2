@@ -133,7 +133,7 @@ public class TwelveDataProvider implements MarketDataProvider {
                             .queryParam("interval", interval)
                             .queryParam("start_date", formatTimestamp(start))
                             .queryParam("end_date", formatTimestamp(end))
-                            .queryParam("timezone", "UTC")
+                            .queryParam("timezone", properties.getTimeZone())
                             .queryParam("order", "ASC")
                             .queryParam("outputsize", 5000)
                             .build())

@@ -52,7 +52,7 @@ class AlpacaMarketDataProviderTest {
     }
 
     @Test
-    void normalizesIntradayBarsToUtc() {
+    void normalizesIntradayBarsToBeijingTime() {
         String response =
                 """
                 {
@@ -75,7 +75,7 @@ class AlpacaMarketDataProviderTest {
                     assertThat(bar.symbol()).isEqualTo("AAPL");
                     assertThat(bar.interval()).isEqualTo("1min");
                     assertThat(bar.timestamp().toString())
-                            .isEqualTo("2026-07-28T19:59");
+                .isEqualTo("2026-07-29T03:59");
                     assertThat(bar.closePrice()).isEqualByComparingTo("214.25");
                     assertThat(bar.source()).isEqualTo("alpaca");
                 });

@@ -7,7 +7,7 @@ import { usePortfolio } from "../app/PortfolioContext";
 import { EmptyState } from "../components/EmptyState";
 import { ErrorBox } from "../components/ErrorBox";
 import { PageHeader } from "../components/PageHeader";
-import { formatDateTime } from "../lib/format";
+import { formatDateTime, toEpochMs } from "../lib/format";
 import { useLanguage } from "../i18n/LanguageContext";
 
 interface FormState {
@@ -74,7 +74,10 @@ export function PortfoliosPage() {
   const rows = listQuery.data?.items ?? [];
 
   const sortedRows = useMemo(
-    () => [...rows].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
+    () =>
+      [...rows].sort(
+        (a, b) => (toEpochMs(b.updatedAt) ?? 0) - (toEpochMs(a.updatedAt) ?? 0),
+      ),
     [rows],
   );
 

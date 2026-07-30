@@ -12,11 +12,11 @@ import org.junit.jupiter.api.Test;
 
 class MarketCalendarServiceTest {
 
-    private static final ZoneId NEW_YORK = ZoneId.of("America/New_York");
+    private static final ZoneId BEIJING = ZoneId.of("Asia/Shanghai");
 
     @Test
     void beforeMondayCloseUsesPreviousFriday() {
-        var calendar = calendarAt("2026-07-27T18:00:00Z");
+        var calendar = calendarAt("2026-07-27T02:00:00Z");
 
         assertThat(calendar.latestExpectedTradingDay())
                 .isEqualTo(LocalDate.of(2026, 7, 24));
@@ -27,8 +27,19 @@ class MarketCalendarServiceTest {
     }
 
     @Test
+    void usCloseIsEvaluatedInCorrespondingBeijingTime() {
+        var beforeUsClose = calendarAt("2026-07-28T20:10:00Z");
+        var afterUsClose = calendarAt("2026-07-28T20:20:00Z");
+
+        assertThat(beforeUsClose.latestExpectedTradingDay())
+                .isEqualTo(LocalDate.of(2026, 7, 27));
+        assertThat(afterUsClose.latestExpectedTradingDay())
+                .isEqualTo(LocalDate.of(2026, 7, 28));
+    }
+
+    @Test
     void thanksgivingIsNotTreatedAsATradingDay() {
-        var calendar = calendarAt("2026-11-27T15:00:00Z");
+        var calendar = calendarAt("2026-11-27T01:00:00Z");
 
         assertThat(calendar.latestExpectedTradingDay())
                 .isEqualTo(LocalDate.of(2026, 11, 25));
@@ -42,7 +53,7 @@ class MarketCalendarServiceTest {
 
     private MarketCalendarService calendarAt(String instant) {
         return new MarketCalendarService(
-                NEW_YORK,
+                                BEIJING,
                 LocalTime.of(16, 15),
                 Clock.fixed(Instant.parse(instant), ZoneId.of("UTC")));
     }

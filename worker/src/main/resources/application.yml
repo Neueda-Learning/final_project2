@@ -8,7 +8,7 @@ spring:
   main:
     web-application-type: none
   datasource:
-    url: "${DATABASE_${DATABASE_TARGET:REMOTE}_URL:${DATABASE_URL:jdbc:mysql://localhost:3306/portfolio_manager?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}}"
+    url: "${DATABASE_${DATABASE_TARGET:REMOTE}_URL:${DATABASE_URL:jdbc:mysql://localhost:3306/portfolio_manager?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai}}"
     username: "${DATABASE_${DATABASE_TARGET:REMOTE}_USERNAME:${DATABASE_USERNAME:portfolio}}"
     password: "${DATABASE_${DATABASE_TARGET:REMOTE}_PASSWORD:${DATABASE_PASSWORD:portfolio}}"
 
@@ -23,7 +23,7 @@ market-data:
   # Leave headroom below Alpaca Basic's documented 200 historical calls/minute.
   alpaca-requests-per-minute: ${ALPACA_REQUESTS_PER_MINUTE:180}
   sync-cron: ${MARKET_SYNC_CRON:0 0 22 * * MON-FRI}
-  time-zone: ${MARKET_TIMEZONE:America/New_York}
+  time-zone: ${MARKET_TIMEZONE:Asia/Shanghai}
   # Alpaca supports multi-symbol historical bars. Twelve fallback requests are
   # split to one symbol by the failover adapter.
   batch-size: ${MARKET_BATCH_SIZE:50}

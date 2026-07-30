@@ -24,11 +24,13 @@ services:
       context: .
       dockerfile: infra/api.Dockerfile
     environment:
-      DATABASE_URL: jdbc:mysql://mysql:3306/portfolio_manager?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DATABASE_URL: jdbc:mysql://mysql:3306/portfolio_manager?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
       DATABASE_USERNAME: portfolio
       DATABASE_PASSWORD: portfolio
       MARKET_DATA_PROVIDER: ${MARKET_DATA_PROVIDER:-alpaca}
-      MARKET_TIMEZONE: ${MARKET_TIMEZONE:-America/New_York}
+      MARKET_TIMEZONE: ${MARKET_TIMEZONE:-Asia/Shanghai}
+      MARKET_CLOSE_TIME: ${MARKET_CLOSE_TIME:-16:15}
+      MARKET_CLOSE_TIMEZONE: ${MARKET_CLOSE_TIMEZONE:-America/New_York}
     ports:
       - "8000:8000"
     depends_on:
@@ -40,12 +42,14 @@ services:
       context: .
       dockerfile: infra/worker.Dockerfile
     environment:
-      DATABASE_URL: jdbc:mysql://mysql:3306/portfolio_manager?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DATABASE_URL: jdbc:mysql://mysql:3306/portfolio_manager?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
       DATABASE_USERNAME: portfolio
       DATABASE_PASSWORD: portfolio
       MARKET_DATA_PROVIDER: ${MARKET_DATA_PROVIDER:-alpaca}
       MARKET_SYNC_CRON: ${MARKET_SYNC_CRON:-0 0 22 * * MON-FRI}
-      MARKET_TIMEZONE: ${MARKET_TIMEZONE:-America/New_York}
+      MARKET_TIMEZONE: ${MARKET_TIMEZONE:-Asia/Shanghai}
+      MARKET_CLOSE_TIME: ${MARKET_CLOSE_TIME:-16:15}
+      MARKET_CLOSE_TIMEZONE: ${MARKET_CLOSE_TIMEZONE:-America/New_York}
       MARKET_BATCH_SIZE: ${MARKET_BATCH_SIZE:-50}
       MARKET_REQUEST_CONCURRENCY: ${MARKET_REQUEST_CONCURRENCY:-4}
       MARKET_REQUEST_TIMEOUT_SECONDS: ${MARKET_REQUEST_TIMEOUT_SECONDS:-10}

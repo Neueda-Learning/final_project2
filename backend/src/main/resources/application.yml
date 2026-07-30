@@ -1,6 +1,8 @@
 spring:
   application:
     name: portfolio-manager-api
+  jackson:
+    time-zone: Asia/Shanghai
   config:
     import:
       - optional:file:.env[.properties]
@@ -16,7 +18,7 @@ spring:
     properties:
       hibernate:
         jdbc:
-          time_zone: UTC
+          time_zone: Asia/Shanghai
   flyway:
     enabled: ${FLYWAY_ENABLED:false}
   cache:
@@ -50,8 +52,9 @@ app:
 
 market-data:
   provider: ${MARKET_DATA_PROVIDER:alpaca}
-  time-zone: ${MARKET_TIMEZONE:America/New_York}
+  time-zone: ${MARKET_TIMEZONE:Asia/Shanghai}
   close-time: ${MARKET_CLOSE_TIME:16:15}
+  close-time-zone: ${MARKET_CLOSE_TIMEZONE:America/New_York}
 
 logging:
   level:

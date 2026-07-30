@@ -14,6 +14,7 @@ import com.portfoliomanager.repository.PortfolioRepository;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -22,6 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AnalyticsService {
+
+    private static final ZoneId BEIJING_ZONE = ZoneId.of("Asia/Shanghai");
 
     private final JdbcTemplate jdbc;
     private final PortfolioRepository portfolios;
@@ -191,7 +194,7 @@ public class AnalyticsService {
 
         Portfolio portfolio = ownedPortfolio(portfolioId);
 
-        LocalDate effectiveTo = to != null ? to : LocalDate.now();
+        LocalDate effectiveTo = to != null ? to : LocalDate.now(BEIJING_ZONE);
 
         // If 'from' is not specified: show from earliest buy date, capped to one month window.
         LocalDate effectiveFrom = from;
@@ -210,7 +213,7 @@ public class AnalyticsService {
 
             if (earliestTransaction != null) {
                 // Use the later one so we don't go further back than one month.
-                LocalDate oneMonthAgo = LocalDate.now().minusMonths(1);
+                LocalDate oneMonthAgo = LocalDate.now(BEIJING_ZONE).minusMonths(1);
                 effectiveFrom = earliestTransaction.isBefore(oneMonthAgo) ? oneMonthAgo : earliestTransaction;
             }
         }

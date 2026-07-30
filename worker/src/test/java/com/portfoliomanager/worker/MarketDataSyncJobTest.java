@@ -42,7 +42,7 @@ class MarketDataSyncJobTest {
                 .thenReturn(List.of());
 
         var job = new MarketDataSyncJob(
-                provider, jdbc, new MarketDataProperties(), Clock.systemUTC());
+                provider, jdbc, new MarketDataProperties(), Clock.system(ZoneId.of("Asia/Shanghai")));
 
         job.processManualRequests();
 

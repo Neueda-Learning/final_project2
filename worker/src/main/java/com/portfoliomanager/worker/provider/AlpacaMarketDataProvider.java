@@ -121,6 +121,7 @@ public class AlpacaMarketDataProvider implements MarketDataProvider {
             LocalDateTime start,
             LocalDateTime end) {
         requireCredentials();
+        ZoneId appZone = ZoneId.of(properties.getTimeZone());
         List<IntradayBar> bars = new ArrayList<>();
         Set<String> seenPageTokens = new HashSet<>();
         String pageToken = null;
@@ -129,8 +130,16 @@ public class AlpacaMarketDataProvider implements MarketDataProvider {
                     .fromUriString(properties.getAlpacaDataBaseUrl())
                     .pathSegment("stocks", symbol, "bars")
                     .queryParam("timeframe", alpacaTimeframe(interval))
-                    .queryParam("start", start.atOffset(ZoneOffset.UTC))
-                    .queryParam("end", end.atOffset(ZoneOffset.UTC))
+                .queryParam(
+                    "start",
+                    start.atZone(appZone)
+                        .withZoneSameInstant(ZoneOffset.UTC)
+                        .toOffsetDateTime())
+                .queryParam(
+                    "end",
+                    end.atZone(appZone)
+                        .withZoneSameInstant(ZoneOffset.UTC)
+                        .toOffsetDateTime())
                     .queryParam("adjustment", "all")
                     .queryParam("feed", properties.getAlpacaFeed())
                     .queryParam("sort", "asc")
@@ -237,7 +246,8 @@ public class AlpacaMarketDataProvider implements MarketDataProvider {
                         nullableLong(bar, "v"),
                         "USD",
                         name(),
-                        timestamp.atZoneSameInstant(ZoneOffset.UTC).toLocalDateTime()));
+                        timestamp.atZoneSameInstant(ZoneId.of(properties.getTimeZone()))
+                                .toLocalDateTime()));
             }
         });
         return prices;
@@ -251,12 +261,13 @@ public class AlpacaMarketDataProvider implements MarketDataProvider {
         }
         String responseSymbol = root.path("symbol").asText(symbol);
         List<IntradayBar> bars = new ArrayList<>();
+        ZoneId appZone = ZoneId.of(properties.getTimeZone());
         for (JsonNode bar : values) {
             OffsetDateTime timestamp = timestamp(bar);
             bars.add(new IntradayBar(
                     responseSymbol,
                     interval,
-                    timestamp.atZoneSameInstant(ZoneOffset.UTC).toLocalDateTime(),
+                timestamp.atZoneSameInstant(appZone).toLocalDateTime(),
                     decimal(bar, "o"),
                     decimal(bar, "h"),
                     decimal(bar, "l"),

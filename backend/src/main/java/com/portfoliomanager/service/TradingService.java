@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -39,6 +40,8 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class TradingService {
+
+    private static final ZoneId BEIJING_ZONE = ZoneId.of("Asia/Shanghai");
 
     private static final Comparator<TradeTransaction> TRADE_HISTORY_ORDER =
         Comparator.comparing(TradeTransaction::getExecutedAt)
@@ -348,7 +351,7 @@ public class TradingService {
      * This ensures that the performance chart reflects recent transaction changes.
      */
     private void updateValuationSnapshotForToday(String portfolioId) {
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(BEIJING_ZONE);
         try {
             // Insert or update today's valuation snapshot for this portfolio
             jdbc.update(
@@ -391,7 +394,7 @@ public class TradingService {
      */
     private void rebuildValuationSnapshotsAfterTrade(String portfolioId, LocalDate tradeDate) {
         try {
-            LocalDate today = LocalDate.now();
+            LocalDate today = LocalDate.now(BEIJING_ZONE);
             
             // Delete existing snapshots for this portfolio from trade date onward
             jdbc.update(

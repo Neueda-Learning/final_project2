@@ -71,7 +71,7 @@ class TwelveDataProviderTest {
     }
 
     @Test
-    void normalizesOneMinuteBarsInUtc() {
+    void normalizesOneMinuteBarsInConfiguredTimezone() {
         String response =
                 """
                 {
