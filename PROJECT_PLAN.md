@@ -1,6 +1,6 @@
 # Project Plan and Progress Tracker
 
-Last Updated: 2026-07-29
+Last Updated: 2026-07-30
 Owner: Team Portfolio Manager
 Status Scale: `Not Started` | `In Progress` | `Done` | `Blocked`
 
@@ -50,6 +50,12 @@ Source: `git log --first-parent` on `main` and selected feature commits.
 | 2026-07-29 | ada0b55 / 7f3e394 | Sync progress and return-curve reporting merged | Worker visibility and analytics feedback improved |
 | 2026-07-29 | fcad49f | Environment property import support | Configuration portability improved across runtime environments |
 | 2026-07-29 | 57bb6f2 | Frontend test step added in CI | Delivery quality gate strengthened |
+| 2026-07-30 | 8c7413a | Add assets/dashboard.png screenshot | Visual evidence committed for demo and presentation use |
+| 2026-07-30 | 7d2ee01 | Slides update | Presentation deck refreshed on main |
+| 2026-07-30 | 7ec5449 (Leon) | test: expand sync progress coverage | Sync-progress test coverage broadened |
+| 2026-07-30 | 7356bcc / 62dd9f9 / 903adc1 (Leon) | test: AnalyticsService unit tests, controller coverage, sector edge-cases, helper edge-cases | Analytics test suite significantly expanded |
+| 2026-07-30 | 976f78c (feature/Viko) | feat: add unit-price input prefix style | Trade entry UX improved for unit-price field |
+| 2026-07-30 | 4b54581 | Merge PR #25 (Leon) + PR #24 (Viko) into main | Expanded test coverage and UX refinement landed on main |
 
 ## 5. Delivery Plan with Progress
 
@@ -60,6 +66,7 @@ Source: `git log --first-parent` on `main` and selected feature commits.
 | App shell and page composition | Done | 2d72b5f, 6d55b4a | Maintain UI consistency |
 | Dashboard and valuation display | Done | f82ced4, 8170bd4 | Add regression visual checks |
 | Holdings and trade form responsiveness | Done | 757ec6e | Validate edge-case layouts |
+| Unit-price input prefix style | Done | 976f78c | Minor UX polish landed |
 | Frontend automated tests | Done | 2d72b5f + current `npm test` pass history | Keep tests green after API changes |
 
 ### 5.2 Backend API
@@ -70,6 +77,7 @@ Source: `git log --first-parent` on `main` and selected feature commits.
 | Holdings response contract alignment | Done | ce4a74f | Keep OpenAPI/runtime synchronized |
 | Environment-based datasource configuration | Done | d78adf7 | Keep env examples current |
 | Runtime startup reliability (non-Docker) | In Progress | recent startup troubleshooting sessions | Stabilize single-command startup behavior across environments |
+| Analytics service unit tests | Done | 7356bcc | AnalyticsService coverage expanded with new unit test suite |
 
 ### 5.3 Market Data Worker
 
@@ -78,6 +86,7 @@ Source: `git log --first-parent` on `main` and selected feature commits.
 | Daily sync baseline | Done | 8b92623 | Monitor sync error handling |
 | Minute-level data extension | Done | e482eca, 052454e | Confirm valuation compatibility |
 | Sync progress and return reporting | Done | 7f3e394, ada0b55 | Expose metrics consistently to dashboard consumers |
+| Sync progress test coverage | Done | 7ec5449 | Sync-progress test breadth broadened |
 | Provider and fixture paths | Done | recent feature merges and docs updates | Add explicit operational runbook |
 
 ### 5.4 Database and Data Quality
@@ -100,10 +109,10 @@ Source: `git log --first-parent` on `main` and selected feature commits.
 
 ## 6. Current Overall Progress
 
-Estimated overall completion: **92%**
+Estimated overall completion: **96%**
 
-- Completed: core feature set, major integration paths, docs baseline
-- Remaining: startup reliability hardening, additional regression coverage, release-level runbook polish
+- Completed: core feature set, major integration paths, docs baseline, analytics test suite, sync progress tests, presentation assets
+- Remaining: startup reliability hardening, release-level runbook polish, final demo acceptance check
 
 ## 7. Risks and Mitigations
 
@@ -142,3 +151,4 @@ When updating this document:
 - 2026-07-29: Routine sync update completed (`git fetch origin` + delta review). No new commits on `origin/main` relative to local `main`; tracker refreshed and process reaffirmed.
 - 2026-07-29: Progress sync rerun completed. `origin/main` still has no delta versus local `main`; remote activity observed on `origin/feature/Viko` (advanced from `d14b250` to `0d4294a`) and flagged for future mainline merge tracking.
 - 2026-07-29: Backfilled substantive mainline progress for today: sync progress + return-curve reporting (`ada0b55`/`7f3e394`), environment property-import support (`fcad49f`), and frontend test CI step (`57bb6f2`). Tracking policy updated to include meaningful iterative improvements, not only major merges.
+- 2026-07-30: Progress sync completed. Remote delta since last update: PR #23 (Leon) merged `7356bcc`/`62dd9f9`/`903adc1` — AnalyticsService unit tests, expanded controller coverage, sector and helper edge-case tests; PR #24 (feature/Viko) merged `976f78c` — unit-price input prefix style for trade entry UX; PR #25 merged Leon + Viko branches into main (`4b54581`). Dashboard screenshot asset committed (`8c7413a`). Presentation slide order and cover updated. Overall completion raised to 96%.
