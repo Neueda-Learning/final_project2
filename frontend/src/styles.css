@@ -1038,8 +1038,12 @@ select {
 .instrument-choice-grid {
   width: 100%;
   min-width: 0;
+  --instrument-choice-min-width: 132px;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, var(--instrument-choice-min-width)), 1fr)
+  );
   gap: 0.45rem;
 }
 
@@ -1751,9 +1755,6 @@ select {
     grid-column: 1 / -1;
   }
 
-  .instrument-choice-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 520px) {

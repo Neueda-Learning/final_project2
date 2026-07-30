@@ -1,3 +1,5 @@
+import type { CSSProperties } from "react";
+
 import type { Instrument } from "../api/types";
 import { CURATED_SECTORS, curatedSector, type CuratedSectorId } from "../data/curatedInstruments";
 import { useLanguage } from "../i18n/LanguageContext";
@@ -23,6 +25,14 @@ export function CuratedInstrumentPicker({
   const sectorInstruments = activeSector.symbols
     .map((symbol) => instrumentsBySymbol.get(symbol))
     .filter((instrument): instrument is Instrument => Boolean(instrument));
+  const longestSymbolLength = sectorInstruments.reduce(
+    (maxLength, instrument) => Math.max(maxLength, instrument.symbol.length),
+    0,
+  );
+  const instrumentChoiceMinWidthPx = Math.max(132, 84 + longestSymbolLength * 8);
+  const instrumentChoiceGridStyle = {
+    "--instrument-choice-min-width": `${instrumentChoiceMinWidthPx}px`,
+  } as CSSProperties;
 
   return (
     <div className="curated-picker">
@@ -56,7 +66,12 @@ export function CuratedInstrumentPicker({
         })}
       </div>
 
-      <div className="instrument-choice-grid" role="listbox" aria-label={t("holdings.instrumentChoices")}>
+      <div
+        className="instrument-choice-grid"
+        role="listbox"
+        aria-label={t("holdings.instrumentChoices")}
+        style={instrumentChoiceGridStyle}
+      >
         {sectorInstruments.map((instrument) => {
           const isSelected = selectedInstrument?.id === instrument.id;
           return (
