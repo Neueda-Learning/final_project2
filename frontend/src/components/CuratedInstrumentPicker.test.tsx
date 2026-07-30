@@ -54,4 +54,177 @@ describe("CuratedInstrumentPicker", () => {
     fireEvent.click(screen.getByRole("option", { name: /AAPL/i }));
     expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ symbol: "AAPL" }));
   });
+
+  it("marks the selected instrument as selected", () => {
+    render(
+      <LanguageProvider>
+        <CuratedInstrumentPicker
+          instruments={instruments}
+          selectedInstrument={instruments.find((instrument) => instrument.symbol === "QQQ") ?? null}
+          sectorId="core"
+          onSectorChange={vi.fn()}
+          onSelect={vi.fn()}
+        />
+      </LanguageProvider>,
+    );
+
+    expect(screen.getByRole("option", { name: /QQQ/i })).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("marks unselected instruments as not selected", () => {
+    render(
+      <LanguageProvider>
+        <CuratedInstrumentPicker
+          instruments={instruments}
+          selectedInstrument={instruments.find((instrument) => instrument.symbol === "QQQ") ?? null}
+          sectorId="core"
+          onSectorChange={vi.fn()}
+          onSelect={vi.fn()}
+        />
+      </LanguageProvider>,
+    );
+
+    expect(screen.getByRole("option", { name: /VTI/i })).toHaveAttribute("aria-selected", "false");
+  });
+
+  it("shows the curated unavailable notice when fewer than ten instruments are present", () => {
+    render(
+      <LanguageProvider>
+        <CuratedInstrumentPicker
+          instruments={instruments.filter((instrument) => instrument.symbol !== "BND")}
+          selectedInstrument={null}
+          sectorId="core"
+          onSectorChange={vi.fn()}
+          onSelect={vi.fn()}
+        />
+      </LanguageProvider>,
+    );
+
+    expect(
+      screen.getByText(/Some instruments are temporarily unavailable\. Refresh market data and try again\./i),
+    ).toBeInTheDocument();
+  });
+
+  it("hides the curated unavailable notice when all ten instruments are present", () => {
+    render(
+      <LanguageProvider>
+        <CuratedInstrumentPicker
+          instruments={instruments}
+          selectedInstrument={null}
+          sectorId="core"
+          onSectorChange={vi.fn()}
+          onSelect={vi.fn()}
+        />
+      </LanguageProvider>,
+    );
+
+    expect(
+      screen.queryByText(/Some instruments are temporarily unavailable\. Refresh market data and try again\./i),
+    ).toBeNull();
+  });
+
+  it("renders four sector tabs", () => {
+    render(
+      <LanguageProvider>
+        <CuratedInstrumentPicker
+          instruments={instruments}
+          selectedInstrument={null}
+          sectorId="core"
+          onSectorChange={vi.fn()}
+          onSelect={vi.fn()}
+        />
+      </LanguageProvider>,
+    );
+
+    expect(screen.getAllByRole("tab")).toHaveLength(4);
+  });
+
+  it("marks only the active sector tab as selected", () => {
+    render(
+      <LanguageProvider>
+        <CuratedInstrumentPicker
+          instruments={instruments}
+          selectedInstrument={null}
+          sectorId="income"
+          onSectorChange={vi.fn()}
+          onSelect={vi.fn()}
+        />
+      </LanguageProvider>,
+    );
+
+    expect(screen.getByRole("tab", { name: /Defensive income/i })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: /Core portfolio/i })).toHaveAttribute("aria-selected", "false");
+  });
+
+  it("switches to the themes tab through the provided callback", () => {
+    const onSectorChange = vi.fn();
+    render(
+      <LanguageProvider>
+        <CuratedInstrumentPicker
+          instruments={instruments}
+          selectedInstrument={null}
+          sectorId="core"
+          onSectorChange={onSectorChange}
+          onSelect={vi.fn()}
+        />
+      </LanguageProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("tab", { name: /Themes & Alternatives/i }));
+    expect(onSectorChange).toHaveBeenCalledWith("themes");
+  });
+
+  it("shows the active sector symbols in display order", () => {
+    render(
+      <LanguageProvider>
+        <CuratedInstrumentPicker
+          instruments={instruments}
+          selectedInstrument={null}
+          sectorId="technology"
+          onSectorChange={vi.fn()}
+          onSelect={vi.fn()}
+        />
+      </LanguageProvider>,
+    );
+
+    const options = screen.getAllByRole("option");
+    expect(options[0]).toHaveTextContent("AAPL");
+    expect(options[1]).toHaveTextContent("MSFT");
+    expect(options[2]).toHaveTextContent("NVDA");
+  });
+
+  it("preserves instrument metadata in the option title", () => {
+    render(
+      <LanguageProvider>
+        <CuratedInstrumentPicker
+          instruments={instruments}
+          selectedInstrument={null}
+          sectorId="technology"
+          onSectorChange={vi.fn()}
+          onSelect={vi.fn()}
+        />
+      </LanguageProvider>,
+    );
+
+    expect(screen.getByRole("option", { name: /AAPL/i })).toHaveAttribute(
+      "title",
+      "AAPL Fund · NASDAQ",
+    );
+  });
+
+  it("renders the listbox label for curated instrument choices", () => {
+    render(
+      <LanguageProvider>
+        <CuratedInstrumentPicker
+          instruments={instruments}
+          selectedInstrument={null}
+          sectorId="core"
+          onSectorChange={vi.fn()}
+          onSelect={vi.fn()}
+        />
+      </LanguageProvider>,
+    );
+
+    expect(screen.getByRole("listbox")).toHaveAccessibleName(/Available stocks and ETFs/i);
+  });
 });

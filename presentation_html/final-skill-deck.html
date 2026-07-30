@@ -466,7 +466,13 @@
     </div>
     <p class="body-copy mt-m" style="font-size:clamp(18px,1.3vw,24px);letter-spacing:0.06em;font-weight:700;color:var(--text-3);">Kristen &nbsp;·&nbsp; Viko &nbsp;·&nbsp; Tommy &nbsp;·&nbsp; Jermaine &nbsp;·&nbsp; Leon</p>
     <div class="deck-footer"><span class="dim2">acceptors · cover</span><span class="slide-number" data-current="1" data-total="12"></span></div>
-    <div class="notes">Hello everyone, we are Team Acceptors. Our project is Portfolio Manager MVP, a system that connects user trading actions to portfolio analytics through a reliable backend workflow. In this presentation, we will walk through what problem we addressed, how we approached delivery as a team, what the product looks like in practice, and what we will optimize next. Our goal is to show a complete, practical solution rather than isolated features.</div>
+    <div class="notes">Hi morning everyone. We are Team Acceptors, and today we're excited to present our Portfolio Manager MVP. 
+      
+      Before I come to our project, we would like to introduce ourselves first. 
+      
+      Our project is a production-oriented portfolio management platform that allows users to manage investment portfolios in a simple and efficient way. It supports the complete trading workflow, synchronizes real-time market data, and provides accurate portfolio valuation and analytics. 
+      
+      From a technical perspective, our system is built with a modern architecture. We have a frontend application, backend APIs, and background workers, all supported by a MySQL database. Throughout development, we also used continuous integration and automated testing to ensure reliability and code quality. In today's presentation, we'll demonstrate how our application works, explain the key technologies behind it, and show how all the components come together to deliver a reliable, demo-ready product. Now, let's get started.</div>
   </section>
 
   <section class="slide" data-title="Our Project">
@@ -503,7 +509,17 @@
     </div>
 
     <div class="deck-footer"><span class="dim2">acceptors · project story</span><span class="slide-number" data-current="2" data-total="12"></span></div>
-    <div class="notes">We started from a clear business gap: portfolio information was fragmented and difficult to trust quickly. Our objective was to unify records, expose meaningful metrics, and preserve traceability from action to analytics. The key point is that we were not building a static dashboard; we were building a workflow system where data state remains explainable end-to-end. This became the anchor for all technical and product decisions.</div>
+    <div class="notes">Before introducing the system, let's first look at the problem we wanted to solve.
+
+Many investors manage their portfolios using multiple spreadsheets, brokerage platforms, or different applications. As a result, portfolio records become fragmented, making it difficult to get a complete picture of their investments.
+
+Another common challenge is that profit and loss tracking is often done manually. This process is not only time-consuming but also prone to errors and delays. Without a unified view of their holdings, users may struggle to make timely investment decisions.
+
+To address these problems, we developed a Portfolio Manager that brings everything together in one platform. Users can manage their portfolios, view the entire trade lifecycle, monitor live portfolio valuations, and analyze asset allocation using up-to-date market data. Every transaction is recorded, making the trading process transparent, traceable, and easy to audit.
+
+For this project, our goal was to build the core features of the application, including portfolio and transaction management, key portfolio metrics, add and remove operations, and complete backend integration.
+
+Ultimately, we aimed to deliver a reliable product with a smooth user experience, stable APIs, and synchronized market data that is robust enough for a live demonstration and stakeholder evaluation.</div>
   </section>
 
   <section class="slide" data-title="Demo">
@@ -678,7 +694,7 @@
       </div>
     </div>
     <div class="deck-footer"><span class="dim2">acceptors · product evidence</span><span class="slide-number" data-current="7" data-total="12"></span></div>
-    <div class="notes">Instead of listing interface elements, we use this screenshot as evidence of product capability. A stakeholder can immediately read portfolio value, unrealized profit and loss, and allocation distribution from one screen. This supports faster decisions and clearer operational context. The important point is not visual style alone, but that the UI reflects backend state coherently.</div>
+    <div class="notes">Now, let's look at our product interface. This is the main portfolio dashboard. Users can quickly see the total market value, total cost, unrealized profit or loss, and asset allocation. They can also check each position and its latest price status. The trade entry function is part of the same workflow. This makes it easier for users to manage their portfolios. The key point is that this is not a static dashboard. It is connected to our backend and market data system. When the market price changes, the portfolio value can also be updated. This helps users understand their portfolios more quickly and make better decisions.</div>
   </section>
 
   <section class="slide" data-title="Architectural Diagram">
@@ -787,7 +803,7 @@
       <span><i class="dot" style="background:#334155"></i>Quality assurance</span>
     </div>
     <div class="deck-footer"><span class="dim2">acceptors · architecture</span><span class="slide-number" data-current="8" data-total="12"></span></div>
-    <div class="notes">Our architecture has two distinct data paths. The primary path handles user requests: trades and portfolio queries flow from the React frontend through the Spring Boot backend to MySQL, with responses flowing back. This path is synchronous and optimized for responsiveness. The secondary path handles market data refresh: a background worker scheduler periodically requests the latest quotes from external market data providers and persists them to the database. The separation means user-facing operations never block on external API latency, and market data updates are decoupled from trading actions. CI continuously validates that both paths work together correctly. Each layer has clear responsibilities, making the system easier to debug, extend, and operate.</div>
+    <div class="notes">This diagram shows the architecture of our system. At the top, we have the main user request path. The React frontend sends an HTTP request to the Spring Boot backend. The backend checks the request and then reads or updates data in MySQL. After that, the result is sent back to the frontend. At the bottom, we have a separate background worker. The worker regularly gets the latest prices from an external market data API. It then saves the new prices to the database. We separated these two paths because external APIs can sometimes be slow. Users do not need to wait for a market data request every time they use the system. We also use a CI pipeline to test our changes. This architecture makes the system easier to test, maintain, and extend.</div>
   </section>
 
   <section class="slide" data-title="Tech Stack">
@@ -844,7 +860,7 @@
     </div>
 
     <div class="deck-footer"><span class="dim2">acceptors · technology</span><span class="slide-number" data-current="9" data-total="12"></span></div>
-    <div class="notes">We selected technologies for delivery reliability and maintainability, not for novelty. React and TypeScript support clear UI-state management, while Spring Boot and MySQL provide dependable domain behavior and data integrity. Scheduled worker jobs isolate market refresh concerns from user request latency. Quality tooling and documentation ensure this system remains operable by more than its original authors.</div>
+    <div class="notes">Finally, this slide shows our main technology choices. For the frontend, we use React, TypeScript, and Vite. They help us build the interface quickly and keep the code clear. For the backend, we use Java 21 and Spring Boot. They provide stable REST APIs and support our business logic. We use MySQL 8 to store portfolio data, trades, holdings, and market prices. We also use scheduled worker jobs to update market data in the background. For quality control, we use CI tests and API documentation. These tools help us find problems earlier. They also help different team members follow the same API rules. Overall, we chose this technology stack because it is reliable and easy to maintain.</div>
   </section>
 
   <section class="slide" data-title="Conclusion">
@@ -881,7 +897,15 @@
     </div>
 
     <div class="deck-footer"><span class="dim2">acceptors · conclusion</span><span class="slide-number" data-current="10" data-total="12"></span></div>
-    <div class="notes">This project delivered a complete portfolio workflow with traceable analytics output. We also faced meaningful challenges, especially around integration boundaries and environment consistency. As a team, we worked effectively because responsibilities were clear and feedback loops were active. If we repeated this project, we would enforce contract testing and environment baselines even earlier to reduce integration friction.</div>
+    <div class="notes">Let's reflect on what we delivered and what we learned.
+
+We implemented the full portfolio lifecycle end to end — trades, positions, valuations, all connected. Market sync is live, and the dashboard reflects real pricing. Everything is demo-ready.
+
+The biggest challenge was cross-layer integration — keeping frontend, API, and worker aligned as we built independently. Environment consistency also took more effort than expected.
+
+What made us effective was clear ownership. Each member owned a module, decisions were fast, and shared checkpoints kept us integrated.
+
+If we did this again — stricter contract tests, and shared environment templates from day one.</div>
   </section>
 
   <section class="slide" data-title="The Road Ahead">
@@ -910,7 +934,11 @@
     </div>
 
     <div class="deck-footer"><span class="dim2">acceptors · next phase</span><span class="slide-number" data-current="11" data-total="12"></span></div>
-    <div class="notes">Our forward work focuses on optimization rather than feature inflation. We will improve reliability guardrails, deepen quality automation, and harden production readiness practices. The direction is to make the system easier to operate, easier to validate, and safer to evolve.</div>
+    <div class="notes">Going forward, we're focused on optimization, not new features.
+
+Three priorities: Reliability — better startup consistency and runbooks so the system is easier to operate. Quality — more regression coverage and stronger contract checks between layers. Product hardening — a disciplined release checklist to move from demo-ready to production-ready.
+
+All five modules landed. The architecture is clean. Next phase is about making the system easier to operate, validate, and evolve.</div>
   </section>
 
   <section class="slide center tc" data-title="Thank You">
