@@ -90,10 +90,27 @@ Service endpoints:
 
 ## Start without Docker
 
+Create and configure local environment variables first:
+
+```bash
+cp .env.example .env
+```
+
+Set the local database credentials in `.env` (for example `DATABASE_TARGET=LOCAL`,
+`FLYWAY_ENABLED=true`, and matching `DATABASE_LOCAL_*` values).
+
+Run API and worker in separate terminals so manual sync requests can be processed:
+
 Backend:
 
 ```bash
 mvn -pl backend spring-boot:run
+```
+
+Worker:
+
+```bash
+mvn -pl worker spring-boot:run
 ```
 
 Frontend:

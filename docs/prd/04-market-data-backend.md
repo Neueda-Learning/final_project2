@@ -58,7 +58,7 @@ A normalized price contains:
 
 1. Acquire a global named lock using MySQL `GET_LOCK()`.
 2. Create a `RUNNING` synchronization record.
-3. Query active instruments whose position quantity is greater than zero.
+3. Query active instruments for the tradable universe.
 4. Request approximately one month of daily history with timeouts, rate limiting, and retries.
 5. Validate symbol, date, currency, and positive price.
 6. Upsert daily OHLCV rows idempotently.

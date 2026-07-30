@@ -14,6 +14,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -30,14 +31,26 @@ public class MarketDataService {
     private final JdbcTemplate jdbc;
     private final MarketCalendarService calendar;
     private final String provider;
+    private final long manualQueueTimeoutSeconds;
 
+    @Autowired
     public MarketDataService(
             JdbcTemplate jdbc,
             MarketCalendarService calendar,
-            @Value("${market-data.provider:alpaca}") String provider) {
+            @Value("${market-data.provider:alpaca}") String provider,
+            @Value("${market-data.manual-queue-timeout-seconds:90}")
+                    long manualQueueTimeoutSeconds) {
         this.jdbc = jdbc;
         this.calendar = calendar;
         this.provider = provider;
+        this.manualQueueTimeoutSeconds = Math.max(1, manualQueueTimeoutSeconds);
+    }
+
+    MarketDataService(
+            JdbcTemplate jdbc,
+            MarketCalendarService calendar,
+            String provider) {
+        this(jdbc, calendar, provider, 90);
     }
 
     @Transactional
@@ -89,6 +102,7 @@ public class MarketDataService {
     }
 
     public Optional<SyncRunResponse> latestSyncRun() {
+        abandonStaleQueuedManualRuns();
         return querySyncRuns(
                         """
                         SELECT id, provider, status, stage, requested_count, success_count,
@@ -358,6 +372,7 @@ public class MarketDataService {
     }
 
     private Optional<SyncRunResponse> currentRunningSync() {
+        abandonStaleQueuedManualRuns();
         return querySyncRuns(
                         """
                         SELECT id, provider, status, stage, requested_count, success_count,
@@ -371,6 +386,24 @@ public class MarketDataService {
                 .stream()
                 .findFirst();
     }
+
+        private void abandonStaleQueuedManualRuns() {
+                jdbc.update(
+                                """
+                                UPDATE market_data_sync_run
+                                SET status = 'FAILED', stage = 'COMPLETED',
+                                        completed_at = CURRENT_TIMESTAMP(6),
+                                        error_summary = 'Abandoned: manual sync request was not picked up by worker'
+                                WHERE status = 'RUNNING'
+                                    AND stage = 'QUEUED'
+                                    AND triggered_by = 'MANUAL'
+                                    AND requested_count = 0
+                                    AND success_count = 0
+                                    AND failure_count = 0
+                                    AND TIMESTAMPDIFF(SECOND, started_at, CURRENT_TIMESTAMP(6)) >= ?
+                                """,
+                                manualQueueTimeoutSeconds);
+        }
 
     private Optional<SyncRunResponse> findSyncRun(String id) {
         return jdbc.query(

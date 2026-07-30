@@ -55,6 +55,7 @@ market-data:
   time-zone: ${MARKET_TIMEZONE:Asia/Shanghai}
   close-time: ${MARKET_CLOSE_TIME:16:15}
   close-time-zone: ${MARKET_CLOSE_TIMEZONE:America/New_York}
+  manual-queue-timeout-seconds: ${MARKET_MANUAL_QUEUE_TIMEOUT_SECONDS:90}
 
 logging:
   level:

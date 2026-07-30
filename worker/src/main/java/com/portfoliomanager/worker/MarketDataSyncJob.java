@@ -414,11 +414,10 @@ public class MarketDataSyncJob {
     private List<InstrumentTarget> loadActiveTargets() {
         return jdbc.query(
                 """
-                SELECT DISTINCT i.id, COALESCE(i.provider_symbol, i.symbol) provider_symbol,
-                                i.currency
-                FROM portfolio_position p
-                JOIN instrument i ON i.id = p.instrument_id
-                WHERE p.quantity > 0 AND i.is_active = TRUE
+              SELECT i.id, COALESCE(i.provider_symbol, i.symbol) provider_symbol,
+                  i.currency
+              FROM instrument i
+              WHERE i.is_active = TRUE
                 ORDER BY i.id
                 """,
                 (rs, rowNum) -> new InstrumentTarget(

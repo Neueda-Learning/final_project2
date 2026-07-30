@@ -99,7 +99,7 @@ class MarketDataSyncJobTest {
         when(jdbc.query(
                         org.mockito.ArgumentMatchers.<String>argThat(
                                 sql -> sql != null
-                                        && sql.contains("FROM portfolio_position")),
+                                        && sql.contains("FROM instrument i")),
                         any(RowMapper.class)))
                 .thenAnswer(invocation -> {
                     @SuppressWarnings("unchecked")
