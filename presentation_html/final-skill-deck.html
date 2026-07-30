@@ -1029,6 +1029,80 @@
     }
   }
 
+  /* Product evidence focus
+     Crop away navigation and the oversized page heading while preserving the
+     full KPI row, allocation chart, and return history at presentation scale. */
+  body.variant-bold-v5 .slide[data-title="Product Experience"] > .grid-tight {
+    grid-template-columns: minmax(0, 1.7fr) minmax(360px, 0.72fr);
+    align-items: center !important;
+  }
+
+  body.variant-bold-v5 .slide[data-title="Product Experience"] .img-block {
+    height: auto;
+    align-self: center;
+    justify-content: center;
+  }
+
+  body.variant-bold-v5 .slide[data-title="Product Experience"] .dashboard-focus-viewport {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 2.2 / 1;
+    overflow: hidden;
+    background: var(--bg-soft);
+  }
+
+  body.variant-bold-v5 .slide[data-title="Product Experience"] .dashboard-focus-viewport img {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    height: auto !important;
+    max-width: none;
+    min-height: 0;
+    object-fit: initial;
+    object-position: initial;
+    transform: translateY(-29%);
+    transform-origin: top center;
+  }
+
+  body.variant-bold-v5 .slide[data-title="Product Experience"] .img-caption {
+    padding: clamp(14px, 1.7vh, 19px) clamp(18px, 1.4vw, 24px);
+  }
+
+  body.variant-bold-v5 .slide[data-title="Product Experience"] .card {
+    height: 100%;
+    padding-left: clamp(26px, 2.1vw, 38px);
+    padding-right: clamp(26px, 2.1vw, 38px);
+  }
+
+  /* Technology table focus
+     With the rationale cards removed, the table becomes the single visual and
+     uses the full remaining height at a larger presentation-safe type scale. */
+  body.variant-bold-v5 .slide[data-title="Tech Stack"] > .table-wrap {
+    flex: 1 1 0;
+    min-height: 0;
+    margin-top: clamp(22px, 3vh, 34px);
+  }
+
+  body.variant-bold-v5 .slide[data-title="Tech Stack"] table.compact {
+    height: 100%;
+  }
+
+  body.variant-bold-v5 .slide[data-title="Tech Stack"] table.compact th {
+    font-size: clamp(24px, 1.7vw, 30px);
+    line-height: 1.18;
+    padding: clamp(17px, 1.8vh, 25px) clamp(18px, 1.4vw, 27px);
+  }
+
+  body.variant-bold-v5 .slide[data-title="Tech Stack"] table.compact td {
+    font-size: clamp(23px, 1.55vw, 29px);
+    line-height: 1.3;
+    padding: clamp(17px, 1.8vh, 25px) clamp(18px, 1.4vw, 27px);
+  }
+
+  body.variant-bold-v5 .slide[data-title="Tech Stack"] table.compact td:first-child {
+    font-size: clamp(25px, 1.7vw, 31px);
+  }
+
   @media print {
     .slide {
       page-break-after: always;
@@ -1269,21 +1343,37 @@ Ultimately, we aimed to deliver a reliable product with a smooth user experience
     <h2 class="h2">Interface Evidence and Business Readability</h2>
     <div class="grid-tight g2-tight mt-m" style="align-items: stretch;">
       <div class="img-block">
-        <img src="../assets/dashboard.png" alt="Portfolio dashboard screenshot">
-        <div class="img-caption">Dashboard view: market value, cost basis, unrealized P&amp;L, and allocation summary.</div>
+        <div class="dashboard-focus-viewport">
+          <img src="../assets/dashboard.png" alt="Focused portfolio dashboard showing KPIs, allocation, and return history">
+        </div>
+        <div class="img-caption">Focused dashboard view: market value, cost basis, unrealized P&amp;L, allocation, and return trend.</div>
       </div>
       <div class="card">
         <h3>Key Readouts</h3>
         <ul class="bullet-list">
-          <li>KPI cards for fast decision-making.</li>
-          <li>Position details with sync and price status.</li>
-          <li>Trade entry aligned with real portfolio workflow.</li>
-          <li>Data freshness tied to market sync pipeline.</li>
+          <li>Portfolio KPIs and allocation at a glance.</li>
+          <li>Position-level price and sync status.</li>
+          <li>Trade entry stays in the same workflow.</li>
+          <li>Market data keeps portfolio valuation current.</li>
         </ul>
       </div>
     </div>
     <div class="deck-footer"><span class="dim2">acceptors · product evidence</span><span class="slide-number" data-current="7" data-total="12"></span></div>
-    <div class="notes">Now, let's look at our product interface. This is the main portfolio dashboard. Users can quickly see the total market value, total cost, unrealized profit or loss, and asset allocation. They can also check each position and its latest price status. The trade entry function is part of the same workflow. This makes it easier for users to manage their portfolios. The key point is that this is not a static dashboard. It is connected to our backend and market data system. When the market price changes, the portfolio value can also be updated. This helps users understand their portfolios more quickly and make better decisions.</div>
+    <div class="notes">Now, let’s look at our product interface.
+
+This is the main portfolio dashboard.
+
+Users can quickly see the total market value, total cost, unrealized profit or loss, and asset allocation.
+
+They can also check each position and its latest price status.
+
+The trade entry function is part of the same workflow. This makes it easier for users to manage their portfolios.
+
+The key point is that this is not a static dashboard. It is connected to our backend and market data system.
+
+When the market price changes, the portfolio value can also be updated.
+
+This helps users understand their portfolios more quickly and make better decisions.</div>
   </section>
 
   <section class="slide" data-title="Architectural Diagram">
@@ -1434,17 +1524,6 @@ Ultimately, we aimed to deliver a reliable product with a smooth user experience
           </tr>
         </tbody>
       </table>
-    </div>
-
-    <div class="stack-rationale mt-m">
-      <div class="rationale-block">
-        <h3>Design Logic</h3>
-        <p><strong>Application Focus:</strong> Typed UI + structured APIs reduce ambiguity across layers. <strong>Data Discipline:</strong> Persistent records and migrations make the system explainable. <strong>Operational Confidence:</strong> Documentation and CI checks support repeatable delivery.</p>
-      </div>
-      <div class="rationale-block">
-        <h3>Takeaway</h3>
-        <p>Our stack choices were driven by maintainability, observability, and stable product behavior rather than novelty. We prioritized reliable delivery over technical variety.</p>
-      </div>
     </div>
 
     <div class="deck-footer"><span class="dim2">acceptors · technology</span><span class="slide-number" data-current="9" data-total="12"></span></div>
