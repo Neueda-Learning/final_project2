@@ -123,6 +123,25 @@ describe("CuratedInstrumentPicker", () => {
     ).toBeNull();
   });
 
+  it("hides the curated unavailable notice when results may be truncated by the list limit", () => {
+    render(
+      <LanguageProvider>
+        <CuratedInstrumentPicker
+          instruments={instruments.filter((instrument) => instrument.symbol !== "BND")}
+          selectedInstrument={null}
+          sectorId="core"
+          isUniverseTruncated
+          onSectorChange={vi.fn()}
+          onSelect={vi.fn()}
+        />
+      </LanguageProvider>,
+    );
+
+    expect(
+      screen.queryByText(/Some instruments are temporarily unavailable\. Refresh market data and try again\./i),
+    ).toBeNull();
+  });
+
   it("renders four sector tabs", () => {
     render(
       <LanguageProvider>

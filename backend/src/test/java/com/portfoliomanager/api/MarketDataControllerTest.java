@@ -66,6 +66,17 @@ class MarketDataControllerTest {
     }
 
     @Test
+    void runById_whenSyncExists_returnsRunWithAllFields() throws Exception {
+        when(service.syncRunById("run-2")).thenReturn(Optional.of(completedSync()));
+
+        mockMvc.perform(get("/api/v1/market-data/sync-runs/run-2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("run-2"))
+                .andExpect(jsonPath("$.status").value("SUCCEEDED"))
+                .andExpect(jsonPath("$.stage").value("COMPLETED"));
+    }
+
+    @Test
     void requestSync_withForceTrue_passesForceToService() throws Exception {
         when(service.requestManualSync(true)).thenReturn(runningSync());
 
@@ -74,6 +85,18 @@ class MarketDataControllerTest {
                         .content("{\"force\":true}"))
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.status").value("RUNNING"));
+    }
+
+    @Test
+    void requestInstrumentSync_returnsAcceptedRun() throws Exception {
+        when(service.requestInstrumentSync("instrument-1", false)).thenReturn(runningSync());
+
+        mockMvc.perform(post("/api/v1/market-data/sync/instruments/instrument-1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"force\":false}"))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.status").value("RUNNING"))
+                .andExpect(jsonPath("$.triggeredBy").value("MANUAL"));
     }
 
     @Test
