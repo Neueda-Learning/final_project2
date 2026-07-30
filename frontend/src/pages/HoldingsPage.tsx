@@ -276,19 +276,22 @@ export function HoldingsPage() {
                 <label className="form-label" htmlFor="unit-price">
                   {t("holdings.unitPrice")}
                 </label>
-                <input
-                  id="unit-price"
-                  className={`form-input${unitPriceError ? " error" : ""}`}
-                  inputMode="decimal"
-                  placeholder="0.00"
-                  value={form.unitPrice}
-                  onChange={(event) =>
-                    setForm((state) => ({
-                      ...state,
-                      unitPrice: event.target.value,
-                    }))
-                  }
-                />
+                <div className="input-prefix-wrap">
+                  <span className="input-prefix">$</span>
+                  <input
+                    id="unit-price"
+                    className={`form-input${unitPriceError ? " error" : ""}`}
+                    inputMode="decimal"
+                    placeholder="0.00"
+                    value={form.unitPrice}
+                    onChange={(event) =>
+                      setForm((state) => ({
+                        ...state,
+                        unitPrice: event.target.value,
+                      }))
+                    }
+                  />
+                </div>
                 <div className="form-hint">
                   {form.instrument && pricesQuery.isPending
                     ? t("holdings.referencePriceLoading")

@@ -52,6 +52,43 @@ class MarketDataControllerTest {
                 .andExpect(status().isOk());
     }
 
+    @Test
+    void latestRun_whenSyncExists_returnsRunWithAllFields() throws Exception {
+        when(service.latestSyncRun()).thenReturn(Optional.of(completedSync()));
+
+        mockMvc.perform(get("/api/v1/market-data/sync-runs/latest"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("run-2"))
+                .andExpect(jsonPath("$.status").value("SUCCEEDED"))
+                .andExpect(jsonPath("$.stage").value("COMPLETED"))
+                .andExpect(jsonPath("$.successCount").value(42))
+                .andExpect(jsonPath("$.triggeredBy").value("SCHEDULE"));
+    }
+
+    @Test
+    void requestSync_withForceTrue_passesForceToService() throws Exception {
+        when(service.requestManualSync(true)).thenReturn(runningSync());
+
+        mockMvc.perform(post("/api/v1/market-data/sync")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"force\":true}"))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.status").value("RUNNING"));
+    }
+
+    @Test
+    void requestSync_completedSyncRun_returnsSucceededStatus() throws Exception {
+        when(service.requestManualSync(false)).thenReturn(completedSync());
+
+        mockMvc.perform(post("/api/v1/market-data/sync")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"force\":false}"))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.status").value("SUCCEEDED"))
+                .andExpect(jsonPath("$.successCount").value(42))
+                .andExpect(jsonPath("$.errorSummary").doesNotExist());
+    }
+
     private SyncRunResponse runningSync() {
         return new SyncRunResponse(
                 "run-1",
@@ -64,6 +101,21 @@ class MarketDataControllerTest {
                 LocalDateTime.of(2026, 7, 27, 9, 0),
                 null,
                 SyncTrigger.MANUAL,
+                null);
+    }
+
+    private SyncRunResponse completedSync() {
+        return new SyncRunResponse(
+                "run-2",
+                "alpaca",
+                SyncStatus.SUCCEEDED,
+                SyncStage.COMPLETED,
+                42,
+                42,
+                0,
+                LocalDateTime.of(2026, 7, 27, 22, 0),
+                LocalDateTime.of(2026, 7, 27, 22, 5),
+                SyncTrigger.SCHEDULE,
                 null);
     }
 }
