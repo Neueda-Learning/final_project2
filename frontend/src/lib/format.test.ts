@@ -7,6 +7,7 @@ import {
   formatDateTime,
   formatPercent,
   formatQuantity,
+  isAfterBeijingToday,
   pnlArrow,
   pnlSign,
   toEpochMs,
@@ -74,6 +75,14 @@ describe("format helpers", () => {
   it("generates today date in Beijing timezone", () => {
     expect(beijingTodayISODate(new Date("2026-07-27T17:30:00Z")))
       .toBe("2026-07-28");
+  });
+
+  it("detects dates after today using Beijing timezone", () => {
+    const now = new Date("2026-07-27T15:30:00Z");
+
+    expect(isAfterBeijingToday("2026-07-28", now)).toBe(true);
+    expect(isAfterBeijingToday("2026-07-27", now)).toBe(false);
+    expect(isAfterBeijingToday("invalid", now)).toBe(false);
   });
 
   it("returns pnl sign and arrow", () => {

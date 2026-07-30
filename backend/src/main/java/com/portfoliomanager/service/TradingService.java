@@ -129,6 +129,12 @@ public class TradingService {
                     "Instrument is inactive: " + request.instrumentId());
         }
 
+        LocalDate beijingToday = LocalDate.now(BEIJING_ZONE);
+        if (request.tradeDate().isAfter(beijingToday)) {
+            throw new IllegalArgumentException(
+                "tradeDate must be on or before today (Asia/Shanghai)");
+        }
+
         // Replay the original transaction when the idempotency key already exists.
         Optional<TradeTransaction> existingTrade =
                 transactions.findByPortfolioIdAndIdempotencyKey(portfolioId, idempotencyKey);

@@ -24,13 +24,34 @@ export function Layout() {
 
   const portfolioId = searchParams.get("portfolioId");
   const portfolios = portfoliosQuery.data?.items ?? [];
+  const hasSelectedPortfolio =
+    portfolioId !== null && portfolios.some((portfolio) => portfolio.id === portfolioId);
 
   useEffect(() => {
-    if (portfolioId || portfolios.length === 0) return;
+    if (portfoliosQuery.isPending || portfoliosQuery.isError) return;
+
     const params = new URLSearchParams(searchParams);
+
+    if (portfolios.length === 0) {
+      if (!portfolioId) return;
+      params.delete("portfolioId");
+      setSearchParams(params, { replace: true });
+      return;
+    }
+
+    if (hasSelectedPortfolio) return;
+
     params.set("portfolioId", portfolios[0].id);
     setSearchParams(params, { replace: true });
-  }, [portfolioId, portfolios, searchParams, setSearchParams]);
+  }, [
+    hasSelectedPortfolio,
+    portfolioId,
+    portfolios,
+    portfoliosQuery.isError,
+    portfoliosQuery.isPending,
+    searchParams,
+    setSearchParams,
+  ]);
 
   const selectedPortfolio = useMemo(
     () => portfolios.find((portfolio) => portfolio.id === portfolioId) ?? null,

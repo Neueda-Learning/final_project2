@@ -20,6 +20,7 @@ import com.portfoliomanager.repository.PortfolioRepository;
 import com.portfoliomanager.repository.TradeTransactionRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -97,6 +98,34 @@ class TradingServiceTest {
         assertThat(saved.getCurrency()).isEqualTo("USD");
         assertThat(saved.getExecutedAt()).isEqualTo(tradeDate.atTime(16, 0));
         assertThat(saved.getFeeAmount()).isEqualByComparingTo("0");
+    }
+
+    @Test
+    void createTransactionRejectsTradeDateAfterTodayInBeijing() {
+        String portfolioId = "portfolio-id";
+        String instrumentId = "instrument-id";
+        LocalDate futureTradeDate = LocalDate.now(ZoneId.of("Asia/Shanghai")).plusDays(1);
+        given(portfolios.findById(portfolioId)).willReturn(Optional.of(portfolio));
+        given(portfolio.isArchived()).willReturn(false);
+        given(instruments.findById(instrumentId)).willReturn(Optional.of(instrument));
+        given(instrument.isActive()).willReturn(true);
+
+        assertThatThrownBy(() -> service.createTransaction(
+            portfolioId,
+            "key",
+            new TransactionCreateRequest(
+                instrumentId,
+                TradeSide.BUY,
+                new BigDecimal("1"),
+                futureTradeDate,
+                new BigDecimal("214.05000000"),
+                null,
+                null)))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("tradeDate must be on or before today (Asia/Shanghai)");
+
+        verify(transactions, never()).findByPortfolioIdAndIdempotencyKey(any(), any());
+        verify(transactions, never()).save(any());
     }
 
         @Test

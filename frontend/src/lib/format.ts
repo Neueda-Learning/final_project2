@@ -44,6 +44,20 @@ export function beijingTodayISODate(now = new Date()): string {
   return `${year}-${month}-${day}`;
 }
 
+export function isAfterBeijingToday(value: string, now = new Date()): boolean {
+  const date = value.trim();
+  if (!DATE_ONLY.test(date)) {
+    return false;
+  }
+
+  const today = beijingTodayISODate(now);
+  if (!today) {
+    return false;
+  }
+
+  return date > today;
+}
+
 /** Format a decimal string as a localised currency value. */
 export function formatCurrency(
   value: string | number | null | undefined,

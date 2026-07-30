@@ -10,7 +10,12 @@ import { ErrorBox } from "../components/ErrorBox";
 import { InstrumentInsightPanel } from "../components/InstrumentInsightPanel";
 import { PageHeader } from "../components/PageHeader";
 import type { CuratedSectorId } from "../data/curatedInstruments";
-import { beijingTodayISODate, formatCurrency, formatQuantity } from "../lib/format";
+import {
+  beijingTodayISODate,
+  formatCurrency,
+  formatQuantity,
+  isAfterBeijingToday,
+} from "../lib/format";
 import { useLanguage } from "../i18n/LanguageContext";
 
 interface TradeFormState {
@@ -137,16 +142,24 @@ export function HoldingsPage() {
     );
   }, [form.instrument, form.tradeDate, pricesQuery.isPending, referencePrice]);
 
+  const beijingToday = beijingTodayISODate();
+  const tradeDateIsInFuture =
+    form.tradeDate.length > 0 && isAfterBeijingToday(form.tradeDate);
+
   const canSubmit =
     Boolean(portfolioId) &&
     Boolean(form.instrument) &&
     form.quantity.trim().length > 0 &&
     form.tradeDate.length > 0 &&
+    !tradeDateIsInFuture &&
     form.unitPrice.trim().length > 0;
 
   const currency = selectedPortfolio?.baseCurrency ?? "USD";
   const quantityError = fieldError(submitMutation.error, "quantity");
-  const tradeDateError = fieldError(submitMutation.error, "tradeDate");
+  const tradeDateError =
+    tradeDateIsInFuture
+      ? t("holdings.tradeDateFutureError")
+      : fieldError(submitMutation.error, "tradeDate");
   const unitPriceError = fieldError(submitMutation.error, "unitPrice");
   const feeAmountError = fieldError(submitMutation.error, "feeAmount");
   const noteError = fieldError(submitMutation.error, "note");
@@ -256,6 +269,7 @@ export function HoldingsPage() {
                   id="execution-date"
                   className={`form-input${tradeDateError ? " error" : ""}`}
                   value={form.tradeDate}
+                  max={beijingToday}
                   onChange={(event) =>
                     setForm((state) => ({
                       ...state,
