@@ -409,4 +409,204 @@ describe("CuratedInstrumentPicker", () => {
     fireEvent.click(screen.getByRole("tab", { name: /Core portfolio/i }));
     expect(onSectorChange).toHaveBeenCalledWith("core");
   });
+
+  it("renders each option asset type label", () => {
+    render(
+      <LanguageProvider>
+        <CuratedInstrumentPicker
+          instruments={instruments}
+          selectedInstrument={null}
+          sectorId="technology"
+          onSectorChange={vi.fn()}
+          onSelect={vi.fn()}
+        />
+      </LanguageProvider>,
+    );
+
+    expect(screen.getByRole("option", { name: /AAPL/i })).toHaveTextContent("STOCK");
+    expect(screen.getByRole("option", { name: /MSFT/i })).toHaveTextContent("ETF");
+  });
+
+  it("renders a checkmark for the selected option", () => {
+    render(
+      <LanguageProvider>
+        <CuratedInstrumentPicker
+          instruments={instruments}
+          selectedInstrument={instruments.find((instrument) => instrument.symbol === "VOO") ?? null}
+          sectorId="core"
+          onSectorChange={vi.fn()}
+          onSelect={vi.fn()}
+        />
+      </LanguageProvider>,
+    );
+
+    expect(screen.getByRole("option", { name: /VOO/i })).toHaveTextContent("✓");
+  });
+
+  it("does not render a checkmark for unselected options", () => {
+    render(
+      <LanguageProvider>
+        <CuratedInstrumentPicker
+          instruments={instruments}
+          selectedInstrument={instruments.find((instrument) => instrument.symbol === "VOO") ?? null}
+          sectorId="core"
+          onSectorChange={vi.fn()}
+          onSelect={vi.fn()}
+        />
+      </LanguageProvider>,
+    );
+
+    expect(screen.getByRole("option", { name: /VTI/i })).not.toHaveTextContent("✓");
+  });
+
+  it("preserves curated order when the incoming instruments are shuffled", () => {
+    render(
+      <LanguageProvider>
+        <CuratedInstrumentPicker
+          instruments={[...instruments].reverse()}
+          selectedInstrument={null}
+          sectorId="core"
+          onSectorChange={vi.fn()}
+          onSelect={vi.fn()}
+        />
+      </LanguageProvider>,
+    );
+
+    expect(screen.getAllByRole("option").map((option) => option.textContent?.trim() ?? "").slice(0, 4)).toEqual([
+      expect.stringContaining("VOO"),
+      expect.stringContaining("VTI"),
+      expect.stringContaining("QQQ"),
+      expect.stringContaining("VT"),
+    ]);
+  });
+
+  it("uses the latest instrument entry when duplicate symbols are provided", () => {
+    const duplicateAapl = {
+      ...instruments.find((instrument) => instrument.symbol === "AAPL")!,
+      id: "instrument-AAPL-duplicate",
+      name: "AAPL Updated Fund",
+      exchangeCode: "NYSE",
+    };
+
+    render(
+      <LanguageProvider>
+        <CuratedInstrumentPicker
+          instruments={[...instruments, duplicateAapl]}
+          selectedInstrument={duplicateAapl}
+          sectorId="technology"
+          onSectorChange={vi.fn()}
+          onSelect={vi.fn()}
+        />
+      </LanguageProvider>,
+    );
+
+    expect(screen.getByRole("option", { name: /AAPL/i })).toHaveAttribute("title", "AAPL Updated Fund · NYSE");
+    expect(screen.getByRole("option", { name: /AAPL/i })).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("does not select an option when only the symbol matches but the id differs", () => {
+    render(
+      <LanguageProvider>
+        <CuratedInstrumentPicker
+          instruments={instruments}
+          selectedInstrument={{
+            ...(instruments.find((instrument) => instrument.symbol === "VOO") ?? instruments[0]),
+            id: "different-id",
+          }}
+          sectorId="core"
+          onSectorChange={vi.fn()}
+          onSelect={vi.fn()}
+        />
+      </LanguageProvider>,
+    );
+
+    expect(screen.getByRole("option", { name: /VOO/i })).toHaveAttribute("aria-selected", "false");
+  });
+
+  it("passes the deduplicated instrument instance to onSelect", () => {
+    const duplicateAapl = {
+      ...instruments.find((instrument) => instrument.symbol === "AAPL")!,
+      id: "instrument-AAPL-duplicate",
+      name: "AAPL Updated Fund",
+    };
+    const onSelect = vi.fn();
+
+    render(
+      <LanguageProvider>
+        <CuratedInstrumentPicker
+          instruments={[...instruments, duplicateAapl]}
+          selectedInstrument={null}
+          sectorId="technology"
+          onSectorChange={vi.fn()}
+          onSelect={onSelect}
+        />
+      </LanguageProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("option", { name: /AAPL/i }));
+    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: "instrument-AAPL-duplicate" }));
+  });
+
+  it("renders no options and shows the notice when there are no instruments", () => {
+    render(
+      <LanguageProvider>
+        <CuratedInstrumentPicker
+          instruments={[]}
+          selectedInstrument={null}
+          sectorId="core"
+          onSectorChange={vi.fn()}
+          onSelect={vi.fn()}
+        />
+      </LanguageProvider>,
+    );
+
+    expect(screen.queryAllByRole("option")).toHaveLength(0);
+    expect(screen.getByText(/Some instruments are temporarily unavailable/i)).toBeInTheDocument();
+  });
+
+  it("falls back to the core sector list for an unexpected runtime sector id", () => {
+    render(
+      <LanguageProvider>
+        <CuratedInstrumentPicker
+          instruments={instruments}
+          selectedInstrument={null}
+          sectorId={"unexpected" as never}
+          onSectorChange={vi.fn()}
+          onSelect={vi.fn()}
+        />
+      </LanguageProvider>,
+    );
+
+    const options = screen.getAllByRole("option");
+    expect(options[0]).toHaveTextContent("VOO");
+    expect(options).toHaveLength(10);
+  });
+
+  it("keeps the notice hidden when the active sector has all ten symbols plus extra off-sector instruments", () => {
+    render(
+      <LanguageProvider>
+        <CuratedInstrumentPicker
+          instruments={[
+            ...instruments.filter((instrument) => CURATED_SECTORS[0].symbols.includes(instrument.symbol)),
+            {
+              id: "instrument-SPY",
+              symbol: "SPY",
+              name: "SPY Fund",
+              assetType: "ETF",
+              exchangeCode: "NYSE",
+              currency: "USD",
+              isActive: true,
+            },
+          ]}
+          selectedInstrument={null}
+          sectorId="core"
+          onSectorChange={vi.fn()}
+          onSelect={vi.fn()}
+        />
+      </LanguageProvider>,
+    );
+
+    expect(screen.getAllByRole("option")).toHaveLength(10);
+    expect(screen.queryByText(/Some instruments are temporarily unavailable/i)).toBeNull();
+  });
 });
