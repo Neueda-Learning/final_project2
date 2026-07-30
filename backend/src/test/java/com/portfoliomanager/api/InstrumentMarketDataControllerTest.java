@@ -73,4 +73,29 @@ class InstrumentMarketDataControllerTest {
                 .andExpect(jsonPath("$.total").value(390))
                 .andExpect(jsonPath("$.hasNext").value(true));
     }
+
+    @Test
+    void returnsEmptyItemsListWhenNoBarsExist() throws Exception {
+        LocalDateTime from = LocalDateTime.of(2026, 7, 27, 13, 30);
+        LocalDateTime to   = LocalDateTime.of(2026, 7, 27, 20, 0);
+        when(service.bars(
+                        eq("instrument-1"),
+                        eq("1min"),
+                        eq(from),
+                        eq(to),
+                        eq(1),
+                        eq(100)))
+                .thenReturn(new MarketBarPageResponse(List.of(), 1, 100, 0, false));
+
+        mockMvc.perform(get("/api/v1/instruments/instrument-1/bars")
+                        .param("interval", "1min")
+                        .param("from", "2026-07-27T13:30:00")
+                        .param("to", "2026-07-27T20:00:00")
+                        .param("page", "1")
+                        .param("pageSize", "100"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(0))
+                .andExpect(jsonPath("$.total").value(0))
+                .andExpect(jsonPath("$.hasNext").value(false));
+    }
 }
