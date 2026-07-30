@@ -1466,9 +1466,9 @@ Ultimately, we aimed to deliver a reliable product with a smooth user experience
       <div class="card">
         <h3>Challenges We Faced</h3>
         <ul class="bullet-list">
-          <li>Cross-layer integration timing and contract drift risk.</li>
+          <li>Slow API response times affecting frontend rendering performance.</li>
+          <li>Frontend and backend data alignment: keeping API response shapes in sync with UI expectations.</li>
           <li>Environment consistency in non-container startup paths.</li>
-          <li>Balancing rapid iteration with reliability safeguards.</li>
         </ul>
       </div>
     </div>
@@ -1485,15 +1485,13 @@ Ultimately, we aimed to deliver a reliable product with a smooth user experience
     </div>
 
     <div class="deck-footer"><span class="dim2">acceptors · conclusion</span><span class="slide-number" data-current="10" data-total="12"></span></div>
-    <div class="notes">Let's reflect on what we delivered and what we learned.
+    <div class="notes">Let's reflect on what we delivered and learned.
 
-We implemented the full portfolio lifecycle end to end — trades, positions, valuations, all connected. Market sync is live, and the dashboard reflects real pricing. Everything is demo-ready.
+We built the full portfolio lifecycle end to end — trades, positions, valuations, all connected and demo-ready.
 
-The biggest challenge was cross-layer integration — keeping frontend, API, and worker aligned as we built independently. Environment consistency also took more effort than expected.
+Three main challenges: API response times were slower than expected, which affected frontend rendering. Frontend and backend data alignment took extra coordination — keeping API shapes in sync with UI expectations. And environment consistency across team members was harder without containerization.
 
-What made us effective was clear ownership. Each member owned a module, decisions were fast, and shared checkpoints kept us integrated.
-
-If we did this again — stricter contract tests, and shared environment templates from day one.</div>
+Clear ownership kept us fast. If we did this again — stricter contract tests and shared environment templates from day one.</div>
   </section>
 
   <section class="slide" data-title="The Road Ahead">
@@ -1522,11 +1520,11 @@ If we did this again — stricter contract tests, and shared environment templat
     </div>
 
     <div class="deck-footer"><span class="dim2">acceptors · next phase</span><span class="slide-number" data-current="11" data-total="12"></span></div>
-    <div class="notes">Going forward, we're focused on optimization, not new features.
+    <div class="notes">Going forward: optimization, not new features.
 
-Three priorities: Reliability — better startup consistency and runbooks so the system is easier to operate. Quality — more regression coverage and stronger contract checks between layers. Product hardening — a disciplined release checklist to move from demo-ready to production-ready.
+Three priorities — Reliability: better runbooks and startup consistency. Quality: stronger contract checks and regression coverage. Hardening: a release checklist to move from demo-ready to production-ready.
 
-All five modules landed. The architecture is clean. Next phase is about making the system easier to operate, validate, and evolve.</div>
+All five modules landed. Next phase is making the system easier to operate and evolve.</div>
   </section>
 
   <section class="slide center tc" data-title="Thank You">
@@ -1542,7 +1540,7 @@ All five modules landed. The architecture is clean. Next phase is about making t
       </div>
     </div>
     <div class="deck-footer"><span class="dim2">acceptors · closing</span><span class="slide-number" data-current="12" data-total="12"></span></div>
-    <div class="notes">Thank you for listening. We hope this presentation showed not only what the product does, but also why the system is structured the way it is. We are happy to discuss product decisions, architecture tradeoffs, and the optimization priorities we identified for the next phase.</div>
+    <div class="notes">Thank you. We're happy to take any questions on the product, architecture, or what we'd improve next.</div>
   </section>
 </div>
 <script src="../html-ppt-skill-main/html-ppt-skill-main/assets/runtime.js"></script>
